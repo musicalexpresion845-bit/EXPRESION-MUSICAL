@@ -13833,11 +13833,10 @@ const asistenciaApp = {
             
             historial.push(nuevoRegistro);
             localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-                  if (window.db) {
-            import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({ setDoc, doc }) => {
-                setDoc(doc(window.db, "asistencia", String(nuevoRegistro.id)), nuevoRegistro);
-            });
-        }
+                if (window.db) {
+    window.db.collection('asistencia').doc(String(nuevoRegistro.id)).set(nuevoRegistro)
+        .catch(err => console.error("Error guardando asistencia:", err));
+}
             console.log("✅ Guardado exitoso. Total registros:", historial.length);
             
         } catch (error) {
@@ -20088,9 +20087,7 @@ document.getElementById('logoutButtonDocenteVirtual')?.addEventListener('click',
     document.getElementById('docentePanelVirtual').style.display = 'none';
     document.getElementById('secretariaScreen').style.display = 'none';
 });
-    <script>
-
-    <script>
+    
 async function sincronizarTodoConFirebase() {
     if (!window.db) {
         console.warn("Firebase no disponible");
