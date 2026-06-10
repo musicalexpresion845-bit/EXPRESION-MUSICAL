@@ -11342,11 +11342,10 @@ function guardarInscripcion(inscripcion) {
     // ACTUALIZAR DATOS DE ASISTENCIA después de guardar la inscripción
     actualizarEstudianteEnAsistencia(inscripcion);
     
-      if (window.db) {
-        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({ setDoc, doc }) => {
-            setDoc(doc(window.db, "inscripciones", String(inscripcion.id)), inscripcion);
-        });
-    }
+     if (window.db) {
+    window.db.collection('asistencia').doc(String(nuevoRegistro.id)).set(nuevoRegistro)
+        .catch(err => console.error("Error guardando asistencia:", err));
+}
     return inscripcion.id;
 }
 
@@ -19996,21 +19995,19 @@ function agregarGrabacionClase(claseId) {
 }
 
 // ========== SINCRONIZACIÓN CON FIREBASE ==========
-window.syncToFirestore = async (coleccion, id, data) => {
+window.syncToFirestore = (coleccion, id, data) => {
     if (!window.db) return;
-    try {
-        const docRef = doc(window.db, coleccion, String(id));
-        await setDoc(docRef, data, { merge: true });
-        console.log(`✅ Sincronizado: ${coleccion}/${id}`);
-    } catch (e) { console.error("Error sync:", e); }
+    window.db.collection(coleccion).doc(String(id)).set(data, { merge: true })
+        .then(() => console.log(`✅ Sincronizado: ${coleccion}/${id}`))
+        .catch(err => console.error("Error sync:", err));
 };
 
 window.loadFromFirestore = async (coleccion, localStorageKey) => {
     if (!window.db) return;
     try {
-        const querySnapshot = await getDocs(collection(window.db, coleccion));
+        const snapshot = await window.db.collection(coleccion).get();
         const datos = [];
-        querySnapshot.forEach(doc => datos.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach(doc => datos.push({ id: doc.id, ...doc.data() }));
         if (datos.length) {
             localStorage.setItem(localStorageKey, JSON.stringify(datos));
             console.log(`📥 Cargados ${datos.length} desde Firebase (${coleccion})`);
@@ -20593,4 +20590,4 @@ var registrarPago = window.registrarPago;
 console.log("✅ Función registrarPago instalada correctamente (con refresco asegurado)");
 </script>
 </body>
-</html>         
+</html>        
