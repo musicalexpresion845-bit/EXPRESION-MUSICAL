@@ -7477,7 +7477,7 @@ let asistenciasHoy = 0;          // Contador de asistencias hoy
 
 // Función para cargar todos los datos
 async function loadAllData() {
-    console.log('🔄 Cargando datos...');
+    console.log('🔄 Cargando datos (modo compat)...');
     
     // Esperar a que Firebase esté disponible (máximo 5 segundos)
     let espera = 0;
@@ -7490,17 +7490,13 @@ async function loadAllData() {
         console.warn('⚠️ Firebase no disponible, usando solo localStorage');
         const stored = localStorage.getItem('inscriptions');
         inscriptions = (stored && stored !== '[]') ? JSON.parse(stored) : [];
-        if (typeof renderTable === 'function') {
-    // Si existe searchInput, tomar su valor; si no, pasar cadena vacía
-    const searchVal = (typeof searchInput !== 'undefined' && searchInput) ? searchInput.value : '';
-    renderTable(searchVal);
-}
+        if (typeof renderTable === 'function') renderTable();
         return;
     }
     
     try {
-        const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const snapshot = await getDocs(collection(window.db, "inscripciones"));
+        // Usamos la sintaxis COMPAT (sin imports dinámicos)
+        const snapshot = await window.db.collection('inscripciones').get();
         const firestoreData = [];
         snapshot.forEach(doc => firestoreData.push(doc.data()));
         
@@ -7557,23 +7553,23 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
         let newId;
         if (isEditing && currentEditId) {
             nuevaInscripcion.id = currentEditId;
-            newId = await database.saveInscription(nuevaInscripcion);
+            newId = currentEditId;
+            // Actualizar en array local
             const index = inscriptions.findIndex(ins => ins.id == currentEditId);
             if (index !== -1) inscriptions[index] = nuevaInscripcion;
             actualizarEstudianteEnAsistencia(nuevaInscripcion);
         } else {
-            newId = await database.saveInscription(nuevaInscripcion);
+            newId = Date.now() + Math.floor(Math.random() * 1000);
             nuevaInscripcion.id = newId;
             inscriptions.push(nuevaInscripcion);
         }
 
-        // ✅ Guardar en localStorage (siempre)
+        // Guardar en localStorage
         localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
         
-        // ✅ Guardar en Firestore (siempre que esté disponible)
+        // Guardar en Firestore usando sintaxis compat
         if (window.db) {
-            const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-            await setDoc(doc(window.db, "inscripciones", String(nuevaInscripcion.id)), nuevaInscripcion);
+            await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
             console.log("☁️ Guardado en Firestore:", nuevaInscripcion.id);
         }
 
@@ -7612,16 +7608,15 @@ async function eliminarInscripcion(id) {
     const idStr = String(id);
     console.log("🔄 Eliminando ID:", idStr);
 
-    // Buscar estudiante en el array local (para la asistencia)
+    // Buscar estudiante en el array local
     const inscripcion = inscriptions.find(ins => String(ins.id) === idStr);
     
     let eliminado = false;
 
-    // 1. Eliminar de Firestore
+    // 1. Eliminar de Firestore (sintaxis compat)
     if (window.db) {
         try {
-            const { deleteDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-            await deleteDoc(doc(window.db, "inscripciones", idStr));
+            await window.db.collection('inscripciones').doc(idStr).delete();
             console.log("🗑️ Eliminado de Firestore:", idStr);
             eliminado = true;
         } catch (e) {
@@ -7638,7 +7633,7 @@ async function eliminarInscripcion(id) {
         console.log(`📦 Local: ${antes} → ${inscriptions.length}`);
     } else {
         console.warn("⚠️ No se encontró el ID en el array local");
-        // Intentar eliminar directamente de localStorage (por si el array no está actualizado)
+        // Intentar eliminar directamente de localStorage
         let stored = localStorage.getItem('inscriptions');
         if (stored) {
             let data = JSON.parse(stored);
@@ -7657,7 +7652,7 @@ async function eliminarInscripcion(id) {
         return;
     }
 
-    // 3. Sincronizar pagos y asistencia (solo si se encontró el estudiante)
+    // 3. Sincronizar pagos y asistencia
     if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
     if (typeof sincronizarEstudiantesConPagos === 'function') sincronizarEstudiantesConPagos();
     if (inscripcion && typeof eliminarEstudianteDeAsistencia === 'function') {
@@ -7667,7 +7662,7 @@ async function eliminarInscripcion(id) {
     // 4. Actualizar tabla
     if (typeof renderTable === 'function') renderTable();
     if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-location.reload();
+    
     showToast('✅ Inscripción eliminada correctamente', 'success');
 }
 // ============================================
@@ -20598,4 +20593,4 @@ var registrarPago = window.registrarPago;
 console.log("✅ Función registrarPago instalada correctamente (con refresco asegurado)");
 </script>
 </body>
-</html>        
+</html>         
