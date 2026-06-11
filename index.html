@@ -16555,9 +16555,35 @@ function limpiarBotonesDocente() {
     });
 }
 
-        // Manejar el evento de login
-     document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // Manejar el evento de login (MEJORADO - espera sincronización)
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    // Mostrar "cargando" en el botón (opcional)
+    const loginBtn = this.querySelector('.login-btn');
+    const originalText = loginBtn.innerHTML;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+    loginBtn.disabled = true;
+    
+    // Esperar hasta que los usuarios estén cargados (máximo 3 segundos)
+    let espera = 0;
+    while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 30) {
+        await new Promise(r => setTimeout(r, 100));
+        espera++;
+    }
+    
+    // Restaurar botón
+    loginBtn.innerHTML = originalText;
+    loginBtn.disabled = false;
+    
+    // Si después de esperar no hay usuarios, mostrar error
+    if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
+        document.getElementById('loginError').textContent = "Error cargando usuarios. Recarga la página.";
+        document.getElementById('loginError').style.display = 'block';
+        return;
+    }
+    
+    // Obtener datos del formulario
     const userType = document.getElementById('userType').value;
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
@@ -16568,26 +16594,25 @@ function limpiarBotonesDocente() {
         errorElement.style.display = 'block';
         return;
     }
-
-    // Buscar el usuario en systemUsers
-    const usuario = systemUsers[username];
+    
+    // Buscar el usuario en systemUsers (ya sincronizado)
+    const usuario = window.systemUsers[username];
+    
     if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
         errorElement.style.display = 'none';
-        
-        // Guardar TODA la información del usuario en localStorage
         localStorage.setItem('currentUser', JSON.stringify(usuario));
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userType', userType);
-        
         hideLogin();
         updateInterfaceForUserType(userType);
-      mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+        mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
     } else {
-        errorElement.textContent = "Credenciales incorrectas. Intente nuevamente.";
+        errorElement.textContent = "Credenciales incorrectas o usuario inactivo";
         errorElement.style.display = 'block';
     }
 });
 
+   
         // Cerrar sesión
       function logout() {
     localStorage.removeItem('isLoggedIn');
@@ -16989,22 +17014,50 @@ function cerrarModal(modalId) {
 document.addEventListener('DOMContentLoaded', function() {
     inicializarUsuariosPorDefecto();
     
-    // Asignar event listener al botón de gestión de usuarios
-    const btnGestionUsuarios = document.getElementById('btnGestionUsuarios');
-    if (btnGestionUsuarios) {
-        btnGestionUsuarios.addEventListener('click', function() {
-            // Ocultar todos los contenedores
-            document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer').forEach(container => {
-                container.style.display = 'none';
-            });
-            
-            // Mostrar gestión de usuarios
-            document.getElementById('gestionUsuariosContainer').style.display = 'block';
-            
-            // Cargar tabla de usuarios
-            cargarTablaUsuarios();
+  // Asignar event listener al botón de gestión de usuarios (con recarga desde Firestore)
+const btnGestionUsuarios = document.getElementById('btnGestionUsuarios');
+if (btnGestionUsuarios) {
+    btnGestionUsuarios.addEventListener('click', async function() {
+        // Ocultar todos los contenedores
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer').forEach(container => {
+            container.style.display = 'none';
         });
-    }
+        
+        // Mostrar gestión de usuarios
+        document.getElementById('gestionUsuariosContainer').style.display = 'block';
+        
+        // === FORZAR RECARGA DE USUARIOS DESDE FIRESTORE ===
+        if (window.db) {
+            try {
+                const snapshot = await window.db.collection('usuarios').get();
+                const usuariosFirestore = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    usuariosFirestore[data.username] = data;
+                });
+                if (Object.keys(usuariosFirestore).length > 0) {
+                    let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+                    let unidos = { ...locales, ...usuariosFirestore };
+                    localStorage.setItem('systemUsers', JSON.stringify(unidos));
+                    window.systemUsers = unidos;
+                    console.log(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde Firestore`);
+                    // Opcional: mostrar mensaje visual (puedes quitar el alert si no quieres)
+                    // alert(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde la nube`);
+                } else {
+                    console.log("⚠️ No hay usuarios en Firestore");
+                }
+            } catch (e) {
+                console.error("Error cargando usuarios:", e);
+                alert("❌ Error al cargar usuarios desde la nube: " + e.message);
+            }
+        } else {
+            console.warn("Firebase no disponible");
+        }
+        
+        // Cargar tabla de usuarios (ya con los datos actualizados)
+        cargarTablaUsuarios();
+    });
+}
     
     // Asignar event listener al botón "Nuevo Usuario"
     const nuevoUsuarioBtn = document.getElementById('nuevoUsuarioBtn');
