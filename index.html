@@ -11144,24 +11144,29 @@ function calcularFechaVencimiento(fechaInicio) {
     mostrarSeccionRecibos('formulario');
 });
 
-            btnPagos.addEventListener('click', function() {
-                resetMenu();
-                this.classList.add('active');
-                panelTitle.textContent = "Gestión de Pagos";
-
-                // Ocultar todos los contenedores
-                document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #asistenciaContainer, #gestionUsuariosContainer').forEach(container => {
-                    container.style.display = 'none';
-                });
-
-                welcomeMessage.style.display = 'none';
-                pagosContainer.style.display = 'block';
-                fabContainer.style.display = 'block';
-               ocultarRecibo(); 
-
-                iniciarPagos();
-              sincronizarPagosConInscripciones();
-            });
+          btnPagos.addEventListener('click', async function() {
+    resetMenu();
+    this.classList.add('active');
+    panelTitle.textContent = "Gestión de Pagos";
+    
+    // Ocultar otros contenedores
+    document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #asistenciaContainer, #gestionUsuariosContainer').forEach(container => {
+        container.style.display = 'none';
+    });
+    
+    welcomeMessage.style.display = 'none';
+    pagosContainer.style.display = 'block';
+    fabContainer.style.display = 'block';
+    ocultarRecibo();
+    
+    // Esperar a que carguen los pagos desde Firestore
+    await iniciarPagos();
+    
+    // Sincronizar estudiantes (actualizar lista)
+    sincronizarPagosConInscripciones();
+    
+    console.log("✅ Pagos cargados:", window.datos?.pagos?.length);
+});
 
             btnAsistencia.addEventListener('click', function() {
                 resetMenu();
