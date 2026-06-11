@@ -4641,6 +4641,46 @@ body.dark-mode .acciones .btn:hover {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+        /* ===== AJUSTE PARA QUE EL RECIBO QUEPA EN UNA SOLA PÁGINA ===== */
+@media print {
+    .recibo-paper {
+        padding: 3mm !important;
+        margin: 0 auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    .recibo-header {
+        margin-bottom: 5px !important;
+        padding-bottom: 3px !important;
+    }
+    .recibo-header h2 {
+        font-size: 14px !important;
+    }
+    .recibo-section {
+        margin-bottom: 8px !important;
+    }
+    .recibo-section h3 {
+        font-size: 12px !important;
+        margin-bottom: 3px !important;
+    }
+    .recibo-row {
+        font-size: 10px !important;
+        margin-bottom: 3px !important;
+    }
+    .monto-destacado {
+        margin: 5px 0 !important;
+        padding: 3px !important;
+    }
+    .recibo-footer {
+        margin-top: 5px !important;
+        padding-top: 3px !important;
+        font-size: 9px !important;
+    }
+    .recibo-copia {
+        margin-top: 8px !important;
+        padding-top: 5px !important;
+    }
+}
     </style>
   <!-- Firebase versión compat (funciona en archivos locales) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
