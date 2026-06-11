@@ -16757,6 +16757,7 @@ function mostrarModalUsuario(usuarioId = null) {
 
 // Función para guardar usuario (SIMPLIFICADA)
 // Función para guardar usuario (SIMPLIFICADA)
+// Función para guardar usuario (también en Firestore)
 function guardarUsuario() {
     console.log("Guardando usuario");
     
@@ -16770,8 +16771,6 @@ function guardarUsuario() {
             alert('No tiene permisos para crear usuarios de este tipo. Solo puede crear usuarios de tipo "Encargado".');
             return;
         }
-        
-        // En modo edición, verificar que el usuario que se edita es un encargado
         if (id) {
             const usuarioOriginal = Object.values(systemUsers).find(u => u.id == id);
             if (usuarioOriginal && usuarioOriginal.tipo !== 'encargado') {
@@ -16784,8 +16783,6 @@ function guardarUsuario() {
             alert('No tiene permisos para crear usuarios de este tipo. Solo puede crear usuarios de tipo "Secretaría" o "Docente".');
             return;
         }
-        
-        // En modo edición, verificar que el usuario que se edita es secretaria o docente
         if (id) {
             const usuarioOriginal = Object.values(systemUsers).find(u => u.id == id);
             if (usuarioOriginal && !['secretaria', 'docente'].includes(usuarioOriginal.tipo)) {
@@ -16808,19 +16805,15 @@ function guardarUsuario() {
     const telefono = document.getElementById('usuarioTelefono').value;
     const notas = document.getElementById('usuarioNotas').value;
 
-    // Obtener instrumentos si es docente
     let instrumentos = [];
     if (tipo === 'docente') {
         instrumentos = getSelectedInstrumentos();
-        
-        // Validar que se hayan seleccionado instrumentos
         if (instrumentos.length === 0) {
             alert('Debe seleccionar al menos un instrumento para el docente');
             return;
         }
     }
 
-    // Validaciones básicas
     if (!tipo || !username || !password || !nombre || !email) {
         alert('Por favor complete todos los campos obligatorios');
         return;
@@ -16836,7 +16829,6 @@ function guardarUsuario() {
         return;
     }
 
-    // Crear o actualizar usuario
     const usuarioData = {
         id: id ? parseInt(id) : generarIdUsuario(),
         tipo: tipo,
@@ -16848,7 +16840,7 @@ function guardarUsuario() {
         email: email,
         telefono: telefono,
         notas: notas,
-        instrumentos: instrumentos, // Agregar los instrumentos
+        instrumentos: instrumentos,
         fechaActualizacion: new Date().toISOString()
     };
 
@@ -16856,8 +16848,17 @@ function guardarUsuario() {
         usuarioData.fechaCreacion = new Date().toISOString();
     }
 
+    // Guardar en localStorage y en la variable global
     systemUsers[username] = usuarioData;
     guardarUsuarios();
+    
+    // === NUEVO: Guardar también en Firestore ===
+    if (window.db) {
+        window.db.collection('usuarios').doc(username).set(usuarioData)
+            .then(() => console.log(`☁️ Usuario ${username} guardado en Firestore`))
+            .catch(err => console.error("Error guardando usuario en Firestore:", err));
+    }
+    
     cerrarModal('usuarioModal');
     cargarTablaUsuarios();
     showToast('Usuario guardado correctamente');
@@ -16918,13 +16919,13 @@ function cargarTablaUsuarios() {
 }
 
 // Función para eliminar usuario (SIMPLIFICADA)
+// Función para eliminar usuario (también en Firestore)
 function eliminarUsuario(username) {
     const userType = localStorage.getItem('userType');
     const usuario = systemUsers[username];
     
     if (!usuario) return;
     
-    // Validar permisos según el tipo de usuario
     if (userType === 'secretaria') {
         if (usuario.tipo !== 'encargado') {
             alert('No tiene permisos para eliminar usuarios de este tipo.');
@@ -16948,6 +16949,14 @@ function eliminarUsuario(username) {
     if (confirm(`¿Está seguro de eliminar al usuario ${username}?`)) {
         delete systemUsers[username];
         guardarUsuarios();
+        
+        // === NUEVO: Eliminar también de Firestore ===
+        if (window.db) {
+            window.db.collection('usuarios').doc(username).delete()
+                .then(() => console.log(`🗑️ Usuario ${username} eliminado de Firestore`))
+                .catch(err => console.error("Error eliminando usuario de Firestore:", err));
+        }
+        
         cargarTablaUsuarios();
         showToast('Usuario eliminado correctamente');
     }
@@ -20808,6 +20817,70 @@ if (window.db) {
             asistenciaApp.mostrarHistorialCompleto();
         }
     });
+}
+</script>
+    <script>
+// ========== SINCRONIZACIÓN DE USUARIOS CON FIRESTORE ==========
+
+// 1. Cargar usuarios desde Firestore al iniciar la página
+async function cargarUsuariosDesdeFirestore() {
+    if (!window.db) {
+        console.warn("Firebase no disponible, usuarios solo en localStorage");
+        return;
+    }
+    try {
+        const snapshot = await window.db.collection('usuarios').get();
+        const usuariosFirestore = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            usuariosFirestore[data.username] = data;
+        });
+        if (Object.keys(usuariosFirestore).length > 0) {
+            // Combinar con usuarios locales (por si hay datos antiguos)
+            let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+            let unidos = { ...locales, ...usuariosFirestore };
+            localStorage.setItem('systemUsers', JSON.stringify(unidos));
+            window.systemUsers = unidos;
+            console.log(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde Firestore`);
+            // Si la tabla de gestión de usuarios está visible, refrescarla
+            if (document.getElementById('gestionUsuariosContainer')?.style.display === 'block') {
+                if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+            }
+        } else {
+            console.log("No hay usuarios en Firestore, usando solo locales");
+        }
+    } catch (e) {
+        console.error("Error cargando usuarios desde Firestore:", e);
+    }
+}
+
+// Ejecutar cuando la página esté lista
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.db) cargarUsuariosDesdeFirestore();
+    });
+} else {
+    if (window.db) cargarUsuariosDesdeFirestore();
+}
+
+// 2. Escuchar cambios en tiempo real (para que las modificaciones se vean al instante)
+if (window.db) {
+    window.db.collection('usuarios').onSnapshot((snapshot) => {
+        let usuariosFirestore = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            usuariosFirestore[data.username] = data;
+        });
+        let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+        let unidos = { ...locales, ...usuariosFirestore };
+        localStorage.setItem('systemUsers', JSON.stringify(unidos));
+        window.systemUsers = unidos;
+        console.log(`🔄 Usuarios actualizados en tiempo real (${Object.keys(usuariosFirestore).length} documentos)`);
+        // Si la tabla de gestión de usuarios está abierta, la refresca sola
+        if (document.getElementById('gestionUsuariosContainer')?.style.display === 'block') {
+            if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+        }
+    }, error => console.error("Error en listener de usuarios:", error));
 }
 </script>
 </body>
