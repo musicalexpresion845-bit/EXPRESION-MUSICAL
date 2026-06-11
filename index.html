@@ -20866,5 +20866,187 @@ document.body.addEventListener('click', function(e) {
     }
 });
 </script>
+    <script>
+// =====================================================
+// FUNCIONES ESENCIALES DE LOGIN Y NAVEGACIÓN (RESTAURADAS)
+// =====================================================
+
+// Mostrar pantalla de login
+window.showLogin = function() {
+    const loginScreen = document.getElementById('loginScreen');
+    const secretariaScreen = document.getElementById('secretariaScreen');
+    const encargadoPanel = document.getElementById('encargadoPanel');
+    const docentePanel = document.getElementById('docentePanelVirtual');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (secretariaScreen) secretariaScreen.style.display = 'none';
+    if (encargadoPanel) encargadoPanel.style.display = 'none';
+    if (docentePanel) docentePanel.style.display = 'none';
+    document.body.style.backgroundColor = '#F1F1F1';
+};
+
+// Ocultar login y mostrar panel según el tipo de usuario
+window.hideLogin = function() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    const userType = localStorage.getItem('userType');
+    if (userType === 'administrador' || userType === 'secretaria') {
+        const secretariaScreen = document.getElementById('secretariaScreen');
+        if (secretariaScreen) secretariaScreen.style.display = 'block';
+        // Asegurar que la barra lateral se vea
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'flex';
+        if (container) container.style.marginLeft = '250px';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'flex');
+        const title = document.getElementById('panelTitle');
+        if (title) title.textContent = userType === 'administrador' ? 'Panel de Administrador' : 'Panel de Secretaría';
+    } else if (userType === 'docente') {
+        const docentePanel = document.getElementById('docentePanelVirtual');
+        if (docentePanel) docentePanel.style.display = 'block';
+        // Ocultar barra lateral
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'none';
+        if (container) container.style.marginLeft = '0';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
+        const title = document.getElementById('panelTitle');
+        if (title) title.textContent = 'Panel del Docente';
+        // Cargar clases del docente automáticamente
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.username && typeof window.cargarClasesDocenteVirtual === 'function') {
+            window.cargarClasesDocenteVirtual(currentUser.username);
+        }
+    } else if (userType === 'encargado') {
+        const encargadoPanel = document.getElementById('encargadoPanel');
+        if (encargadoPanel) encargadoPanel.style.display = 'block';
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'none';
+        if (container) container.style.marginLeft = '0';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
+        const title = document.getElementById('panelTitle');
+        if (title) title.textContent = 'Portal del Encargado';
+        if (typeof mostrarPanelEncargado === 'function') mostrarPanelEncargado();
+    }
+};
+
+// Verificar estado de login al cargar la página
+window.checkLoginStatus = function() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userType = localStorage.getItem('userType');
+    if (isLoggedIn && userType) {
+        window.hideLogin();
+    } else {
+        window.showLogin();
+    }
+};
+
+// =====================================================
+// MANEJADOR DE LOGIN (reemplazar el existente para evitar duplicados)
+// =====================================================
+// Primero, eliminar el listener anterior si existe (evitar duplicación)
+const oldLoginForm = document.getElementById('loginForm');
+if (oldLoginForm) {
+    const newLoginForm = oldLoginForm.cloneNode(true);
+    oldLoginForm.parentNode.replaceChild(newLoginForm, oldLoginForm);
+    
+    newLoginForm.onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('.login-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        btn.disabled = true;
+        
+        // Esperar a que los usuarios estén cargados (de la variable global window.systemUsers)
+        let espera = 0;
+        while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 30) {
+            await new Promise(r => setTimeout(r, 100));
+            espera++;
+        }
+        
+        const userType = document.getElementById('userType').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorElem = document.getElementById('loginError');
+        
+        if (!userType) {
+            errorElem.textContent = "Seleccione un tipo de usuario";
+            errorElem.style.display = 'block';
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+        
+        const usuario = (window.systemUsers || {})[username];
+        if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
+            errorElem.style.display = 'none';
+            localStorage.setItem('currentUser', JSON.stringify(usuario));
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userType', userType);
+            window.hideLogin();
+            if (typeof mostrarBienvenidaConFrase === 'function') {
+                mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+            }
+        } else {
+            errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
+            errorElem.style.display = 'block';
+        }
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    };
+}
+
+// =====================================================
+// CORREGIR ERROR DEL SELECT (línea 14548)
+// =====================================================
+// El error ocurre porque se intenta asignar textContent a un elemento que no existe.
+// Buscamos todos los selects que tengan un evento que intente modificar textContent de un elemento nulo.
+// Solución: envolver la asignación en una comprobación de existencia.
+// Como no sabemos exactamente qué select es, envolvemos la función actualizarListaEncargados (si existe) con seguridad.
+if (typeof window.actualizarListaEncargados === 'function') {
+    const originalActualizar = window.actualizarListaEncargados;
+    window.actualizarListaEncargados = function() {
+        try {
+            originalActualizar();
+        } catch(e) {
+            console.warn("Error en actualizarListaEncargados (ignorado):", e);
+        }
+    };
+}
+
+// =====================================================
+// EVENTOS PARA BOTONES DEL DOCENTE (sin conflictos)
+// =====================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Botón fijo "Crear Clase Virtual"
+    const btnCrear = document.getElementById('btnCrearClaseVirtual');
+    if (btnCrear) {
+        btnCrear.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof guardarClaseVirtualDocente === 'function') {
+                guardarClaseVirtualDocente();
+            } else {
+                alert('Error: La función guardarClaseVirtualDocente no está disponible.');
+            }
+        });
+    }
+});
+
+// Delegación para botones dinámicos "Agregar Grabación"
+document.body.addEventListener('click', function(e) {
+    const btn = e.target.closest('.agregar-grabacion');
+    if (btn) {
+        e.preventDefault();
+        const id = btn.getAttribute('data-id');
+        if (id && typeof agregarGrabacionClase === 'function') {
+            agregarGrabacionClase(parseInt(id));
+        }
+    }
+});
+
+// Inicializar verificación de login al cargar
+window.checkLoginStatus();
+</script>
 </body>
 </html>        
