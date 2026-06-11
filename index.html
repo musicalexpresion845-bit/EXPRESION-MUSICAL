@@ -20348,12 +20348,23 @@ function generarRecibo() {
 function guardarReciboEnHistorial(recibo) {
     if (!recibo) return;
     if (recibo.monto) recibo.monto = parseFloat(recibo.monto);
+    
+    // 1. Guardar en localStorage
     let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
     historial.push(recibo);
     localStorage.setItem('historialRecibos', JSON.stringify(historial));
-    console.log("✅ Recibo guardado en historial:", recibo.numero);
+    console.log("✅ Recibo guardado en historial (local):", recibo.numero);
+    
+    // 2. Guardar en Firestore (nube) para sincronización automática
+    if (window.db) {
+        window.db.collection('recibos').doc(String(recibo.id)).set(recibo)
+            .then(() => console.log("☁️ Recibo guardado en Firestore:", recibo.numero))
+            .catch(err => console.error("❌ Error al guardar recibo en Firestore:", err));
+    }
+    
+    // 3. Refrescar la vista del historial si está visible
     if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
-        cargarHistorialRecibos();
+        if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
     }
 }
 
@@ -20675,6 +20686,41 @@ db.collection('pagos').doc('global').onSnapshot((doc) => {
 }, (error) => {
     console.error("Error en tiempo real:", error);
 });
+</script>
+    <script>
+// ========== SINCRONIZACIÓN AUTOMÁTICA DE RECIBOS (TIEMPO REAL) ==========
+function iniciarSincronizacionRecibos() {
+    if (!window.db) {
+        console.warn("⚠️ Firebase no disponible, los recibos solo estarán en local.");
+        return;
+    }
+    
+    // Escuchar cambios en la colección "recibos"
+    window.db.collection('recibos').onSnapshot((snapshot) => {
+        let recibosFirestore = [];
+        snapshot.forEach(doc => recibosFirestore.push(doc.data()));
+        
+        if (recibosFirestore.length > 0) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibosFirestore));
+            console.log(`🔄 Recibos actualizados automáticamente: ${recibosFirestore.length} recibos`);
+            
+            // Si la pestaña de historial está abierta, recargarla
+            const historialDiv = document.getElementById('historial-seccion-recibos');
+            if (historialDiv && historialDiv.style.display !== 'none') {
+                if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+            }
+        }
+    }, (error) => {
+        console.error("❌ Error en listener de recibos:", error);
+    });
+}
+
+// Ejecutar cuando la página esté lista
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarSincronizacionRecibos);
+} else {
+    iniciarSincronizacionRecibos();
+}
 </script>
 </body>
 </html>        
