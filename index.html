@@ -20838,8 +20838,8 @@ function forzarOcultarBarraLateral() {
 forzarOcultarBarraLateral();
 setInterval(forzarOcultarBarraLateral, 2000);
 </script>
-    <script>
-// ========== SISTEMA DE ROLES Y PANELES (VERSIÓN ÚNICA Y CORRECTA) ==========
+ <script>
+// ========== SISTEMA COMPLETO: ROLES + PANELES + BOTONES DEL DOCENTE ==========
 (function() {
     // Cargar usuarios desde Firestore
     async function cargarUsuariosGlobal() {
@@ -20856,9 +20856,8 @@ setInterval(forzarOcultarBarraLateral, 2000);
         } catch(e) { console.error("Error cargando usuarios:", e); }
     }
 
-    // Mostrar panel correcto según rol
+    // Mostrar panel según rol
     window.mostrarPanelPorTipo = function(userType) {
-        // Ocultar todos los paneles
         const secretariaScreen = document.getElementById('secretariaScreen');
         const encargadoPanel = document.getElementById('encargadoPanel');
         const docentePanel = document.getElementById('docentePanelVirtual');
@@ -20866,7 +20865,6 @@ setInterval(forzarOcultarBarraLateral, 2000);
         if (encargadoPanel) encargadoPanel.style.display = 'none';
         if (docentePanel) docentePanel.style.display = 'none';
 
-        // Barra lateral
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
         const menuItems = document.querySelectorAll('.menu-item-vertical');
@@ -20878,8 +20876,8 @@ setInterval(forzarOcultarBarraLateral, 2000);
             if (secretariaScreen) secretariaScreen.style.display = 'block';
             const title = document.getElementById('panelTitle');
             if (title) title.textContent = userType === 'administrador' ? 'Panel de Administrador' : 'Panel de Secretaría';
-        }
-        else if (userType === 'docente') {
+            if (typeof updateInterfaceForUserType === 'function') updateInterfaceForUserType(userType); // si existe, llamarla
+        } else if (userType === 'docente') {
             if (sidebar) sidebar.style.display = 'none';
             if (container) container.style.marginLeft = '0';
             menuItems.forEach(item => item.style.display = 'none');
@@ -20887,8 +20885,12 @@ setInterval(forzarOcultarBarraLateral, 2000);
             if (typeof mostrarPanelDocenteVirtual === 'function') mostrarPanelDocenteVirtual();
             const title = document.getElementById('panelTitle');
             if (title) title.textContent = 'Panel del Docente';
-        }
-        else if (userType === 'encargado') {
+            // Cargar clases del docente automáticamente
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (currentUser.username && typeof window.cargarClasesDocenteVirtual === 'function') {
+                window.cargarClasesDocenteVirtual(currentUser.username);
+            }
+        } else if (userType === 'encargado') {
             if (sidebar) sidebar.style.display = 'none';
             if (container) container.style.marginLeft = '0';
             menuItems.forEach(item => item.style.display = 'none');
@@ -20899,6 +20901,7 @@ setInterval(forzarOcultarBarraLateral, 2000);
         }
     };
 
+    // Funciones de login/logout
     window.hideLogin = function() {
         document.getElementById('loginScreen').style.display = 'none';
         const userType = localStorage.getItem('userType');
@@ -20927,10 +20930,14 @@ setInterval(forzarOcultarBarraLateral, 2000);
         }
     };
 
-    // Login mejorado
+    // --- NUEVO: Reemplazar completamente el evento de login ---
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.onsubmit = async function(e) {
+        // Eliminar todos los listeners anteriores clonando el formulario
+        const newLoginForm = loginForm.cloneNode(true);
+        loginForm.parentNode.replaceChild(newLoginForm, loginForm);
+        
+        newLoginForm.onsubmit = async function(e) {
             e.preventDefault();
             const btn = this.querySelector('.login-btn');
             const original = btn.innerHTML;
@@ -20974,24 +20981,10 @@ setInterval(forzarOcultarBarraLateral, 2000);
         if (btn) btn.onclick = cerrarSesionGlobal;
     });
 
-    // Inicializar
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => window.checkLoginStatus());
-    } else {
-        window.checkLoginStatus();
-    }
-})();
-</script>
-    <script>
-// ========== ARREGLO DE BOTONES DEL DOCENTE (FUNCIONES GLOBALES) ==========
-(function() {
-    // Función para mostrar el modal de nueva clase
+    // ========== FUNCIONES PARA EL DOCENTE (BOTONES) ==========
     window.mostrarModalNuevaClase = function() {
-        console.log("📚 Abriendo modal nueva clase");
-        // Crear el modal dinámicamente si no existe
         let modal = document.getElementById('modalNuevaClaseDocente');
         if (modal) modal.remove();
-        
         modal = document.createElement('div');
         modal.id = 'modalNuevaClaseDocente';
         modal.className = 'modal-docente';
@@ -21002,45 +20995,13 @@ setInterval(forzarOcultarBarraLateral, 2000);
                     <button class="close-modal" onclick="this.closest('.modal-docente').remove()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Título de la clase:</label>
-                        <input type="text" id="docTituloClase" class="form-control" placeholder="Ej: Piano Avanzado">
-                    </div>
-                    <div class="form-group">
-                        <label>Instrumento:</label>
-                        <select id="docInstrumentoClase">
-                            <option value="Piano">Piano</option>
-                            <option value="Guitarra">Guitarra</option>
-                            <option value="Batería">Batería</option>
-                            <option value="Canto">Canto</option>
-                            <option value="Violín">Violín</option>
-                            <option value="Bajo">Bajo</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Nivel:</label>
-                        <select id="docNivelClase">
-                            <option>Principiante</option>
-                            <option>Intermedio</option>
-                            <option>Avanzado</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha y hora:</label>
-                        <input type="datetime-local" id="docFechaHoraClase">
-                    </div>
-                    <div class="form-group">
-                        <label>Enlace Google Meet:</label>
-                        <input type="url" id="docMeetLink" placeholder="https://meet.google.com/...">
-                    </div>
-                    <div class="form-group">
-                        <label>Duración (minutos):</label>
-                        <input type="number" id="docDuracion" value="60">
-                    </div>
-                    <div class="form-group">
-                        <label>Descripción:</label>
-                        <textarea id="docDescripcionClase" rows="2"></textarea>
-                    </div>
+                    <div class="form-group"><label>Título:</label><input type="text" id="docTituloClase" class="form-control"></div>
+                    <div class="form-group"><label>Instrumento:</label><select id="docInstrumentoClase"><option>Piano</option><option>Guitarra</option><option>Batería</option><option>Canto</option><option>Violín</option></select></div>
+                    <div class="form-group"><label>Nivel:</label><select id="docNivelClase"><option>Principiante</option><option>Intermedio</option><option>Avanzado</option></select></div>
+                    <div class="form-group"><label>Fecha y hora:</label><input type="datetime-local" id="docFechaHoraClase"></div>
+                    <div class="form-group"><label>Enlace Google Meet:</label><input type="url" id="docMeetLink" placeholder="https://meet.google.com/..."></div>
+                    <div class="form-group"><label>Duración (min):</label><input type="number" id="docDuracion" value="60"></div>
+                    <div class="form-group"><label>Descripción:</label><textarea id="docDescripcionClase" rows="2"></textarea></div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary-docente" onclick="this.closest('.modal-docente').remove()">Cancelar</button>
@@ -21049,175 +21010,89 @@ setInterval(forzarOcultarBarraLateral, 2000);
             </div>
         `;
         document.body.appendChild(modal);
-        
-        // Asignar evento al botón guardar
-        document.getElementById('guardarClaseBtn').onclick = function() {
-            window.guardarClaseVirtualDocente();
-        };
-        
-        // Establecer fecha/hora mínima (hoy)
+        document.getElementById('guardarClaseBtn').onclick = () => window.guardarClaseVirtualDocente();
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const fechaHora = `${year}-${month}-${day}T${hours}:${minutes}`;
-        document.getElementById('docFechaHoraClase').value = fechaHora;
+        const yyyy = now.getFullYear(), mm = String(now.getMonth()+1).padStart(2,'0'), dd = String(now.getDate()).padStart(2,'0'), hh = String(now.getHours()).padStart(2,'0'), min = String(now.getMinutes()).padStart(2,'0');
+        document.getElementById('docFechaHoraClase').value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
     };
-    
-    // Función para guardar la clase virtual
+
     window.guardarClaseVirtualDocente = function() {
-        console.log("💾 Guardando clase virtual...");
-        const titulo = document.getElementById('docTituloClase').value.trim();
-        const instrumento = document.getElementById('docInstrumentoClase').value;
-        const nivel = document.getElementById('docNivelClase').value;
-        const fechaHora = document.getElementById('docFechaHoraClase').value;
-        const meetLink = document.getElementById('docMeetLink').value.trim();
-        const duracion = parseInt(document.getElementById('docDuracion').value);
-        const descripcion = document.getElementById('docDescripcionClase').value;
-        
-        if (!titulo || !fechaHora) {
-            alert('Complete título y fecha/hora');
-            return;
-        }
-        
+        const titulo = document.getElementById('docTituloClase')?.value.trim();
+        const instrumento = document.getElementById('docInstrumentoClase')?.value;
+        const nivel = document.getElementById('docNivelClase')?.value;
+        const fechaHora = document.getElementById('docFechaHoraClase')?.value;
+        const meetLink = document.getElementById('docMeetLink')?.value.trim();
+        const duracion = parseInt(document.getElementById('docDuracion')?.value);
+        const descripcion = document.getElementById('docDescripcionClase')?.value;
+        if (!titulo || !fechaHora) { alert('Complete título y fecha/hora'); return; }
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const nuevaClase = {
-            id: Date.now(),
-            titulo: titulo,
-            instrumento: instrumento,
-            nivel: nivel,
-            fechaHora: new Date(fechaHora).toISOString(),
-            meetLink: meetLink,
-            duracion: duracion,
-            descripcion: descripcion,
-            grabacionUrl: null,
-            creadaPor: currentUser.username || 'docente',
-            fechaCreacion: new Date().toISOString()
-        };
-        
-        // Obtener clases existentes
+        const nueva = { id: Date.now(), titulo, instrumento, nivel, fechaHora: new Date(fechaHora).toISOString(), meetLink, duracion, descripcion, grabacionUrl: null, creadaPor: currentUser.username || 'docente', fechaCreacion: new Date().toISOString() };
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        clases.push(nuevaClase);
+        clases.push(nueva);
         localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
-        
-        // Si Firebase está disponible, guardar también allí
-        if (window.db) {
-            window.db.collection('clasesVirtuales').doc(String(nuevaClase.id)).set(nuevaClase)
-                .catch(err => console.error("Error guardando clase en Firestore:", err));
-        }
-        
-        alert('Clase virtual creada correctamente');
-        // Cerrar modal
+        if (window.db) window.db.collection('clasesVirtuales').doc(String(nueva.id)).set(nueva).catch(e=>console.error(e));
+        alert('Clase creada');
         const modal = document.getElementById('modalNuevaClaseDocente');
         if (modal) modal.remove();
-        // Recargar la lista de clases del docente
-        if (typeof window.cargarClasesDocenteVirtual === 'function') {
-            window.cargarClasesDocenteVirtual(currentUser.username);
-        } else {
-            location.reload(); // fallback
-        }
+        if (typeof window.cargarClasesDocenteVirtual === 'function') window.cargarClasesDocenteVirtual(currentUser.username);
+        else location.reload();
     };
-    
-    // Función para cargar las clases del docente
+
     window.cargarClasesDocenteVirtual = function(username) {
-        console.log("📋 Cargando clases para docente:", username);
         const container = document.getElementById('misClasesVirtuales');
         if (!container) return;
-        
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        // También combinar con Firestore si es necesario (opcional)
         if (window.db) {
             window.db.collection('clasesVirtuales').get().then(snap => {
-                const firestoreClases = [];
-                snap.forEach(doc => firestoreClases.push(doc.data()));
-                if (firestoreClases.length) {
+                const fireClases = [];
+                snap.forEach(doc => fireClases.push(doc.data()));
+                if (fireClases.length) {
                     const todas = [...clases];
-                    firestoreClases.forEach(fc => {
-                        if (!todas.some(t => t.id === fc.id)) todas.push(fc);
-                    });
+                    fireClases.forEach(fc => { if (!todas.some(t=>t.id===fc.id)) todas.push(fc); });
                     clases = todas;
                     localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
                 }
-                mostrarClases(container, clases, username);
-            }).catch(err => console.error("Error cargando clases de Firestore:", err));
+                mostrarClasesDocente(container, clases, username);
+            }).catch(()=> mostrarClasesDocente(container, clases, username));
         } else {
-            mostrarClases(container, clases, username);
+            mostrarClasesDocente(container, clases, username);
         }
     };
-    
-    function mostrarClases(container, clases, username) {
+
+    function mostrarClasesDocente(container, clases, username) {
         const misClases = clases.filter(c => c.creadaPor === username);
-        if (misClases.length === 0) {
-            container.innerHTML = '<div class="empty-state">No has creado clases virtuales aún.</div>';
-            return;
-        }
-        misClases.sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+        if (misClases.length === 0) { container.innerHTML = '<div class="empty-state">No has creado clases virtuales aún.</div>'; return; }
+        misClases.sort((a,b)=>new Date(a.fechaHora)-new Date(b.fechaHora));
         let html = '';
         for (let c of misClases) {
             const fecha = new Date(c.fechaHora).toLocaleString();
-            html += `
-                <div class="clase-card">
-                    <div class="clase-header"><h4>${c.titulo}</h4></div>
-                    <div class="clase-body">
-                        <div>${fecha} • ${c.duracion} min</div>
-                        <div>${c.instrumento} • Nivel ${c.nivel}</div>
-                        <p>${c.descripcion || ''}</p>
-                        ${c.meetLink ? `<a href="${c.meetLink}" target="_blank" class="btn-meet">Ir a Meet</a>` : ''}
-                        ${!c.grabacionUrl && new Date(c.fechaHora) <= new Date() ? `<button class="btn-small" onclick="window.agregarGrabacionClase(${c.id})"><i class="fas fa-link"></i> Agregar Grabación</button>` : ''}
-                        ${c.grabacionUrl ? `<span class="btn-meet btn-grabacion">Grabación: <a href="${c.grabacionUrl}" target="_blank">Ver</a></span>` : ''}
-                    </div>
-                </div>
-            `;
+            html += `<div class="clase-card"><div class="clase-header"><h4>${c.titulo}</h4></div><div class="clase-body"><div>${fecha} • ${c.duracion} min</div><div>${c.instrumento} • Nivel ${c.nivel}</div><p>${c.descripcion || ''}</p>${c.meetLink ? `<a href="${c.meetLink}" target="_blank" class="btn-meet">Ir a Meet</a>` : ''}${!c.grabacionUrl && new Date(c.fechaHora) <= new Date() ? `<button class="btn-small" onclick="window.agregarGrabacionClase(${c.id})"><i class="fas fa-link"></i> Agregar Grabación</button>` : ''}${c.grabacionUrl ? `<span class="btn-meet btn-grabacion">Grabación: <a href="${c.grabacionUrl}" target="_blank">Ver</a></span>` : ''}</div></div>`;
         }
         container.innerHTML = html;
     }
-    
-    // Función para agregar grabación a una clase
+
     window.agregarGrabacionClase = function(claseId) {
         const url = prompt('Ingrese la URL de la grabación (YouTube, Drive, etc.):');
         if (url && url.startsWith('http')) {
             let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-            const index = clases.findIndex(c => c.id == claseId);
-            if (index !== -1) {
-                clases[index].grabacionUrl = url;
+            const idx = clases.findIndex(c => c.id == claseId);
+            if (idx !== -1) {
+                clases[idx].grabacionUrl = url;
                 localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
-                if (window.db) {
-                    window.db.collection('clasesVirtuales').doc(String(claseId)).set(clases[index])
-                        .catch(err => console.error("Error actualizando grabación:", err));
-                }
+                if (window.db) window.db.collection('clasesVirtuales').doc(String(claseId)).set(clases[idx]).catch(e=>console.error(e));
                 alert('Grabación agregada');
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
                 window.cargarClasesDocenteVirtual(currentUser.username);
-            } else {
-                alert('Clase no encontrada');
-            }
-        } else {
-            alert('URL inválida');
-        }
+            } else alert('Clase no encontrada');
+        } else alert('URL inválida');
     };
-    
-    // Forzar que al cargar la página del docente se muestren sus clases
+
+    // Inicializar al cargar la página
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            const userType = localStorage.getItem('userType');
-            if (userType === 'docente') {
-                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                if (currentUser.username && typeof window.cargarClasesDocenteVirtual === 'function') {
-                    window.cargarClasesDocenteVirtual(currentUser.username);
-                }
-            }
-        });
+        document.addEventListener('DOMContentLoaded', () => window.checkLoginStatus());
     } else {
-        const userType = localStorage.getItem('userType');
-        if (userType === 'docente') {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            if (currentUser.username) window.cargarClasesDocenteVirtual(currentUser.username);
-        }
+        window.checkLoginStatus();
     }
-    
-    console.log("✅ Funciones del docente registradas globalmente");
 })();
 </script>
 </body>
