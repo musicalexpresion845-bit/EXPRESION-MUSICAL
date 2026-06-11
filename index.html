@@ -8358,41 +8358,59 @@ function agregarEstudiante() {
         }
 
         // Inicializar aplicación
-    // Inicializar aplicación de pagos con sincronización desde Firestore
-async function iniciarPagos() {
-    // 1. Sincronizar estudiantes (esto ya lo tenías)
+   async function iniciarPagos() {
+    console.log("💰 Iniciando pagos, sincronizando desde Firestore...");
+    
+    // 1. Sincronizar estudiantes (actualiza la lista de estudiantes en localStorage)
     sincronizarPagosConInscripciones();
     
-    // 2. Cargar pagos desde Firestore y actualizar localStorage
+    // 2. Obtener pagos directamente desde Firestore (sin depender de localStorage)
     if (window.db) {
         try {
             const docPagos = await window.db.collection('pagos').doc('global').get();
             if (docPagos.exists) {
+                // Datos más recientes desde Firestore
                 const pagosData = docPagos.data();
+                // Guardar en localStorage como respaldo
                 localStorage.setItem('datosPagos', JSON.stringify(pagosData));
-                console.log("✅ Pagos sincronizados desde Firestore");
-                // Actualizar la variable global 'datos' si existe (opcional)
-                if (typeof datos !== 'undefined') {
-                    window.datos = pagosData;
-                }
+                // ACTUALIZAR LA VARIABLE GLOBAL 'datos' QUE USA actualizarTabla()
+                window.datos = pagosData;
+                console.log("✅ Pagos cargados desde Firestore:", pagosData.pagos?.length || 0, "registros");
             } else {
                 console.log("ℹ️ No hay pagos en Firestore, usando localStorage");
+                cargarDatos(); // esto asigna a 'datos'
             }
         } catch (error) {
             console.error("❌ Error al cargar pagos desde Firestore:", error);
+            cargarDatos(); // fallback a localStorage
         }
+    } else {
+        cargarDatos();
     }
     
-    // 3. Cargar datos desde localStorage (ya actualizado)
-    cargarDatos();
+    // 3. Asegurar que 'datos' tenga la estructura correcta (por si cargarDatos no la creó)
+    if (!window.datos || !window.datos.estudiantes || !window.datos.pagos) {
+        window.datos = { estudiantes: [], pagos: [] };
+    }
     
-    // 4. Actualizar la vista
+    // 4. Actualizar la vista (esto llama a actualizarTabla, que usa window.datos)
     actualizarVista();
     
-    // 5. Configurar filtros (igual que antes)
+    // 5. Configurar filtros
     document.getElementById("filtroAnio").value = config.añoActual;
     document.getElementById("filtroMes").value = config.mesActual;
     
+    // Remover listeners anteriores para evitar duplicados
+    const filtros = ['filtroNombre', 'filtroInstrumento', 'filtroEstado', 'filtroMes', 'filtroAnio'];
+    filtros.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+        }
+    });
+    
+    // Agregar listeners nuevos
     document.getElementById('filtroNombre').addEventListener('input', aplicarFiltros);
     document.getElementById('filtroInstrumento').addEventListener('change', aplicarFiltros);
     document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
@@ -8469,7 +8487,9 @@ function sincronizarEstudiantesConPagos() {
 
        // Actualizar tabla principal - VERSIÓN DEFINITIVA CORREGIDA
 function actualizarTabla() {
-    let datos = JSON.parse(localStorage.getItem('datosPagos')) || { estudiantes: [], pagos: [] };
+    let datos = window.datos;
+    if (!datos || !datos.estudiantes) {
+        datos = { estudiantes: [], pagos: [] };
     const mesHasta = parseInt(document.getElementById("filtroMes").value);
     const añoHasta = parseInt(document.getElementById("filtroAnio").value);
     const instrumento = document.getElementById("filtroInstrumento").value;
@@ -20581,7 +20601,8 @@ window.registrarPago = function(idEstudiante) {
     // Guardar en localStorage
     localStorage.setItem('datosPagos', JSON.stringify(pagosData));
     console.log("✅ Pago guardado en localStorage:", pagosData.pagos);
-    
+    window.datos = pagosData;   // Para que actualizarTabla use los datos frescos
+
     // Mostrar confirmación
     alert(`✅ Pago registrado: ${estudiante.nombre} - ${mes}/${año} - Q${estudiante.mensualidad}`);
     
