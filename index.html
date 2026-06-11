@@ -8207,15 +8207,17 @@ function sincronizarAsistenciaConInscripciones() {
 
         // Cargar datos desde localStorage
         function cargarDatos() {
-            const datosGuardados = localStorage.getItem('datosPagos');
-            if (datosGuardados) {
-                datos = JSON.parse(datosGuardados);
-                mostrarNotificacion('Datos cargados correctamente');
-            }
-        }
+    const datosGuardados = localStorage.getItem('datosPagos');
+    if (datosGuardados) {
+        window.datos = JSON.parse(datosGuardados);
+        mostrarNotificacion('Datos cargados correctamente');
+    } else {
+        window.datos = { estudiantes: [], pagos: [] };
+    }
+}
 
-        function guardarDatos() {
-    localStorage.setItem('datosPagos', JSON.stringify(datos));
+      function guardarDatos() {
+    localStorage.setItem('datosPagos', JSON.stringify(window.datos));
     mostrarNotificacion('Datos guardados correctamente');
 }
         // Configuración
@@ -8487,9 +8489,11 @@ function sincronizarEstudiantesConPagos() {
 
        // Actualizar tabla principal - VERSIÓN DEFINITIVA CORREGIDA
 function actualizarTabla() {
-    let datos = window.datos;
-    if (!datos || !datos.estudiantes) {
-        datos = { estudiantes: [], pagos: [] };
+    // Usar window.datos si existe, si no, inicializar vacío
+    let datos = window.datos || { estudiantes: [], pagos: [] };
+    if (!datos.estudiantes) datos = { estudiantes: [], pagos: [] };
+    
+    // El resto de tu código (mesHasta, añoHasta, etc.) permanece igual
     const mesHasta = parseInt(document.getElementById("filtroMes").value);
     const añoHasta = parseInt(document.getElementById("filtroAnio").value);
     const instrumento = document.getElementById("filtroInstrumento").value;
