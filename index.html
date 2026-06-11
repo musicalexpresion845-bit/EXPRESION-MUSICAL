@@ -20775,5 +20775,40 @@ if (document.readyState === 'loading') {
 })();
 console.log("✅ Sistema de recibos unificado y funcional cargado");
 </script>
+    <script>
+// Forzar que el teléfono descargue la asistencia desde Firebase
+if (window.db) {
+    window.db.collection('asistencia').get().then(snapshot => {
+        let asistencias = [];
+        snapshot.forEach(doc => asistencias.push(doc.data()));
+        if (asistencias.length > 0) {
+            localStorage.setItem('historialAsistencia', JSON.stringify(asistencias));
+            console.log("✅ Asistencia descargada:", asistencias.length, "registros");
+            // Si la pantalla de historial está abierta, recargarla
+            if (typeof asistenciaApp !== 'undefined' && asistenciaApp.mostrarHistorialCompleto) {
+                asistenciaApp.mostrarHistorialCompleto();
+            }
+        } else {
+            console.log("⚠️ No hay registros de asistencia en Firebase");
+        }
+    }).catch(err => console.error("Error al descargar asistencia:", err));
+} else {
+    console.warn("Firebase no disponible");
+}
+</script>
+    <script>
+// Escucha en tiempo real (opcional pero recomendado)
+if (window.db) {
+    window.db.collection('asistencia').onSnapshot(snapshot => {
+        let asistencias = [];
+        snapshot.forEach(doc => asistencias.push(doc.data()));
+        localStorage.setItem('historialAsistencia', JSON.stringify(asistencias));
+        console.log("🔄 Asistencia actualizada en tiempo real:", asistencias.length);
+        if (typeof asistenciaApp !== 'undefined' && asistenciaApp.mostrarHistorialCompleto) {
+            asistenciaApp.mostrarHistorialCompleto();
+        }
+    });
+}
+</script>
 </body>
 </html>        
