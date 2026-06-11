@@ -7263,7 +7263,7 @@ body.personalizado .step.active::before {
                 <div class="form-row"><div class="input-group"><label>Nivel:</label><select id="docNivelClase"><option>Principiante</option><option>Intermedio</option><option>Avanzado</option></select></div><div class="input-group"><label>Fecha y hora:</label><input type="datetime-local" id="docFechaHoraClase"></div></div>
                 <div class="form-row"><div class="input-group"><label>Enlace Google Meet:</label><input type="url" id="docMeetLink" placeholder="https://meet.google.com/..."></div><div class="input-group"><label>Duración (min):</label><input type="number" id="docDuracion" value="60"></div></div>
                 <div class="form-group"><label>Descripción:</label><textarea id="docDescripcionClase" rows="2"></textarea></div>
-                <button class="btn-primary-docente" onclick="guardarClaseVirtualDocente()"><i class="fas fa-save"></i> Crear Clase</button>
+               <button class="btn-primary-docente" id="btnCrearClaseVirtual"><i class="fas fa-save"></i> Crear Clase</button>
             </div>
         </div>
         <div id="docGrabacionesVirtualesTab" class="tab-content-doc"><div id="grabacionesVirtualesDocente" class="clases-list"></div></div>
@@ -19980,7 +19980,7 @@ function cargarClasesDocenteVirtual(username) {
                 <div>${c.instrumento} • Nivel ${c.nivel}</div>
                 <p>${c.descripcion}</p>
                 ${c.meetLink ? `<a href="${c.meetLink}" target="_blank" class="btn-meet">Ir a Meet</a>` : ''}
-                ${!c.grabacionUrl && new Date(c.fechaHora) <= new Date() ? `<button class="btn-small" onclick="agregarGrabacionClase(${c.id})"><i class="fas fa-link"></i> Agregar Grabación</button>` : ''}
+               ${!c.grabacionUrl && new Date(c.fechaHora) <= new Date() ? `<button class="btn-small agregar-grabacion" data-id="${c.id}"><i class="fas fa-link"></i> Agregar Grabación</button>` : ''}
                 ${c.grabacionUrl ? `<span class="btn-meet btn-grabacion">Grabación: <a href="${c.grabacionUrl}" target="_blank">Ver</a></span>` : ''}
             </div>
         </div>
@@ -21135,6 +21135,21 @@ document.addEventListener('click', function(e) {
             eval(originalOnclick);
         }
     }
+});
+</script>
+    <script>
+// Asignar eventos a los botones modificados
+document.addEventListener('DOMContentLoaded', function() {
+    const btnCrear = document.getElementById('btnCrearClaseVirtual');
+    if (btnCrear) btnCrear.onclick = guardarClaseVirtualDocente;
+    
+    document.body.addEventListener('click', function(e) {
+        const btn = e.target.closest('.agregar-grabacion');
+        if (btn) {
+            const id = btn.getAttribute('data-id');
+            if (id) agregarGrabacionClase(parseInt(id));
+        }
+    });
 });
 </script>
 </body>
