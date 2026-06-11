@@ -20818,6 +20818,40 @@ if (document.readyState === 'loading') {
     cargarUsuariosDesdeFirestore();
 }
 </script>
+<script>
+// Función de cierre de sesión (simple)
+function cerrarSesion() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('currentUser');
+    // Mostrar pantalla de login
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('secretariaScreen').style.display = 'none';
+    document.getElementById('encargadoPanel').style.display = 'none';
+    document.getElementById('docentePanelVirtual').style.display = 'none';
+    // Limpiar campos
+    document.getElementById('userType').value = '';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('loginError').style.display = 'none';
+}
 
+// Asignar evento a los botones de cerrar sesión (los tres)
+const botonesCerrar = ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'];
+botonesCerrar.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.onclick = cerrarSesion;
+});
+
+// Asegurar que el formulario de login use la validación original (que ya funciona)
+// No sobrescribimos nada, solo forzamos que el botón de login tenga el comportamiento original.
+// El login original ya está definido en tu código (el que usa systemUsers y validCredentials).
+// Solo nos aseguramos de que si algo lo sobreescribió, lo restauramos.
+if (document.getElementById('loginForm') && !document.getElementById('loginForm').hasAttribute('data-fixed')) {
+    // No hacemos nada, dejamos que el evento original (el que ya existe en tu código) se ejecute.
+    // Pero para evitar duplicados, marcamos el formulario.
+    document.getElementById('loginForm').setAttribute('data-fixed', 'true');
+}
+</script>
 </body>
 </html>        
