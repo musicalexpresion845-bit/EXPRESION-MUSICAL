@@ -20622,14 +20622,47 @@ if (document.readyState === 'loading') {
         window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
     };
 
-    // Imprimir (opcional, si existe el botón)
+       // Imprimir sin abrir nueva pestaña (usa iframe oculto)
     window.imprimirReciboMejorado = function() {
         const contenido = document.getElementById('recibo-content');
-        if (!contenido) return;
-        const ventana = window.open('', '_blank');
-        ventana.document.write('<html><head><title>Recibo</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"></head><body>' + contenido.innerHTML + '</body></html>');
-        ventana.document.close();
-        ventana.print();
+        if (!contenido) {
+            alert('No hay recibo para imprimir');
+            return;
+        }
+        // Clonar el contenido para no afectar la página
+        const clon = contenido.cloneNode(true);
+        // Crear iframe oculto
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+        const iframeDoc = iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Recibo</title>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                    .recibo-paper { max-width: 800px; margin: 0 auto; }
+                </style>
+            </head>
+            <body>${clon.outerHTML}</body>
+            </html>
+        `);
+        iframeDoc.close();
+        iframe.onload = function() {
+            iframe.contentWindow.print();
+            setTimeout(() => document.body.removeChild(iframe), 100);
+        };
+        if (iframe.contentWindow.document.readyState === 'complete') {
+            iframe.contentWindow.print();
+            setTimeout(() => document.body.removeChild(iframe), 100);
+        }
     };
 
     // ---------- Inicialización ----------
