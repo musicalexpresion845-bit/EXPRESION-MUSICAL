@@ -20982,5 +20982,243 @@ setInterval(forzarOcultarBarraLateral, 2000);
     }
 })();
 </script>
+    <script>
+// ========== ARREGLO DE BOTONES DEL DOCENTE (FUNCIONES GLOBALES) ==========
+(function() {
+    // Función para mostrar el modal de nueva clase
+    window.mostrarModalNuevaClase = function() {
+        console.log("📚 Abriendo modal nueva clase");
+        // Crear el modal dinámicamente si no existe
+        let modal = document.getElementById('modalNuevaClaseDocente');
+        if (modal) modal.remove();
+        
+        modal = document.createElement('div');
+        modal.id = 'modalNuevaClaseDocente';
+        modal.className = 'modal-docente';
+        modal.innerHTML = `
+            <div class="modal-content-docente" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-plus-circle"></i> Crear Nueva Clase Virtual</h3>
+                    <button class="close-modal" onclick="this.closest('.modal-docente').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Título de la clase:</label>
+                        <input type="text" id="docTituloClase" class="form-control" placeholder="Ej: Piano Avanzado">
+                    </div>
+                    <div class="form-group">
+                        <label>Instrumento:</label>
+                        <select id="docInstrumentoClase">
+                            <option value="Piano">Piano</option>
+                            <option value="Guitarra">Guitarra</option>
+                            <option value="Batería">Batería</option>
+                            <option value="Canto">Canto</option>
+                            <option value="Violín">Violín</option>
+                            <option value="Bajo">Bajo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nivel:</label>
+                        <select id="docNivelClase">
+                            <option>Principiante</option>
+                            <option>Intermedio</option>
+                            <option>Avanzado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha y hora:</label>
+                        <input type="datetime-local" id="docFechaHoraClase">
+                    </div>
+                    <div class="form-group">
+                        <label>Enlace Google Meet:</label>
+                        <input type="url" id="docMeetLink" placeholder="https://meet.google.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label>Duración (minutos):</label>
+                        <input type="number" id="docDuracion" value="60">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea id="docDescripcionClase" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary-docente" onclick="this.closest('.modal-docente').remove()">Cancelar</button>
+                    <button class="btn-primary-docente" id="guardarClaseBtn">Guardar Clase</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Asignar evento al botón guardar
+        document.getElementById('guardarClaseBtn').onclick = function() {
+            window.guardarClaseVirtualDocente();
+        };
+        
+        // Establecer fecha/hora mínima (hoy)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const fechaHora = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('docFechaHoraClase').value = fechaHora;
+    };
+    
+    // Función para guardar la clase virtual
+    window.guardarClaseVirtualDocente = function() {
+        console.log("💾 Guardando clase virtual...");
+        const titulo = document.getElementById('docTituloClase').value.trim();
+        const instrumento = document.getElementById('docInstrumentoClase').value;
+        const nivel = document.getElementById('docNivelClase').value;
+        const fechaHora = document.getElementById('docFechaHoraClase').value;
+        const meetLink = document.getElementById('docMeetLink').value.trim();
+        const duracion = parseInt(document.getElementById('docDuracion').value);
+        const descripcion = document.getElementById('docDescripcionClase').value;
+        
+        if (!titulo || !fechaHora) {
+            alert('Complete título y fecha/hora');
+            return;
+        }
+        
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const nuevaClase = {
+            id: Date.now(),
+            titulo: titulo,
+            instrumento: instrumento,
+            nivel: nivel,
+            fechaHora: new Date(fechaHora).toISOString(),
+            meetLink: meetLink,
+            duracion: duracion,
+            descripcion: descripcion,
+            grabacionUrl: null,
+            creadaPor: currentUser.username || 'docente',
+            fechaCreacion: new Date().toISOString()
+        };
+        
+        // Obtener clases existentes
+        let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        clases.push(nuevaClase);
+        localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+        
+        // Si Firebase está disponible, guardar también allí
+        if (window.db) {
+            window.db.collection('clasesVirtuales').doc(String(nuevaClase.id)).set(nuevaClase)
+                .catch(err => console.error("Error guardando clase en Firestore:", err));
+        }
+        
+        alert('Clase virtual creada correctamente');
+        // Cerrar modal
+        const modal = document.getElementById('modalNuevaClaseDocente');
+        if (modal) modal.remove();
+        // Recargar la lista de clases del docente
+        if (typeof window.cargarClasesDocenteVirtual === 'function') {
+            window.cargarClasesDocenteVirtual(currentUser.username);
+        } else {
+            location.reload(); // fallback
+        }
+    };
+    
+    // Función para cargar las clases del docente
+    window.cargarClasesDocenteVirtual = function(username) {
+        console.log("📋 Cargando clases para docente:", username);
+        const container = document.getElementById('misClasesVirtuales');
+        if (!container) return;
+        
+        let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        // También combinar con Firestore si es necesario (opcional)
+        if (window.db) {
+            window.db.collection('clasesVirtuales').get().then(snap => {
+                const firestoreClases = [];
+                snap.forEach(doc => firestoreClases.push(doc.data()));
+                if (firestoreClases.length) {
+                    const todas = [...clases];
+                    firestoreClases.forEach(fc => {
+                        if (!todas.some(t => t.id === fc.id)) todas.push(fc);
+                    });
+                    clases = todas;
+                    localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+                }
+                mostrarClases(container, clases, username);
+            }).catch(err => console.error("Error cargando clases de Firestore:", err));
+        } else {
+            mostrarClases(container, clases, username);
+        }
+    };
+    
+    function mostrarClases(container, clases, username) {
+        const misClases = clases.filter(c => c.creadaPor === username);
+        if (misClases.length === 0) {
+            container.innerHTML = '<div class="empty-state">No has creado clases virtuales aún.</div>';
+            return;
+        }
+        misClases.sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+        let html = '';
+        for (let c of misClases) {
+            const fecha = new Date(c.fechaHora).toLocaleString();
+            html += `
+                <div class="clase-card">
+                    <div class="clase-header"><h4>${c.titulo}</h4></div>
+                    <div class="clase-body">
+                        <div>${fecha} • ${c.duracion} min</div>
+                        <div>${c.instrumento} • Nivel ${c.nivel}</div>
+                        <p>${c.descripcion || ''}</p>
+                        ${c.meetLink ? `<a href="${c.meetLink}" target="_blank" class="btn-meet">Ir a Meet</a>` : ''}
+                        ${!c.grabacionUrl && new Date(c.fechaHora) <= new Date() ? `<button class="btn-small" onclick="window.agregarGrabacionClase(${c.id})"><i class="fas fa-link"></i> Agregar Grabación</button>` : ''}
+                        ${c.grabacionUrl ? `<span class="btn-meet btn-grabacion">Grabación: <a href="${c.grabacionUrl}" target="_blank">Ver</a></span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+    
+    // Función para agregar grabación a una clase
+    window.agregarGrabacionClase = function(claseId) {
+        const url = prompt('Ingrese la URL de la grabación (YouTube, Drive, etc.):');
+        if (url && url.startsWith('http')) {
+            let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            const index = clases.findIndex(c => c.id == claseId);
+            if (index !== -1) {
+                clases[index].grabacionUrl = url;
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+                if (window.db) {
+                    window.db.collection('clasesVirtuales').doc(String(claseId)).set(clases[index])
+                        .catch(err => console.error("Error actualizando grabación:", err));
+                }
+                alert('Grabación agregada');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                window.cargarClasesDocenteVirtual(currentUser.username);
+            } else {
+                alert('Clase no encontrada');
+            }
+        } else {
+            alert('URL inválida');
+        }
+    };
+    
+    // Forzar que al cargar la página del docente se muestren sus clases
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            const userType = localStorage.getItem('userType');
+            if (userType === 'docente') {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (currentUser.username && typeof window.cargarClasesDocenteVirtual === 'function') {
+                    window.cargarClasesDocenteVirtual(currentUser.username);
+                }
+            }
+        });
+    } else {
+        const userType = localStorage.getItem('userType');
+        if (userType === 'docente') {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (currentUser.username) window.cargarClasesDocenteVirtual(currentUser.username);
+        }
+    }
+    
+    console.log("✅ Funciones del docente registradas globalmente");
+})();
+</script>
 </body>
 </html>        
