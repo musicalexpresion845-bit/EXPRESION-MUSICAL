@@ -8358,20 +8358,47 @@ function agregarEstudiante() {
         }
 
         // Inicializar aplicación
-        function iniciarPagos() {
-              sincronizarPagosConInscripciones();
-            cargarDatos();
-            actualizarVista();
-            document.getElementById("filtroAnio").value = config.añoActual;
-            document.getElementById("filtroMes").value = config.mesActual;
-
-            // Aplicar automáticamente al cambiar filtros
-            document.getElementById('filtroNombre').addEventListener('input', aplicarFiltros);
-            document.getElementById('filtroInstrumento').addEventListener('change', aplicarFiltros);
-            document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
-            document.getElementById('filtroMes').addEventListener('change', aplicarFiltros);
-            document.getElementById('filtroAnio').addEventListener('change', aplicarFiltros);
+    // Inicializar aplicación de pagos con sincronización desde Firestore
+async function iniciarPagos() {
+    // 1. Sincronizar estudiantes (esto ya lo tenías)
+    sincronizarPagosConInscripciones();
+    
+    // 2. Cargar pagos desde Firestore y actualizar localStorage
+    if (window.db) {
+        try {
+            const docPagos = await window.db.collection('pagos').doc('global').get();
+            if (docPagos.exists) {
+                const pagosData = docPagos.data();
+                localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+                console.log("✅ Pagos sincronizados desde Firestore");
+                // Actualizar la variable global 'datos' si existe (opcional)
+                if (typeof datos !== 'undefined') {
+                    window.datos = pagosData;
+                }
+            } else {
+                console.log("ℹ️ No hay pagos en Firestore, usando localStorage");
+            }
+        } catch (error) {
+            console.error("❌ Error al cargar pagos desde Firestore:", error);
         }
+    }
+    
+    // 3. Cargar datos desde localStorage (ya actualizado)
+    cargarDatos();
+    
+    // 4. Actualizar la vista
+    actualizarVista();
+    
+    // 5. Configurar filtros (igual que antes)
+    document.getElementById("filtroAnio").value = config.añoActual;
+    document.getElementById("filtroMes").value = config.mesActual;
+    
+    document.getElementById('filtroNombre').addEventListener('input', aplicarFiltros);
+    document.getElementById('filtroInstrumento').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroMes').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroAnio').addEventListener('change', aplicarFiltros);
+}
 // =====================================================
 // FUNCIÓN DE SINCRONIZACIÓN ESTUDIANTES -> PAGOS
 // =====================================================
