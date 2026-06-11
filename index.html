@@ -20743,7 +20743,29 @@ if (document.readyState === 'loading') {
             console.log(`🗑️ Eliminados ${original - recibos.length} recibos corruptos`);
         }
     })();
-
+    // ---------- Sincronización en tiempo real de recibos desde Firestore ----------
+    if (window.db) {
+        window.db.collection('recibos').onSnapshot((snapshot) => {
+            let recibosFirestore = [];
+            snapshot.forEach(doc => recibosFirestore.push(doc.data()));
+            if (recibosFirestore.length > 0) {
+                // Combinar con recibos locales (para no perder los que no estén en la nube)
+                let locales = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+                let unidos = [...locales];
+                recibosFirestore.forEach(r => {
+                    if (!unidos.some(u => u.id === r.id)) unidos.push(r);
+                });
+                localStorage.setItem('historialRecibos', JSON.stringify(unidos));
+                console.log(`🔄 Recibos sincronizados desde Firestore: ${recibosFirestore.length} recibos`);
+                // Si la pestaña de historial está abierta, recargarla
+                if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
+                    window.cargarHistorialRecibos();
+                }
+            }
+        }, error => console.error("Error en listener de recibos:", error));
+    } else {
+        console.warn("⚠️ Firebase no disponible, los recibos no se sincronizarán");
+    }
     // Auto-inicializar cuando el DOM esté listo
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', window.inicializarFormularioRecibo);
