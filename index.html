@@ -21095,5 +21095,47 @@ setInterval(forzarOcultarBarraLateral, 2000);
     }
 })();
 </script>
+    <script>
+// ========== DELEGACIÓN DE EVENTOS PARA BOTONES DEL DOCENTE ==========
+document.addEventListener('click', function(e) {
+    // Buscar el botón que fue clickeado (puede ser un hijo)
+    const btn = e.target.closest('[onclick*="guardarClaseVirtualDocente"], .btn-primary-docente, [onclick*="agregarGrabacionClase"]');
+    if (!btn) return;
+
+    // Prevenir cualquier comportamiento por defecto
+    e.preventDefault();
+
+    // Determinar qué función llamar según el texto o atributo
+    if (btn.textContent.includes('Crear Clase') || btn.textContent.includes('Guardar')) {
+        if (typeof guardarClaseVirtualDocente === 'function') {
+            guardarClaseVirtualDocente();
+        } else {
+            console.warn("guardarClaseVirtualDocente no está definida");
+            alert("Error: La función guardarClaseVirtualDocente no está disponible.");
+        }
+    }
+    else if (btn.textContent.includes('Agregar Grabación') || btn.getAttribute('onclick')?.includes('agregarGrabacionClase')) {
+        // Extraer el ID de la clase del onclick o del data-id
+        const onclickAttr = btn.getAttribute('onclick');
+        let claseId = null;
+        if (onclickAttr) {
+            const match = onclickAttr.match(/\d+/);
+            if (match) claseId = parseInt(match[0]);
+        }
+        if (claseId && typeof agregarGrabacionClase === 'function') {
+            agregarGrabacionClase(claseId);
+        } else {
+            console.warn("No se pudo extraer ID de clase o la función no existe");
+        }
+    }
+    else {
+        // Si es otro botón, intentar ejecutar su onclick original (por si acaso)
+        const originalOnclick = btn.getAttribute('onclick');
+        if (originalOnclick && typeof window[originalOnclick.split('(')[0]] === 'function') {
+            eval(originalOnclick);
+        }
+    }
+});
+</script>
 </body>
 </html>        
