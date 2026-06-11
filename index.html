@@ -17866,30 +17866,7 @@ function actualizarEstudianteRecibo() {
     }
 }
 
-// =====================================================
-// INICIALIZACIÓN DE RECIBOS MEJORADA
-// =====================================================
 
-function inicializarSistemaRecibos() {
-    console.log('💰 Inicializando sistema de recibos...');
-    
-    // Actualizar lista de encargados
-    actualizarListaEncargados();
-    
-    // Configurar event listeners
-    const encargadoSelect = document.getElementById('encargado');
-    if (encargadoSelect) {
-        encargadoSelect.onchange = actualizarEstudianteRecibo;
-        console.log('✅ Event listener agregado a select de encargados');
-    }
-    
-    // Configurar botón generar recibo
-    const generarBtn = document.querySelector('.btn-primary-recibos');
-    if (generarBtn && !generarBtn.onclick) {
-        generarBtn.onclick = generarRecibo;
-        console.log('✅ Event listener agregado a botón generar recibo');
-    }
-}	
       // ============================================
 // FUNCIONES PARA LA CÁMARA EN PANTALLA ESTUDIANTES
 // ============================================
@@ -20237,321 +20214,7 @@ if (originalEliminarInscripcion) {
     };
 }
 
-<script>
-// ==================== SISTEMA DE RECIBOS COMPLETO Y FUNCIONAL ====================
-let reciboActual = null;
 
-function formatearFecha(fechaISO) {
-    if (!fechaISO) return '';
-    const fecha = new Date(fechaISO);
-    return `${fecha.getDate().toString().padStart(2,'0')}/${(fecha.getMonth()+1).toString().padStart(2,'0')}/${fecha.getFullYear()}`;
-}
-
-function convertirMontoALetras(monto) {
-    return `${Math.floor(monto)} QUETZALES ${(monto % 1 * 100).toFixed(0)}/100`;
-}
-
-function generarNumeroRecibo() {
-    const historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const base = historial.length + 1;
-    return `REC-${String(base).padStart(4,'0')}-${new Date().getFullYear()}`;
-}
-
-function actualizarListaEncargados() {
-    const encargadoSelect = document.getElementById('encargado');
-    if (!encargadoSelect) return;
-    const inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const encargadosUnicos = new Map();
-    inscripciones.forEach(ins => {
-        if (ins.encargado?.nombre && ins.estado !== 'inactivo') {
-            const nombre = ins.encargado.nombre.trim();
-            if (!encargadosUnicos.has(nombre)) {
-                encargadosUnicos.set(nombre, {
-                    nombre: nombre,
-                    telefono: ins.encargado.telefono || '',
-                    estudiante: ins.estudiante?.nombre || ''
-                });
-            }
-        }
-    });
-    encargadoSelect.innerHTML = '<option value="">Seleccione un encargado</option>';
-    const ordenados = Array.from(encargadosUnicos.values()).sort((a,b) => a.nombre.localeCompare(b.nombre));
-    ordenados.forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.nombre;
-        opt.textContent = `${e.nombre} - ${e.estudiante}`;
-        opt.setAttribute('data-telefono', e.telefono);
-        opt.setAttribute('data-estudiante', e.estudiante);
-        encargadoSelect.appendChild(opt);
-    });
-}
-
-function actualizarEstudianteRecibo() {
-    const encargadoSelect = document.getElementById('encargado');
-    const estudianteInput = document.getElementById('estudiante');
-    const selected = encargadoSelect.options[encargadoSelect.selectedIndex];
-    estudianteInput.value = (selected && selected.value) ? (selected.getAttribute('data-estudiante') || '') : '';
-}
-
-function mostrarRecibo(recibo) {
-    document.getElementById('fecha-recibo').innerText = formatearFecha(recibo.fecha);
-    document.getElementById('fecha-recibo-copia').innerText = formatearFecha(recibo.fecha);
-    document.getElementById('numero-recibo').innerText = recibo.numero;
-    document.getElementById('numero-recibo-copia').innerText = recibo.numero;
-    document.getElementById('mes-recibo').innerText = recibo.mes;
-    document.getElementById('mes-recibo-copia').innerText = recibo.mes;
-    document.getElementById('encargado-recibo').innerText = recibo.encargado;
-    document.getElementById('encargado-recibo-copia').innerText = recibo.encargado;
-    document.getElementById('estudiante-recibo').innerText = recibo.estudiante;
-    document.getElementById('estudiante-recibo-copia').innerText = recibo.estudiante;
-    document.getElementById('monto-recibo').innerText = `Q ${recibo.monto.toFixed(2)}`;
-    document.getElementById('monto-recibo-copia').innerText = `Q ${recibo.monto.toFixed(2)}`;
-    document.getElementById('monto-letras').innerText = recibo.montoLetras;
-    document.getElementById('monto-letras-copia').innerText = recibo.montoLetras;
-    document.getElementById('recibo-container').style.display = 'block';
-    document.getElementById('recibo-container').scrollIntoView({ behavior: 'smooth' });
-}
-
-function guardarReciboEnHistorial(recibo) {
-    if (!recibo) return;
-    if (recibo.monto) recibo.monto = parseFloat(recibo.monto);
-    let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    historial.push(recibo);
-    localStorage.setItem('historialRecibos', JSON.stringify(historial));
-    console.log("✅ Recibo guardado en historial:", recibo.numero);
-    if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
-        cargarHistorialRecibos();
-    }
-    if (window.db) {
-        window.db.collection('recibos').doc(String(recibo.id)).set(recibo)
-            .catch(err => console.error("Error guardando recibo en Firestore:", err));
-    }
-}
-
-function cargarHistorialRecibos() {
-    const contenedor = document.getElementById('historial-list-recibos');
-    if (!contenedor) return;
-    let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    recibos = recibos.filter(r => r && typeof r.monto === 'number');
-    if (recibos.length === 0) {
-        contenedor.innerHTML = '<div class="empty-state">No hay recibos</div>';
-        return;
-    }
-    recibos.sort((a,b) => b.id - a.id);
-    let html = '';
-    for (let r of recibos) {
-        const fecha = r.fecha ? formatearFecha(r.fecha) : 'Fecha no disponible';
-        html += `
-            <div class="recibo-item">
-                <div class="recibo-info">
-                    <strong>${escapeHtml(r.estudiante || '?')}</strong><br>
-                    ${r.numero || 'N/A'} - ${r.mes || '?'}<br>
-                    Q ${r.monto.toFixed(2)} - ${fecha}
-                </div>
-                <div class="recibo-actions">
-                    <button class="btn-small" onclick="verReciboHistorial(${r.id})">Ver</button>
-                    <button class="btn-small" onclick="descargarReciboHistorial(${r.id})">PDF</button>
-                    <button class="btn-small" onclick="enviarWhatsAppReciboHistorial(${r.id})">WhatsApp</button>
-                </div>
-            </div>
-        `;
-    }
-    contenedor.innerHTML = html;
-}
-
-function verReciboHistorial(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        reciboActual = recibo;
-        mostrarRecibo(recibo);
-    } else alert('Recibo no encontrado');
-}
-
-function descargarReciboHistorial(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        reciboActual = recibo;
-        descargarPDFReciboMejorado();
-    } else alert('Recibo no encontrado');
-}
-
-function enviarWhatsAppReciboHistorial(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        reciboActual = recibo;
-        enviarWhatsAppReciboMejorado();
-    } else alert('Recibo no encontrado');
-}
-
-function generarRecibo() {
-    const fechaPago = document.getElementById('fecha-pago').value;
-    const mesPago = document.getElementById('mes-pago').value;
-    const encargado = document.getElementById('encargado').value;
-    const estudiante = document.getElementById('estudiante').value;
-    let monto = parseFloat(document.getElementById('monto').value);
-    if (!fechaPago || !mesPago || !encargado || !estudiante || isNaN(monto) || monto <= 0) {
-        alert('Complete todos los campos correctamente');
-        return;
-    }
-    const telefono = document.getElementById('encargado').options[document.getElementById('encargado').selectedIndex]?.getAttribute('data-telefono') || '';
-    const numeroRecibo = generarNumeroRecibo();
-    const nuevoRecibo = {
-        id: Date.now(),
-        numero: numeroRecibo,
-        fecha: fechaPago,
-        mes: mesPago,
-        encargado: encargado,
-        estudiante: estudiante,
-        telefono: telefono,
-        monto: monto,
-        montoLetras: convertirMontoALetras(monto),
-        fechaGeneracion: new Date().toISOString()
-    };
-    reciboActual = nuevoRecibo;
-    mostrarRecibo(nuevoRecibo);
-    guardarReciboEnHistorial(nuevoRecibo);
-}
-
-function limpiarFormularioRecibo() {
-    const hoy = new Date();
-    const fechaLocal = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000);
-    document.getElementById('fecha-pago').value = fechaLocal.toISOString().split('T')[0];
-    document.getElementById('mes-pago').value = '';
-    document.getElementById('encargado').value = '';
-    document.getElementById('estudiante').value = '';
-    document.getElementById('monto').value = '';
-    ocultarRecibo();
-}
-
-function mostrarSeccionRecibos(seccion) {
-    ocultarRecibo();
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    if (seccion === 'formulario') {
-        document.querySelector('.tab:nth-child(1)').classList.add('active');
-        document.getElementById('formulario-seccion-recibos').style.display = 'block';
-        document.getElementById('historial-seccion-recibos').style.display = 'none';
-    } else {
-        document.querySelector('.tab:nth-child(2)').classList.add('active');
-        document.getElementById('formulario-seccion-recibos').style.display = 'none';
-        document.getElementById('historial-seccion-recibos').style.display = 'block';
-        cargarHistorialRecibos();
-    }
-}
-
-function ocultarRecibo() {
-    const container = document.getElementById('recibo-container');
-    if (container) container.style.display = 'none';
-}
-
-function descargarPDFReciboMejorado() {
-    const element = document.getElementById('recibo-content');
-    if (!element) return;
-    let estudiante = reciboActual?.estudiante || document.getElementById('estudiante')?.value || 'recibo';
-    let numero = reciboActual?.numero || 'recibo';
-    let nombreLimpio = estudiante.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    if (!nombreLimpio) nombreLimpio = 'recibo';
-    const nombreArchivo = `Recibo_${nombreLimpio}_${numero}.pdf`;
-    html2pdf().set({ margin: 0, filename: nombreArchivo, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
-}
-
-function imprimirReciboMejorado() {
-    const contenido = document.getElementById('recibo-content');
-    if (!contenido) return;
-    const ventana = window.open('', '_blank');
-    ventana.document.write('<html><head><title>Recibo</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"></head><body>' + contenido.innerHTML + '</body></html>');
-    ventana.document.close();
-    ventana.print();
-}
-
-function enviarWhatsAppReciboMejorado() {
-    if (!reciboActual || !reciboActual.telefono) {
-        alert('No se puede enviar: falta número de teléfono');
-        return;
-    }
-    const mensaje = `🎵 *ACADEMIA DE MÚSICA EXPRESIÓN MUSICAL* 🎵%0A%0A` +
-        `📋 *COMPROBANTE DE PAGO*%0A%0A` +
-        `🔢 *No. de Recibo:* ${reciboActual.numero}%0A` +
-        `📅 *Fecha:* ${formatearFecha(reciboActual.fecha)}%0A` +
-        `🗓️ *Mes Pagado:* ${reciboActual.mes}%0A%0A` +
-        `👤 *Encargado:* ${reciboActual.encargado}%0A` +
-        `🎓 *Estudiante:* ${reciboActual.estudiante}%0A` +
-        `💰 *Monto:* Q ${reciboActual.monto.toFixed(2)}%0A` +
-        `📝 *${reciboActual.montoLetras}*%0A%0A` +
-        `🏫 *Academia de Música Expresión Musical*%0A` +
-        `📞 Tel: 37418036 / 38514409%0A` +
-        `📍 08 Calle c 10-72 Zona 3 San Marcos`;
-    const telefono = reciboActual.telefono.replace(/\D/g, '');
-    window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-function inicializarFormularioRecibo() {
-    const fechaInput = document.getElementById('fecha-pago');
-    if (fechaInput) {
-        const hoy = new Date();
-        const fechaLocal = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000);
-        fechaInput.value = fechaLocal.toISOString().split('T')[0];
-    }
-    actualizarListaEncargados();
-    cargarHistorialRecibos();
-    const btnWhatsApp = document.getElementById('btnWhatsAppRecibo');
-    if (btnWhatsApp) btnWhatsApp.onclick = enviarWhatsAppReciboMejorado;
-}
-
-// Exponer todas las funciones globalmente
-window.reciboActual = reciboActual;
-window.formatearFecha = formatearFecha;
-window.convertirMontoALetras = convertirMontoALetras;
-window.generarNumeroRecibo = generarNumeroRecibo;
-window.actualizarListaEncargados = actualizarListaEncargados;
-window.actualizarEstudianteRecibo = actualizarEstudianteRecibo;
-window.mostrarRecibo = mostrarRecibo;
-window.guardarReciboEnHistorial = guardarReciboEnHistorial;
-window.cargarHistorialRecibos = cargarHistorialRecibos;
-window.verReciboHistorial = verReciboHistorial;
-window.descargarReciboHistorial = descargarReciboHistorial;
-window.enviarWhatsAppReciboHistorial = enviarWhatsAppReciboHistorial;
-window.generarRecibo = generarRecibo;
-window.limpiarFormularioRecibo = limpiarFormularioRecibo;
-window.mostrarSeccionRecibos = mostrarSeccionRecibos;
-window.ocultarRecibo = ocultarRecibo;
-window.descargarPDFReciboMejorado = descargarPDFReciboMejorado;
-window.imprimirReciboMejorado = imprimirReciboMejorado;
-window.enviarWhatsAppReciboMejorado = enviarWhatsAppReciboMejorado;
-window.inicializarFormularioRecibo = inicializarFormularioRecibo;
-
-// Inicializar automáticamente cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarFormularioRecibo);
-} else {
-    inicializarFormularioRecibo();
-}
-
-// Limpiar recibos corruptos al inicio
-(function limpiarRecibos() {
-    let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    let original = recibos.length;
-    recibos = recibos.filter(r => r && typeof r.monto === 'number');
-    if (recibos.length < original) {
-        localStorage.setItem('historialRecibos', JSON.stringify(recibos));
-        console.log(`🗑️ Se eliminaron ${original - recibos.length} recibos corruptos`);
-    }
-})();
-
-console.log("✅ Sistema de recibos completo y funcional cargado");
-</script>
   <script>
 // ==================== FUNCIÓN DE PAGO DEFINITIVA (CON REFRESCO ASEGURADO) ====================
 window.registrarPago = function(idEstudiante) {
@@ -20694,6 +20357,328 @@ if (document.readyState === 'loading') {
 } else {
     iniciarSincronizacionRecibos();
 }
+</script>
+    <script>
+// ==================== SISTEMA DE RECIBOS - UNIFICADO Y FUNCIONAL ====================
+(function() {
+    // ---------- Funciones auxiliares ----------
+    function formatearFecha(fechaISO) {
+        if (!fechaISO) return '';
+        const fecha = new Date(fechaISO);
+        return `${fecha.getDate().toString().padStart(2,'0')}/${(fecha.getMonth()+1).toString().padStart(2,'0')}/${fecha.getFullYear()}`;
+    }
+
+    function convertirMontoALetras(monto) {
+        return `${Math.floor(monto)} QUETZALES ${(monto % 1 * 100).toFixed(0)}/100`;
+    }
+
+    function generarNumeroRecibo() {
+        const historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        const base = historial.length + 1;
+        return `REC-${String(base).padStart(4,'0')}-${new Date().getFullYear()}`;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ---------- Lista de encargados ----------
+    window.actualizarListaEncargados = function() {
+        const select = document.getElementById('encargado');
+        if (!select) return;
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const encargados = new Map();
+        inscriptions.forEach(ins => {
+            if (ins.encargado?.nombre && ins.estado !== 'inactivo') {
+                const nombre = ins.encargado.nombre.trim();
+                if (!encargados.has(nombre)) {
+                    encargados.set(nombre, {
+                        telefono: ins.encargado.telefono || '',
+                        estudiante: ins.estudiante?.nombre || ''
+                    });
+                }
+            }
+        });
+        select.innerHTML = '<option value="">Seleccione un encargado</option>';
+        const ordenados = Array.from(encargados.entries()).sort((a,b) => a[0].localeCompare(b[0]));
+        ordenados.forEach(([nombre, datos]) => {
+            const opt = document.createElement('option');
+            opt.value = nombre;
+            opt.textContent = `${nombre} - ${datos.estudiante}`;
+            opt.setAttribute('data-telefono', datos.telefono);
+            opt.setAttribute('data-estudiante', datos.estudiante);
+            select.appendChild(opt);
+        });
+    };
+
+    window.actualizarEstudianteRecibo = function() {
+        const select = document.getElementById('encargado');
+        const estudianteInput = document.getElementById('estudiante');
+        const selected = select?.options[select.selectedIndex];
+        estudianteInput.value = (selected && selected.value) ? (selected.getAttribute('data-estudiante') || '') : '';
+    };
+
+    // ---------- Mostrar recibo ----------
+    window.mostrarRecibo = function(recibo) {
+        document.getElementById('fecha-recibo').innerText = recibo.fecha;
+        document.getElementById('fecha-recibo-copia').innerText = recibo.fecha;
+        document.getElementById('numero-recibo').innerText = recibo.numero;
+        document.getElementById('numero-recibo-copia').innerText = recibo.numero;
+        document.getElementById('mes-recibo').innerText = recibo.mes;
+        document.getElementById('mes-recibo-copia').innerText = recibo.mes;
+        document.getElementById('encargado-recibo').innerText = recibo.encargado;
+        document.getElementById('encargado-recibo-copia').innerText = recibo.encargado;
+        document.getElementById('estudiante-recibo').innerText = recibo.estudiante;
+        document.getElementById('estudiante-recibo-copia').innerText = recibo.estudiante;
+        document.getElementById('monto-recibo').innerText = `Q ${recibo.monto.toFixed(2)}`;
+        document.getElementById('monto-recibo-copia').innerText = `Q ${recibo.monto.toFixed(2)}`;
+        document.getElementById('monto-letras').innerText = recibo.montoLetras;
+        document.getElementById('monto-letras-copia').innerText = recibo.montoLetras;
+        document.getElementById('recibo-container').style.display = 'block';
+        document.getElementById('recibo-container').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.ocultarRecibo = function() {
+        const container = document.getElementById('recibo-container');
+        if (container) container.style.display = 'none';
+    };
+
+    // ---------- Guardar y cargar historial ----------
+    function guardarReciboEnLocal(recibo) {
+        let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        historial.push(recibo);
+        localStorage.setItem('historialRecibos', JSON.stringify(historial));
+        if (window.db) {
+            window.db.collection('recibos').doc(String(recibo.id)).set(recibo)
+                .catch(err => console.error("Error guardando en Firestore:", err));
+        }
+        if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
+            window.cargarHistorialRecibos();
+        }
+    }
+
+    window.cargarHistorialRecibos = function() {
+        const contenedor = document.getElementById('historial-list-recibos');
+        if (!contenedor) return;
+        let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        recibos = recibos.filter(r => r && typeof r.monto === 'number');
+        if (recibos.length === 0) {
+            contenedor.innerHTML = '<div class="empty-state">No hay recibos</div>';
+            return;
+        }
+        recibos.sort((a,b) => b.id - a.id);
+        let html = '';
+        for (const r of recibos) {
+            const fecha = r.fecha ? r.fecha : 'Fecha no disponible';
+            html += `
+                <div class="recibo-item">
+                    <div class="recibo-info">
+                        <strong>${escapeHtml(r.estudiante || '?')}</strong><br>
+                        ${r.numero || 'N/A'} - ${r.mes || '?'}<br>
+                        Q ${r.monto.toFixed(2)} - ${fecha}
+                    </div>
+                    <div class="recibo-actions">
+                        <button class="btn-small" onclick="window.verReciboHistorial(${r.id})">Ver</button>
+                        <button class="btn-small" onclick="window.descargarReciboHistorial(${r.id})">PDF</button>
+                        <button class="btn-small" onclick="window.enviarWhatsAppReciboHistorial(${r.id})">WhatsApp</button>
+                    </div>
+                </div>
+            `;
+        }
+        contenedor.innerHTML = html;
+    };
+
+    window.verReciboHistorial = function(id) {
+        const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        const recibo = recibos.find(r => r.id === id);
+        if (recibo) {
+            window.reciboActual = recibo;
+            window.mostrarRecibo(recibo);
+        } else alert('Recibo no encontrado');
+    };
+
+    window.descargarReciboHistorial = function(id) {
+        const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        const recibo = recibos.find(r => r.id === id);
+        if (recibo) {
+            window.reciboActual = recibo;
+            window.descargarPDFReciboMejorado();
+        } else alert('Recibo no encontrado');
+    };
+
+    window.enviarWhatsAppReciboHistorial = function(id) {
+        const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        const recibo = recibos.find(r => r.id === id);
+        if (recibo) {
+            window.reciboActual = recibo;
+            window.enviarWhatsAppReciboMejorado();
+        } else alert('Recibo no encontrado');
+    };
+
+    // ---------- Generar recibo ----------
+    window.generarRecibo = function() {
+        const fechaPago = document.getElementById('fecha-pago').value;
+        const mesPago = document.getElementById('mes-pago').value;
+        const encargado = document.getElementById('encargado').value;
+        const estudiante = document.getElementById('estudiante').value;
+        let monto = parseFloat(document.getElementById('monto').value);
+        if (!fechaPago || !mesPago || !encargado || !estudiante || isNaN(monto) || monto <= 0) {
+            alert('Complete todos los campos correctamente');
+            return;
+        }
+        const telefono = document.getElementById('encargado').options[document.getElementById('encargado').selectedIndex]?.getAttribute('data-telefono') || '';
+        const numeroRecibo = generarNumeroRecibo();
+        const nuevoRecibo = {
+            id: Date.now(),
+            numero: numeroRecibo,
+            fecha: fechaPago,
+            mes: mesPago,
+            encargado: encargado,
+            estudiante: estudiante,
+            telefono: telefono,
+            monto: monto,
+            montoLetras: convertirMontoALetras(monto),
+            fechaGeneracion: new Date().toISOString()
+        };
+        window.reciboActual = nuevoRecibo;
+        window.mostrarRecibo(nuevoRecibo);
+        guardarReciboEnLocal(nuevoRecibo);
+        alert('Recibo generado correctamente');
+    };
+
+    window.limpiarFormularioRecibo = function() {
+        // Poner fecha actual automática
+        const hoy = new Date();
+        const año = hoy.getFullYear();
+        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoy.getDate()).padStart(2, '0');
+        document.getElementById('fecha-pago').value = `${año}-${mes}-${dia}`;
+        document.getElementById('mes-pago').value = '';
+        document.getElementById('encargado').value = '';
+        document.getElementById('estudiante').value = '';
+        document.getElementById('monto').value = '';
+        window.ocultarRecibo();
+    };
+
+    window.mostrarSeccionRecibos = function(seccion) {
+        window.ocultarRecibo();
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (seccion === 'formulario') {
+            tabs[0].classList.add('active');
+            document.getElementById('formulario-seccion-recibos').style.display = 'block';
+            document.getElementById('historial-seccion-recibos').style.display = 'none';
+        } else {
+            tabs[1].classList.add('active');
+            document.getElementById('formulario-seccion-recibos').style.display = 'none';
+            document.getElementById('historial-seccion-recibos').style.display = 'block';
+            window.cargarHistorialRecibos();
+        }
+    };
+
+    // ---------- PDF y WhatsApp ----------
+    window.descargarPDFReciboMejorado = function() {
+        const element = document.getElementById('recibo-content');
+        if (!element) return;
+        let estudiante = window.reciboActual?.estudiante || document.getElementById('estudiante')?.value || 'recibo';
+        let numero = window.reciboActual?.numero || 'recibo';
+        let nombreLimpio = estudiante.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        if (!nombreLimpio) nombreLimpio = 'recibo';
+        const nombreArchivo = `Recibo_${nombreLimpio}_${numero}.pdf`;
+        html2pdf().set({
+            margin: 0,
+            filename: nombreArchivo,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).save();
+    };
+
+    window.enviarWhatsAppReciboMejorado = function() {
+        if (!window.reciboActual || !window.reciboActual.telefono) {
+            alert('No se puede enviar: falta número de teléfono');
+            return;
+        }
+        const r = window.reciboActual;
+        const mensaje = `🎵 *ACADEMIA DE MÚSICA EXPRESIÓN MUSICAL* 🎵%0A%0A` +
+            `📋 *COMPROBANTE DE PAGO*%0A%0A` +
+            `🔢 *No. de Recibo:* ${r.numero}%0A` +
+            `📅 *Fecha:* ${r.fecha}%0A` +
+            `🗓️ *Mes Pagado:* ${r.mes}%0A%0A` +
+            `👤 *Encargado:* ${r.encargado}%0A` +
+            `🎓 *Estudiante:* ${r.estudiante}%0A` +
+            `💰 *Monto:* Q ${r.monto.toFixed(2)}%0A` +
+            `📝 *${r.montoLetras}*%0A%0A` +
+            `🏫 *Academia de Música Expresión Musical*%0A` +
+            `📞 Tel: 37418036 / 38514409%0A` +
+            `📍 08 Calle c 10-72 Zona 3 San Marcos`;
+        const telefono = r.telefono.replace(/\D/g, '');
+        window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
+    };
+
+    // Imprimir (opcional, si existe el botón)
+    window.imprimirReciboMejorado = function() {
+        const contenido = document.getElementById('recibo-content');
+        if (!contenido) return;
+        const ventana = window.open('', '_blank');
+        ventana.document.write('<html><head><title>Recibo</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"></head><body>' + contenido.innerHTML + '</body></html>');
+        ventana.document.close();
+        ventana.print();
+    };
+
+    // ---------- Inicialización ----------
+    window.inicializarFormularioRecibo = function() {
+        // Fecha automática
+        const hoy = new Date();
+        const año = hoy.getFullYear();
+        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoy.getDate()).padStart(2, '0');
+        const fechaInput = document.getElementById('fecha-pago');
+        if (fechaInput) fechaInput.value = `${año}-${mes}-${dia}`;
+        // Cargar encargados
+        if (typeof window.actualizarListaEncargados === 'function') window.actualizarListaEncargados();
+        // Cargar historial
+        if (typeof window.cargarHistorialRecibos === 'function') window.cargarHistorialRecibos();
+        // Configurar evento del select de encargado
+        const selectEnc = document.getElementById('encargado');
+        if (selectEnc && !selectEnc._listener) {
+            selectEnc.addEventListener('change', window.actualizarEstudianteRecibo);
+            selectEnc._listener = true;
+        }
+        // Configurar botón generar si no tiene evento
+        const generarBtn = document.querySelector('.btn-primary-recibos');
+        if (generarBtn && !generarBtn._listener) {
+            generarBtn.onclick = window.generarRecibo;
+            generarBtn._listener = true;
+        }
+        console.log('✅ Formulario de recibos inicializado');
+    };
+
+    // Limpiar recibos corruptos al inicio
+    (function limpiarRecibos() {
+        let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+        const original = recibos.length;
+        recibos = recibos.filter(r => r && typeof r.monto === 'number');
+        if (recibos.length < original) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibos));
+            console.log(`🗑️ Eliminados ${original - recibos.length} recibos corruptos`);
+        }
+    })();
+
+    // Auto-inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.inicializarFormularioRecibo);
+    } else {
+        window.inicializarFormularioRecibo();
+    }
+})();
+console.log("✅ Sistema de recibos unificado y funcional cargado");
 </script>
 </body>
 </html>        
