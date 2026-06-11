@@ -8104,7 +8104,7 @@ function sincronizarPagosConInscripciones() {
     let pagosData = JSON.parse(localStorage.getItem('datosPagos')) || { estudiantes: [], pagos: [] };
     
     const nuevosEstudiantes = inscriptions
-        .filter(ins => (ins.estado || 'activo') === 'activo')   // ← clave: estudiantes sin estado se consideran activos
+        .filter(ins => (ins.estado || 'activo') === 'activo')
         .map(ins => {
             let mensualidad = 200;
             if (ins.musical && ins.musical.mensualidad) mensualidad = parseFloat(ins.musical.mensualidad);
@@ -8123,9 +8123,14 @@ function sincronizarPagosConInscripciones() {
     
     pagosData.estudiantes = nuevosEstudiantes;
     localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+    
+    // 🔥 NUEVO: Actualizar la variable global window.datos
+    if (!window.datos) window.datos = { estudiantes: [], pagos: [] };
+    window.datos.estudiantes = nuevosEstudiantes;
+    if (pagosData.pagos) window.datos.pagos = pagosData.pagos;
+    
     console.log(`✅ Sincronización completada: ${nuevosEstudiantes.length} estudiantes en pagos.`);
     
-    // Si la vista de pagos está abierta, refrescarla
     const pagosContainer = document.getElementById('pagosContainer');
     if (pagosContainer && pagosContainer.style.display !== 'none') {
         if (typeof actualizarVista === 'function') actualizarVista();
@@ -8206,15 +8211,14 @@ function sincronizarAsistenciaConInscripciones() {
         let estudianteAEliminar = null;
 
         // Cargar datos desde localStorage
-    function cargarDatos() {
+function cargarDatos() {
     const datosGuardados = localStorage.getItem('datosPagos');
     if (datosGuardados) {
         window.datos = JSON.parse(datosGuardados);
-        mostrarNotificacion('Datos cargados correctamente');
     } else {
         window.datos = { estudiantes: [], pagos: [] };
     }
-    // 🔥 Asegurar que window.datos siempre tenga estructura válida
+    // Asegurar estructura
     if (!window.datos.estudiantes) window.datos.estudiantes = [];
     if (!window.datos.pagos) window.datos.pagos = [];
     console.log('📦 cargarDatos: window.datos actualizado', window.datos.pagos.length);
@@ -8371,64 +8375,62 @@ function agregarEstudiante() {
         }
 
         // Inicializar aplicación
-   async function iniciarPagos() {
-    console.log("💰 Iniciando pagos, sincronizando desde Firestore...");
+ async function iniciarPagos() {
+    console.log("💰 Iniciando pagos...");
     
-    // 1. Sincronizar estudiantes (actualiza la lista de estudiantes en localStorage)
-    sincronizarPagosConInscripciones();
-    
-    // 2. Obtener pagos directamente desde Firestore (sin depender de localStorage)
+    // Cargar datos desde Firestore a window.datos
     if (window.db) {
         try {
-            const docPagos = await window.db.collection('pagos').doc('global').get();
-            if (docPagos.exists) {
-                // Datos más recientes desde Firestore
-                const pagosData = docPagos.data();
-                // Guardar en localStorage como respaldo
-                localStorage.setItem('datosPagos', JSON.stringify(pagosData));
-                // ACTUALIZAR LA VARIABLE GLOBAL 'datos' QUE USA actualizarTabla()
-                window.datos = pagosData;
-                console.log("✅ Pagos cargados desde Firestore:", pagosData.pagos?.length || 0, "registros");
+            const doc = await window.db.collection('pagos').doc('global').get();
+            if (doc.exists) {
+                window.datos = doc.data();
+                localStorage.setItem('datosPagos', JSON.stringify(window.datos));
+                console.log("✅ Datos desde Firestore, pagos:", window.datos.pagos.length);
             } else {
-                console.log("ℹ️ No hay pagos en Firestore, usando localStorage");
-                cargarDatos(); // esto asigna a 'datos'
+                window.datos = { estudiantes: [], pagos: [] };
+                await window.db.collection('pagos').doc('global').set(window.datos);
+                console.log("📄 Documento creado en Firestore");
             }
-        } catch (error) {
-            console.error("❌ Error al cargar pagos desde Firestore:", error);
-            cargarDatos(); // fallback a localStorage
+        } catch(e) {
+            console.error("Error cargando de Firestore:", e);
+            const local = localStorage.getItem('datosPagos');
+            window.datos = local ? JSON.parse(local) : { estudiantes: [], pagos: [] };
         }
     } else {
-        cargarDatos();
+        const local = localStorage.getItem('datosPagos');
+        window.datos = local ? JSON.parse(local) : { estudiantes: [], pagos: [] };
     }
     
-    // 3. Asegurar que 'datos' tenga la estructura correcta (por si cargarDatos no la creó)
-    if (!window.datos || !window.datos.estudiantes || !window.datos.pagos) {
-        window.datos = { estudiantes: [], pagos: [] };
-    }
+    // Asegurar estructura
+    if (!window.datos.estudiantes) window.datos.estudiantes = [];
+    if (!window.datos.pagos) window.datos.pagos = [];
     
-    // 4. Actualizar la vista (esto llama a actualizarTabla, que usa window.datos)
+    // Sincronizar estudiantes desde inscripciones
+    sincronizarPagosConInscripciones();
+    
+    // Actualizar tabla
     actualizarVista();
     
-    // 5. Configurar filtros
-    document.getElementById("filtroAnio").value = config.añoActual;
-    document.getElementById("filtroMes").value = config.mesActual;
+    // Configurar filtros
+    const añoInput = document.getElementById("filtroAnio");
+    const mesSelect = document.getElementById("filtroMes");
+    if (añoInput) añoInput.value = new Date().getFullYear();
+    if (mesSelect) mesSelect.value = new Date().getMonth() + 1;
     
-    // Remover listeners anteriores para evitar duplicados
+    // Remover listeners anteriores y agregar nuevos
     const filtros = ['filtroNombre', 'filtroInstrumento', 'filtroEstado', 'filtroMes', 'filtroAnio'];
     filtros.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             const newEl = el.cloneNode(true);
             el.parentNode.replaceChild(newEl, el);
+            if (id === 'filtroNombre') {
+                document.getElementById(id).addEventListener('input', aplicarFiltros);
+            } else {
+                document.getElementById(id).addEventListener('change', aplicarFiltros);
+            }
         }
     });
-    
-    // Agregar listeners nuevos
-    document.getElementById('filtroNombre').addEventListener('input', aplicarFiltros);
-    document.getElementById('filtroInstrumento').addEventListener('change', aplicarFiltros);
-    document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
-    document.getElementById('filtroMes').addEventListener('change', aplicarFiltros);
-    document.getElementById('filtroAnio').addEventListener('change', aplicarFiltros);
 }
 // =====================================================
 // FUNCIÓN DE SINCRONIZACIÓN ESTUDIANTES -> PAGOS
