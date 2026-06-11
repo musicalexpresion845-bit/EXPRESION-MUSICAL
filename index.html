@@ -20660,41 +20660,21 @@ var registrarPago = window.registrarPago;
 console.log("✅ Función registrarPago instalada correctamente (con refresco asegurado)");
 </script>
     <script>
-// ========== CARGAR PAGOS DESDE FIREBASE AL INICIAR ==========
-(async function cargarPagosDesdeFirebase() {
-    console.log("🔄 Cargando pagos desde Firebase...");
-    
-    // Esperar a que Firebase esté listo (máximo 5 segundos)
-    let espera = 0;
-    while (!window.db && espera < 50) {
-        await new Promise(r => setTimeout(r, 100));
-        espera++;
+// ========== VERSIÓN EN TIEMPO REAL (AUTOMÁTICA) ==========
+db.collection('pagos').doc('global').onSnapshot((doc) => {
+    if (doc.exists) {
+        const pagosFirebase = doc.data();
+        localStorage.setItem('datosPagos', JSON.stringify(pagosFirebase));
+        window.datos = pagosFirebase;
+        console.log("🔄 Pagos actualizados automáticamente:", pagosFirebase.pagos?.length);
+        
+        // Si la tabla de pagos está visible, se refresca sola
+        if (typeof actualizarVista === 'function') actualizarVista();
+        else if (typeof actualizarTabla === 'function') actualizarTabla();
     }
-    
-    if (!window.db) {
-        console.warn("⚠️ Firebase no disponible, usando solo localStorage");
-        return;
-    }
-    
-    try {
-        const doc = await window.db.collection('pagos').doc('global').get();
-        if (doc.exists) {
-            const pagosFirebase = doc.data();
-            // Guardar en localStorage y en window.datos
-            localStorage.setItem('datosPagos', JSON.stringify(pagosFirebase));
-            window.datos = pagosFirebase;
-            console.log(`✅ Pagos cargados: ${pagosFirebase.pagos?.length || 0} registros`);
-            
-            // Si la tabla de pagos está visible, actualizarla
-            if (typeof actualizarVista === 'function') actualizarVista();
-            else if (typeof actualizarTabla === 'function') actualizarTabla();
-        } else {
-            console.log("ℹ️ No hay pagos en Firebase aún");
-        }
-    } catch (error) {
-        console.error("❌ Error cargando pagos:", error);
-    }
-})();
+}, (error) => {
+    console.error("Error en tiempo real:", error);
+});
 </script>
 </body>
 </html>        
