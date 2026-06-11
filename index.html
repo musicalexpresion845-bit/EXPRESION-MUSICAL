@@ -16454,64 +16454,6 @@ function limpiarBotonesDocente() {
     });
 }
 
-        // Manejar el evento de login (MEJORADO - espera sincronización)
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // Mostrar "cargando" en el botón (opcional)
-    const loginBtn = this.querySelector('.login-btn');
-    const originalText = loginBtn.innerHTML;
-    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-    loginBtn.disabled = true;
-    
-    // Esperar hasta que los usuarios estén cargados (máximo 3 segundos)
-    let espera = 0;
-    while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 30) {
-        await new Promise(r => setTimeout(r, 100));
-        espera++;
-    }
-    
-    // Restaurar botón
-    loginBtn.innerHTML = originalText;
-    loginBtn.disabled = false;
-    
-    // Si después de esperar no hay usuarios, mostrar error
-    if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
-        document.getElementById('loginError').textContent = "Error cargando usuarios. Recarga la página.";
-        document.getElementById('loginError').style.display = 'block';
-        return;
-    }
-    
-    // Obtener datos del formulario
-    const userType = document.getElementById('userType').value;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorElement = document.getElementById('loginError');
-
-    if (!userType) {
-        errorElement.textContent = "Por favor seleccione un tipo de usuario";
-        errorElement.style.display = 'block';
-        return;
-    }
-    
-    // Buscar el usuario en systemUsers (ya sincronizado)
-    const usuario = window.systemUsers[username];
-    
-    if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
-        errorElement.style.display = 'none';
-        localStorage.setItem('currentUser', JSON.stringify(usuario));
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userType', userType);
-        hideLogin();
-        updateInterfaceForUserType(userType);
-        mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
-    } else {
-        errorElement.textContent = "Credenciales incorrectas o usuario inactivo";
-        errorElement.style.display = 'block';
-    }
-});
-
-   
         // Cerrar sesión
       function logout() {
     localStorage.removeItem('isLoggedIn');
@@ -20819,39 +20761,156 @@ if (document.readyState === 'loading') {
 }
 </script>
 <script>
-// Función de cierre de sesión (simple)
+// =====================================================
+// FUNCIONES BÁSICAS DE LOGIN Y LOGOUT
+// =====================================================
+
+// Mostrar pantalla de login
+window.showLogin = function() {
+    const loginScreen = document.getElementById('loginScreen');
+    const secretariaScreen = document.getElementById('secretariaScreen');
+    const encargadoPanel = document.getElementById('encargadoPanel');
+    const docentePanel = document.getElementById('docentePanelVirtual');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (secretariaScreen) secretariaScreen.style.display = 'none';
+    if (encargadoPanel) encargadoPanel.style.display = 'none';
+    if (docentePanel) docentePanel.style.display = 'none';
+};
+
+// Ocultar login y mostrar el panel correspondiente
+window.hideLogin = function() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    
+    const userType = localStorage.getItem('userType');
+    
+    if (userType === 'administrador' || userType === 'secretaria') {
+        const secretariaScreen = document.getElementById('secretariaScreen');
+        if (secretariaScreen) secretariaScreen.style.display = 'block';
+        // Mostrar barra lateral
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'flex';
+        if (container) container.style.marginLeft = '250px';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'flex');
+        const panelTitle = document.getElementById('panelTitle');
+        if (panelTitle) panelTitle.textContent = (userType === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría';
+    } 
+    else if (userType === 'docente') {
+        const docentePanel = document.getElementById('docentePanelVirtual');
+        if (docentePanel) docentePanel.style.display = 'block';
+        // Ocultar barra lateral
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'none';
+        if (container) container.style.marginLeft = '0';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
+        const panelTitle = document.getElementById('panelTitle');
+        if (panelTitle) panelTitle.textContent = 'Panel del Docente';
+    }
+    else if (userType === 'encargado') {
+        const encargadoPanel = document.getElementById('encargadoPanel');
+        if (encargadoPanel) encargadoPanel.style.display = 'block';
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        if (sidebar) sidebar.style.display = 'none';
+        if (container) container.style.marginLeft = '0';
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
+        const panelTitle = document.getElementById('panelTitle');
+        if (panelTitle) panelTitle.textContent = 'Portal del Encargado';
+    }
+};
+
+// Verificar estado de login al cargar la página
+window.checkLoginStatus = function() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userType = localStorage.getItem('userType');
+    if (isLoggedIn && userType) {
+        window.hideLogin();
+    } else {
+        window.showLogin();
+    }
+};
+
+// Cerrar sesión
 function cerrarSesion() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userType');
     localStorage.removeItem('currentUser');
-    // Mostrar pantalla de login
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('secretariaScreen').style.display = 'none';
-    document.getElementById('encargadoPanel').style.display = 'none';
-    document.getElementById('docentePanelVirtual').style.display = 'none';
+    window.showLogin();
     // Limpiar campos
-    document.getElementById('userType').value = '';
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
-    document.getElementById('loginError').style.display = 'none';
+    const userTypeSelect = document.getElementById('userType');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginError = document.getElementById('loginError');
+    if (userTypeSelect) userTypeSelect.value = '';
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (loginError) loginError.style.display = 'none';
 }
 
-// Asignar evento a los botones de cerrar sesión (los tres)
-const botonesCerrar = ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'];
-botonesCerrar.forEach(id => {
+// Asignar evento de cierre a los botones de logout
+['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.onclick = cerrarSesion;
 });
 
-// Asegurar que el formulario de login use la validación original (que ya funciona)
-// No sobrescribimos nada, solo forzamos que el botón de login tenga el comportamiento original.
-// El login original ya está definido en tu código (el que usa systemUsers y validCredentials).
-// Solo nos aseguramos de que si algo lo sobreescribió, lo restauramos.
-if (document.getElementById('loginForm') && !document.getElementById('loginForm').hasAttribute('data-fixed')) {
-    // No hacemos nada, dejamos que el evento original (el que ya existe en tu código) se ejecute.
-    // Pero para evitar duplicados, marcamos el formulario.
-    document.getElementById('loginForm').setAttribute('data-fixed', 'true');
-}
+// =====================================================
+// MANEJADOR DEL FORMULARIO DE LOGIN (NUEVO)
+// =====================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm && !loginForm.hasAttribute('data-login-fixed')) {
+        loginForm.setAttribute('data-login-fixed', 'true');
+        
+        loginForm.onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const userType = document.getElementById('userType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorElem = document.getElementById('loginError');
+            
+            if (!userType) {
+                errorElem.textContent = "Seleccione un tipo de usuario";
+                errorElem.style.display = 'block';
+                return;
+            }
+            
+            // Esperar a que los usuarios estén cargados (máximo 5 segundos)
+            let espera = 0;
+            while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                espera++;
+            }
+            
+            if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
+                errorElem.textContent = "Error cargando usuarios. Recarga la página.";
+                errorElem.style.display = 'block';
+                return;
+            }
+            
+            const usuario = window.systemUsers[username];
+            if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
+                errorElem.style.display = 'none';
+                localStorage.setItem('currentUser', JSON.stringify(usuario));
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userType', userType);
+                window.hideLogin();
+                // Opcional: mostrar mensaje de bienvenida
+                if (typeof mostrarBienvenidaConFrase === 'function') {
+                    mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+                }
+            } else {
+                errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
+                errorElem.style.display = 'block';
+            }
+        };
+    }
+});
+
+// Inicializar verificación de login al cargar
+window.checkLoginStatus();
 </script>
 </body>
 </html>        
