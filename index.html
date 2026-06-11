@@ -14552,51 +14552,6 @@ console.log("🎯 SISTEMA DE ASISTENCIA MEJORADO CARGADO - CON REGISTRO MANUAL C
             }
         });
 
-        // Verificar si ya hay una sesión activa
-       function checkLoginStatus() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userType = localStorage.getItem('userType');
-
-    if (isLoggedIn && userType) {
-        document.getElementById('loginScreen').style.display = 'none';
-        mostrarPanelPorTipo(userType);
-    }
-}
-
-function hideLogin() {
-    document.getElementById('loginScreen').style.display = 'none';
-    const userType = localStorage.getItem('userType');
-    mostrarPanelPorTipo(userType);
-}
-
-function showLogin() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('secretariaScreen').style.display = 'none';
-    const encargadoPanel = document.getElementById('encargadoPanel');
-    if (encargadoPanel) encargadoPanel.style.display = 'none';
-    const docentePanel = document.getElementById('docentePanelVirtual');
-    if (docentePanel) docentePanel.style.display = 'none';
-    document.body.style.backgroundColor = '#F1F1F1';
-}
-
-        // Llamar a checkLoginStatus cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-        });
-
-        // Ocultar pantalla de login
-        function hideLogin() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('secretariaScreen').style.display = 'block';
-            document.body.style.backgroundColor = '#F1F1F1';
-        }
-
-        // Mostrar pantalla de login
-        function showLogin() {
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('secretariaScreen').style.display = 'none';
-        }
-
         // Validar credenciales según el tipo de usuario
         function validateCredentials(userType, username, password) {
             if (!validCredentials[userType]) return false;
@@ -14604,112 +14559,7 @@ function showLogin() {
                 password === validCredentials[userType].password;
         }
 
-   // Actualizar la interfaz según el tipo de usuario (VERSIÓN CORREGIDA)
-function updateInterfaceForUserType(userType) {
-    const panelTitle = document.getElementById('panelTitle');
-    const btnGestionUsuarios = document.getElementById('btnGestionUsuarios');
-    const sidebar = document.querySelector('.sidebar');
-    const secretariaContainer = document.querySelector('.secretaria-container');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-    const fabContainer = document.getElementById('fabContainer');
-    
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const userName = currentUser.nombre || currentUser.username || 'Usuario';
-
-    // Ocultar todos los contenedores de contenido
-    document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(container => {
-        container.style.display = 'none';
-    });
-
-    // Ocultar mensaje de bienvenida y FAB por defecto
-    if (welcomeMessage) welcomeMessage.style.display = 'block';
-    if (fabContainer) fabContainer.style.display = 'none';
-
-    // Mostrar todos los items del menú inicialmente (luego se ocultarán según rol)
-    document.querySelectorAll('.menu-item-vertical').forEach(item => {
-        item.style.display = 'flex';
-    });
-
-    // Obtener saludo según la hora
-    function obtenerSaludoLocal() {
-        const hora = new Date().getHours();
-        if (hora >= 5 && hora < 12) return "🌞 Buenos días";
-        if (hora >= 12 && hora < 19) return "🌤️ Buenas tardes";
-        return "🌙 Buenas noches";
-    }
-    const saludoHora = obtenerSaludoLocal();
-    const nombreUsuario = currentUser.nombre || currentUser.username || "Usuario";
-    const tituloConSaludo = `${saludoHora}, ${nombreUsuario} | `;
-
-    // Por defecto, la barra lateral debe ser visible (luego se oculta para docente/encargado)
-    if (sidebar) sidebar.style.display = 'flex';
-    if (secretariaContainer) secretariaContainer.style.marginLeft = '250px'; // por defecto
-
-    switch(userType) {
-        case 'administrador':
-            limpiarBotonesDocente();
-            panelTitle.textContent = tituloConSaludo + "Panel de Administrador - Superusuario";
-            if (btnGestionUsuarios) btnGestionUsuarios.style.display = 'flex';
-            // Mostrar todos los items (ya están visibles)
-            break;
-
-        case 'secretaria':
-            limpiarBotonesDocente();
-            panelTitle.textContent = tituloConSaludo + "Panel de Secretaría - Acceso Completo";
-            if (btnGestionUsuarios) btnGestionUsuarios.style.display = 'flex';
-            break;
-
-        case 'docente':
-            // Ocultar barra lateral completamente
-            if (sidebar) sidebar.style.display = 'none';
-            if (secretariaContainer) secretariaContainer.style.marginLeft = '0';
-            // Ocultar también los items del menú (por si acaso)
-            document.querySelectorAll('.menu-item-vertical').forEach(item => {
-                item.style.display = 'none';
-            });
-            panelTitle.textContent = tituloConSaludo + "Panel Docente - Clases Virtuales";
-            document.getElementById('secretariaScreen').style.display = 'none';
-            document.getElementById('encargadoPanel').style.display = 'none';
-            document.getElementById('docentePanelVirtual').style.display = 'block';
-            if (typeof mostrarPanelDocenteVirtual === 'function') mostrarPanelDocenteVirtual();
-            break;
-
-        case 'encargado':
-            // Ocultar barra lateral
-            if (sidebar) sidebar.style.display = 'none';
-            if (secretariaContainer) secretariaContainer.style.marginLeft = '0';
-            document.querySelectorAll('.menu-item-vertical').forEach(item => {
-                item.style.display = 'none';
-            });
-            limpiarBotonesDocente();
-            panelTitle.textContent = tituloConSaludo + "Portal de Encargados - Consultas";
-            // Ocultar botones específicos del menú (por si se muestran)
-            document.getElementById('btnInscripcion').style.display = 'none';
-            document.getElementById('btnPagos').style.display = 'none';
-            document.getElementById('btnBaseDatos').style.display = 'none';
-            document.getElementById('btnRecibos').style.display = 'none';
-            document.getElementById('btnAsistencia').style.display = 'none';
-            document.getElementById('btnGestionUsuarios').style.display = 'none';
-            // Mostrar el panel de encargado
-            document.getElementById('secretariaScreen').style.display = 'none';
-            document.getElementById('docentePanelVirtual').style.display = 'none';
-            document.getElementById('encargadoPanel').style.display = 'block';
-            if (typeof mostrarPanelEncargado === 'function') mostrarPanelEncargado();
-            break;
-    }
-
-    // Actualizar mensaje de bienvenida (solo visible si no hay otro contenido)
-    const welcomeDiv = document.getElementById('welcomeMessage');
-    if (welcomeDiv) {
-        welcomeDiv.innerHTML = `
-            <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png"
-            style="width: auto; max-width: 90%; max-height: 60vh; object-fit: contain; margin-bottom: 30px;">
-            <h3 style="color: #E63946; margin-bottom: 10px;">Bienvenido/a, ${userName}</h3>
-            <p style="color: #666;">Seleccione una opción del menú lateral para comenzar</p>
-        `;
-    }
-}
-      function crearMenuDocente() {
+       function crearMenuDocente() {
     const menuVertical = document.querySelector('.menu-vertical');
     
     // Limpiar cualquier botón de docente previo
@@ -20256,22 +20106,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (typeof renderTable === "function") renderTable();
 });
 
-// Función para redirigir según tipo de usuario (llamar desde el login)
-function mostrarPanelPorTipo(userType) {
-    document.getElementById('secretariaScreen').style.display = 'none';
-    document.getElementById('encargadoPanel').style.display = 'none';
-    document.getElementById('docentePanelVirtual').style.display = 'none';
-    if (userType === 'administrador' || userType === 'secretaria') {
-        document.getElementById('secretariaScreen').style.display = 'block';
-        if (typeof updateInterfaceForUserType === 'function') updateInterfaceForUserType(userType);
-    } else if (userType === 'encargado') {
-        document.getElementById('encargadoPanel').style.display = 'block';
-        if (typeof mostrarPanelEncargado === 'function') mostrarPanelEncargado();
-    } else if (userType === 'docente') {
-        document.getElementById('docentePanelVirtual').style.display = 'block';
-        if (typeof mostrarPanelDocenteVirtual === 'function') mostrarPanelDocenteVirtual();
-    }
-}
 
 // Asignar botones de cierre
 document.getElementById('logoutButtonEncargado')?.addEventListener('click', function() {
@@ -21003,6 +20837,150 @@ function forzarOcultarBarraLateral() {
 // Ejecutar al cargar la página y periódicamente
 forzarOcultarBarraLateral();
 setInterval(forzarOcultarBarraLateral, 2000);
+</script>
+    <script>
+// ========== SISTEMA DE ROLES Y PANELES (VERSIÓN ÚNICA Y CORRECTA) ==========
+(function() {
+    // Cargar usuarios desde Firestore
+    async function cargarUsuariosGlobal() {
+        if (!window.db) {
+            window.systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+            return;
+        }
+        try {
+            const snapshot = await window.db.collection('usuarios').get();
+            const usuarios = {};
+            snapshot.forEach(doc => { usuarios[doc.data().username] = doc.data(); });
+            window.systemUsers = usuarios;
+            localStorage.setItem('systemUsers', JSON.stringify(usuarios));
+        } catch(e) { console.error("Error cargando usuarios:", e); }
+    }
+
+    // Mostrar panel correcto según rol
+    window.mostrarPanelPorTipo = function(userType) {
+        // Ocultar todos los paneles
+        const secretariaScreen = document.getElementById('secretariaScreen');
+        const encargadoPanel = document.getElementById('encargadoPanel');
+        const docentePanel = document.getElementById('docentePanelVirtual');
+        if (secretariaScreen) secretariaScreen.style.display = 'none';
+        if (encargadoPanel) encargadoPanel.style.display = 'none';
+        if (docentePanel) docentePanel.style.display = 'none';
+
+        // Barra lateral
+        const sidebar = document.querySelector('.sidebar');
+        const container = document.querySelector('.secretaria-container');
+        const menuItems = document.querySelectorAll('.menu-item-vertical');
+
+        if (userType === 'administrador' || userType === 'secretaria') {
+            if (sidebar) sidebar.style.display = 'flex';
+            if (container) container.style.marginLeft = '250px';
+            menuItems.forEach(item => item.style.display = 'flex');
+            if (secretariaScreen) secretariaScreen.style.display = 'block';
+            const title = document.getElementById('panelTitle');
+            if (title) title.textContent = userType === 'administrador' ? 'Panel de Administrador' : 'Panel de Secretaría';
+        }
+        else if (userType === 'docente') {
+            if (sidebar) sidebar.style.display = 'none';
+            if (container) container.style.marginLeft = '0';
+            menuItems.forEach(item => item.style.display = 'none');
+            if (docentePanel) docentePanel.style.display = 'block';
+            if (typeof mostrarPanelDocenteVirtual === 'function') mostrarPanelDocenteVirtual();
+            const title = document.getElementById('panelTitle');
+            if (title) title.textContent = 'Panel del Docente';
+        }
+        else if (userType === 'encargado') {
+            if (sidebar) sidebar.style.display = 'none';
+            if (container) container.style.marginLeft = '0';
+            menuItems.forEach(item => item.style.display = 'none');
+            if (encargadoPanel) encargadoPanel.style.display = 'block';
+            if (typeof mostrarPanelEncargado === 'function') mostrarPanelEncargado();
+            const title = document.getElementById('panelTitle');
+            if (title) title.textContent = 'Portal del Encargado';
+        }
+    };
+
+    window.hideLogin = function() {
+        document.getElementById('loginScreen').style.display = 'none';
+        const userType = localStorage.getItem('userType');
+        if (userType) window.mostrarPanelPorTipo(userType);
+        else window.showLogin();
+    };
+
+    window.showLogin = function() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('secretariaScreen').style.display = 'none';
+        const enc = document.getElementById('encargadoPanel');
+        if (enc) enc.style.display = 'none';
+        const doc = document.getElementById('docentePanelVirtual');
+        if (doc) doc.style.display = 'none';
+        document.body.style.backgroundColor = '#F1F1F1';
+    };
+
+    window.checkLoginStatus = async function() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        const userType = localStorage.getItem('userType');
+        if (isLoggedIn && userType) {
+            await cargarUsuariosGlobal();
+            window.hideLogin();
+        } else {
+            window.showLogin();
+        }
+    };
+
+    // Login mejorado
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('.login-btn');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            btn.disabled = true;
+            await cargarUsuariosGlobal();
+            const userType = document.getElementById('userType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorElem = document.getElementById('loginError');
+            if (!userType) {
+                errorElem.textContent = "Seleccione tipo";
+                errorElem.style.display = 'block';
+                btn.innerHTML = original; btn.disabled = false;
+                return;
+            }
+            const usuario = (window.systemUsers || {})[username];
+            if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
+                errorElem.style.display = 'none';
+                localStorage.setItem('currentUser', JSON.stringify(usuario));
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userType', userType);
+                window.hideLogin();
+                if (typeof mostrarBienvenidaConFrase === 'function') mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+            } else {
+                errorElem.textContent = "Credenciales incorrectas";
+                errorElem.style.display = 'block';
+            }
+            btn.innerHTML = original;
+            btn.disabled = false;
+        };
+    }
+
+    // Cierre de sesión
+    function cerrarSesionGlobal() {
+        localStorage.clear();
+        window.location.reload();
+    }
+    ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.onclick = cerrarSesionGlobal;
+    });
+
+    // Inicializar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => window.checkLoginStatus());
+    } else {
+        window.checkLoginStatus();
+    }
+})();
 </script>
 </body>
 </html>        
