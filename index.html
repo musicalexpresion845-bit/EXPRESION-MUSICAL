@@ -8124,10 +8124,13 @@ function sincronizarPagosConInscripciones() {
     pagosData.estudiantes = nuevosEstudiantes;
     localStorage.setItem('datosPagos', JSON.stringify(pagosData));
     
-    // 🔥 NUEVO: Actualizar la variable global window.datos
+    // 🔥 ACTUALIZAR SOLO LOS ESTUDIANTES EN window.datos, RESPETAR LOS PAGOS EXISTENTES
     if (!window.datos) window.datos = { estudiantes: [], pagos: [] };
     window.datos.estudiantes = nuevosEstudiantes;
-    if (pagosData.pagos) window.datos.pagos = pagosData.pagos;
+    // NO sobrescribir window.datos.pagos si ya tiene datos
+    if (!window.datos.pagos || window.datos.pagos.length === 0) {
+        window.datos.pagos = pagosData.pagos || [];
+    }
     
     console.log(`✅ Sincronización completada: ${nuevosEstudiantes.length} estudiantes en pagos.`);
     
