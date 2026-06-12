@@ -75,13 +75,13 @@
             width: 100%;
         }
 
-        /* Panel de navegación lateral */
-        .sidebar {
-            width: 250px;
-            background-color: var(--blanco);
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            padding: 20px 0;
-        }
+       /* Panel de navegación lateral */
+.sidebar {
+    width: 300px;          /* antes 250px */
+    background-color: var(--blanco);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    padding: 20px 0;
+}
 
         .logo-secretaria {
             font-size: 20px;
@@ -93,23 +93,21 @@
             margin-bottom: 20px;
         }
 
-        .menu-vertical {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            padding: 0 15px;
-        }
+       .menu-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0;          /* ← Elimina el padding lateral (antes 0 15px) */
+}
 
-        .menu-item-vertical {
-            padding: 12px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+.menu-item-vertical {
+    white-space: nowrap;
+    font-size: 10px;     /* ← Reduce la fuente a 10px */
+    padding: 6px 8px;    /* ← Reduce el padding */
+    display: flex;
+    align-items: center;
+    gap: 4px;            /* ← Reduce el espacio entre icono y texto */
+}
 
         .menu-item-vertical:hover,
         .menu-item-vertical.active {
@@ -123,11 +121,11 @@
         }
 
         /* Contenido principal */
-        .secretaria-main-content {
-            flex: 1;
-            padding: 20px;
-            background-color: var(--gris);
-        }
+      .secretaria-main-content {
+    flex: 1;
+    padding: 10px 10px 10px 5px;   /* menos padding a la izquierda (5px) */
+    background-color: var(--gris);
+}
 
         .secretaria-panel-container {
             background-color: var(--blanco);
@@ -3740,7 +3738,7 @@ html, body {
         position: fixed;
         top: 0;
         left: 0;
-        width: 250px;
+        width: 200px;
         height: 100vh;
         overflow-y: auto;
         z-index: 1000;
@@ -4680,6 +4678,33 @@ body.dark-mode .acciones .btn:hover {
         margin-top: 8px !important;
         padding-top: 5px !important;
     }
+}
+ /* Forzar que el título esté arriba del todo */
+.sidebar {
+    display: flex;
+    flex-direction: column !important;
+    align-items: stretch;
+}
+
+.logo-secretaria {
+    order: 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-bottom: 20px !important;
+}
+
+.menu-vertical {
+    order: 1 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.menu-item-vertical {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
 }
     </style>
   <!-- Firebase versión compat (funciona en archivos locales) -->
@@ -14635,9 +14660,7 @@ async function handleLoginSubmit(e) {
         localStorage.setItem('userType', usuario.tipo);
         localStorage.setItem('currentUser', JSON.stringify(usuario));
         await hideLogin();
-        if (typeof mostrarBienvenidaConFrase === 'function') {
-            mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
-        }
+    
     } else {
         errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
         errorElem.style.display = 'block';
