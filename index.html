@@ -14508,56 +14508,163 @@ document.addEventListener('DOMContentLoaded', function() {
 
 console.log("🎯 SISTEMA DE ASISTENCIA MEJORADO CARGADO - CON REGISTRO MANUAL COMPLETO");
 
-        // =====================================================
-        // SISTEMA DE LOGIN CON MÚLTIPLES TIPOS DE USUARIO
-        // =====================================================
+       // =====================================================
+// LOGIN CON FIRESTORE (Reemplazo del sistema antiguo)
+// =====================================================
 
-        // Credenciales válidas para cada tipo de usuario
-        const validCredentials = {
-            administrador: {
-                username: "admin",
-                password: "admin123" // Cambia esto por una contraseña segura
-            },
-            secretaria: {
-                username: "secretaria",
-                password: "sec123"
-            },
-            docente: {
-                username: "docente",
-                password: "doc123"
-            },
-            encargado: {
-                username: "encargado",
-                password: "enc123"
-            }
-        };
-
-        // Información sobre los tipos de usuario (para mostrar en el login)
-        const userTypeInfo = {
-            administrador: "Acceso completo como superusuario del sistema",
-            secretaria: "Acceso completo al sistema de gestión administrativa",
-            docente: "Acceso al módulo de asistencia y calificaciones",
-            encargado: "Acceso al portal de estudiantes y pagos"
-        };
-
-        // Mostrar información del tipo de usuario seleccionado
-        document.getElementById('userType').addEventListener('change', function() {
-            const selectedType = this.value;
-            const infoElement = document.getElementById('userTypeInfo');
-            if (selectedType && userTypeInfo[selectedType]) {
-                infoElement.textContent = userTypeInfo[selectedType];
-                infoElement.style.display = 'block';
-            } else {
-                infoElement.style.display = 'none';
-            }
-        });
-
-        // Validar credenciales según el tipo de usuario
-        function validateCredentials(userType, username, password) {
-            if (!validCredentials[userType]) return false;
-            return username === validCredentials[userType].username &&
-                password === validCredentials[userType].password;
+// Función para cargar usuarios desde Firestore y crear admin por defecto
+async function cargarUsuariosYAdmin() {
+    if (!window.db) return;
+    try {
+        const snapshot = await window.db.collection('usuarios').get();
+        const usuariosFirestore = {};
+        snapshot.forEach(doc => { usuariosFirestore[doc.data().username] = doc.data(); });
+        if (!usuariosFirestore['admin']) {
+            const adminData = {
+                id: 1,
+                tipo: 'administrador',
+                username: 'admin',
+                password: 'admin123',
+                nombre: 'Administrador',
+                apellido: 'Principal',
+                email: 'admin@expresionmusical.com',
+                telefono: '',
+                estado: 'activo',
+                fechaCreacion: new Date().toISOString(),
+                notas: 'Usuario administrador por defecto'
+            };
+            await window.db.collection('usuarios').doc('admin').set(adminData);
+            usuariosFirestore['admin'] = adminData;
+            console.log("✅ Usuario administrador creado en Firestore");
         }
+        localStorage.setItem('systemUsers', JSON.stringify(usuariosFirestore));
+        window.systemUsers = usuariosFirestore;
+    } catch(e) {
+        console.error("Error cargando usuarios:", e);
+        const stored = localStorage.getItem('systemUsers');
+        if (stored) window.systemUsers = JSON.parse(stored);
+    }
+}
+
+// Mostrar pantalla de login
+function showLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    const secretariaScreen = document.getElementById('secretariaScreen');
+    const encargadoPanel = document.getElementById('encargadoPanel');
+    const docentePanel = document.getElementById('docentePanelVirtual');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (secretariaScreen) secretariaScreen.style.display = 'none';
+    if (encargadoPanel) encargadoPanel.style.display = 'none';
+    if (docentePanel) docentePanel.style.display = 'none';
+}
+
+// Cerrar sesión
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('currentUser');
+    showLogin();
+    document.getElementById('userType').value = '';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('loginError').style.display = 'none';
+}
+
+// Ocultar login y mostrar panel según el rol
+async function hideLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    const userType = localStorage.getItem('userType');
+    
+    if (userType === 'administrador' || userType === 'secretaria') {
+        if (typeof loadAllData === 'function') {
+            await loadAllData();
+        }
+        const secretariaScreen = document.getElementById('secretariaScreen');
+        if (secretariaScreen) secretariaScreen.style.display = 'block';
+    } 
+    else if (userType === 'docente') {
+        const docentePanel = document.getElementById('docentePanelVirtual');
+        if (docentePanel) docentePanel.style.display = 'block';
+        if (typeof window.mostrarPanelDocenteVirtual === 'function') {
+            window.mostrarPanelDocenteVirtual();
+        }
+    } 
+    else if (userType === 'encargado') {
+        const encargadoPanel = document.getElementById('encargadoPanel');
+        if (encargadoPanel) encargadoPanel.style.display = 'block';
+        if (typeof window.mostrarPanelEncargado === 'function') {
+            window.mostrarPanelEncargado();
+        }
+    }
+}
+
+// Verificar estado de login al cargar la página
+function checkLoginStatus() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userType = localStorage.getItem('userType');
+    if (isLoggedIn && userType) {
+        hideLogin();
+    } else {
+        showLogin();
+    }
+}
+
+// Manejador del formulario de login
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    const userType = document.getElementById('userType').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorElem = document.getElementById('loginError');
+
+    if (!userType) {
+        errorElem.textContent = "Seleccione un tipo de usuario";
+        errorElem.style.display = 'block';
+        return;
+    }
+
+    if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
+        await cargarUsuariosYAdmin();
+    }
+
+    const usuario = (window.systemUsers || {})[username];
+    if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
+        errorElem.style.display = 'none';
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userType', usuario.tipo);
+        localStorage.setItem('currentUser', JSON.stringify(usuario));
+        await hideLogin();
+        if (typeof mostrarBienvenidaConFrase === 'function') {
+            mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+        }
+    } else {
+        errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
+        errorElem.style.display = 'block';
+    }
+}
+
+// Asignar evento al formulario de login
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.removeEventListener('submit', handleLoginSubmit);
+    loginForm.addEventListener('submit', handleLoginSubmit);
+}
+
+// Asignar eventos de logout a los botones
+['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+        btn.removeEventListener('click', logout);
+        btn.addEventListener('click', logout);
+    }
+});
+
+// Inicializar al cargar la página
+(async function init() {
+    await cargarUsuariosYAdmin();
+    checkLoginStatus();
+})();
 
        function crearMenuDocente() {
     const menuVertical = document.querySelector('.menu-vertical');
