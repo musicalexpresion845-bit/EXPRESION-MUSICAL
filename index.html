@@ -11113,6 +11113,7 @@ function calcularFechaVencimiento(fechaInicio) {
 }
 
             // Mostrar secciones según botón clickeado
+            function inicializarEventosMenu() {
             btnInicio.addEventListener('click', function() {
                 resetMenu();
                 this.classList.add('active');
@@ -20773,7 +20774,26 @@ if (document.readyState === 'loading') {
 // LOGIN SOLO CON FIRESTORE + CREAR ADMIN SI NO EXISTE
 // =====================================================
 
-// Mostrar pantalla de login
+async function cargarUsuariosYAdmin() {
+    if (!window.db) return;
+    try {
+        const snapshot = await window.db.collection('usuarios').get();
+        const usuariosFirestore = {};
+        snapshot.forEach(doc => { usuariosFirestore[doc.data().username] = doc.data(); });
+        if (!usuariosFirestore['admin']) {
+            const adminData = {
+                id: 1, tipo: 'administrador', username: 'admin', password: 'admin123',
+                nombre: 'Administrador', apellido: 'Principal', email: 'admin@expresionmusical.com',
+                telefono: '', estado: 'activo', fechaCreacion: new Date().toISOString(), notas: ''
+            };
+            await window.db.collection('usuarios').doc('admin').set(adminData);
+            usuariosFirestore['admin'] = adminData;
+        }
+        localStorage.setItem('systemUsers', JSON.stringify(usuariosFirestore));
+        window.systemUsers = usuariosFirestore;
+    } catch(e) { console.error(e); }
+}
+
 function showLogin() {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('secretariaScreen').style.display = 'none';
@@ -20781,137 +20801,65 @@ function showLogin() {
     document.getElementById('docentePanelVirtual').style.display = 'none';
 }
 
-// Ocultar login y mostrar panel según rol
+function inicializarMenuSecretaria() {
+    console.log("Inicializando menú...");
+    const btnInicio = document.getElementById('btnInicio');
+    const btnInscripcion = document.getElementById('btnInscripcion');
+    const btnRecibos = document.getElementById('btnRecibos');
+    const btnPagos = document.getElementById('btnPagos');
+    const btnAsistencia = document.getElementById('btnAsistencia');
+    const btnBaseDatos = document.getElementById('btnBaseDatos');
+    const btnGestionUsuarios = document.getElementById('btnGestionUsuarios');
+    const btnPersonalizar = document.getElementById('btnPersonalizarFinal');
+
+    function resetMenu() {
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.classList.remove('active'));
+    }
+    function ocultarRecibo() {
+        const rc = document.getElementById('recibo-container');
+        if (rc) rc.style.display = 'none';
+    }
+
+    if (btnInicio) btnInicio.onclick = () => { resetMenu(); btnInicio.classList.add('active'); document.getElementById('panelTitle').innerHTML = (localStorage.getItem('userType') === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría'; document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'block'; document.getElementById('fabContainer').style.display = 'none'; ocultarRecibo(); };
+    if (btnInscripcion) btnInscripcion.onclick = () => { resetMenu(); btnInscripcion.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Nueva Inscripción"; document.querySelectorAll('.data-table-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('inscriptionForm').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof resetForm === 'function') resetForm(); };
+    if (btnRecibos) btnRecibos.onclick = () => { resetMenu(); btnRecibos.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Gestión de Recibos"; document.querySelectorAll('.data-table-container, .modern-form-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('recibosContainer').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof inicializarFormularioRecibo === 'function') inicializarFormularioRecibo(); if (typeof mostrarSeccionRecibos === 'function') mostrarSeccionRecibos('formulario'); };
+    if (btnPagos) btnPagos.onclick = async () => { resetMenu(); btnPagos.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Gestión de Pagos"; document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('pagosContainer').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof iniciarPagos === 'function') await iniciarPagos(); if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones(); };
+    if (btnAsistencia) btnAsistencia.onclick = () => { resetMenu(); btnAsistencia.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Control de Asistencia"; document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('asistenciaContainer').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof asistenciaApp !== 'undefined' && asistenciaApp.init) asistenciaApp.init(); };
+    if (btnBaseDatos) btnBaseDatos.onclick = () => { resetMenu(); btnBaseDatos.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Base de Datos"; document.querySelectorAll('.modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('dataTableContainer').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof renderTable === 'function') renderTable(); };
+    if (btnGestionUsuarios) btnGestionUsuarios.onclick = () => { resetMenu(); btnGestionUsuarios.classList.add('active'); document.getElementById('panelTitle').innerHTML = "Gestión de Usuarios"; document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer').forEach(c => c.style.display = 'none'); document.getElementById('welcomeMessage').style.display = 'none'; document.getElementById('gestionUsuariosContainer').style.display = 'block'; document.getElementById('fabContainer').style.display = 'block'; ocultarRecibo(); if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios(); };
+    if (btnPersonalizar && typeof window.mostrarModalPersonalizacion === 'function') btnPersonalizar.onclick = window.mostrarModalPersonalizacion;
+}
+
 function hideLogin() {
     document.getElementById('loginScreen').style.display = 'none';
     const userType = localStorage.getItem('userType');
-    
     if (userType === 'administrador' || userType === 'secretaria') {
         document.getElementById('secretariaScreen').style.display = 'block';
-        document.getElementById('encargadoPanel').style.display = 'none';
-        document.getElementById('docentePanelVirtual').style.display = 'none';
-        const sidebar = document.querySelector('.sidebar');
-        const container = document.querySelector('.secretaria-container');
-        if (sidebar) sidebar.style.display = 'flex';
-        if (container) container.style.marginLeft = '250px';
-        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'flex');
-        document.getElementById('panelTitle').innerHTML = (userType === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría';
-    } 
-    else if (userType === 'docente') {
+        inicializarMenuSecretaria();  // <--- AHORA LOS BOTONES SE INICIALIZAN AQUÍ
+    } else if (userType === 'docente') {
         document.getElementById('docentePanelVirtual').style.display = 'block';
-        document.getElementById('secretariaScreen').style.display = 'none';
-        document.getElementById('encargadoPanel').style.display = 'none';
-        const sidebar = document.querySelector('.sidebar');
-        const container = document.querySelector('.secretaria-container');
-        if (sidebar) sidebar.style.display = 'none';
-        if (container) container.style.marginLeft = '0';
-        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
-        document.getElementById('panelTitle').innerHTML = 'Panel del Docente';
-        if (typeof window.cargarClasesDocenteVirtual === 'function') {
-            window.cargarClasesDocenteVirtual('docente');
-        }
-    }
-    else if (userType === 'encargado') {
+        if (typeof window.mostrarPanelDocenteVirtual === 'function') window.mostrarPanelDocenteVirtual();
+    } else if (userType === 'encargado') {
         document.getElementById('encargadoPanel').style.display = 'block';
-        document.getElementById('secretariaScreen').style.display = 'none';
-        document.getElementById('docentePanelVirtual').style.display = 'none';
-        const sidebar = document.querySelector('.sidebar');
-        const container = document.querySelector('.secretaria-container');
-        if (sidebar) sidebar.style.display = 'none';
-        if (container) container.style.marginLeft = '0';
-        document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
-        document.getElementById('panelTitle').innerHTML = 'Portal del Encargado';
         if (typeof window.mostrarPanelEncargado === 'function') window.mostrarPanelEncargado();
     }
 }
 
-// Cerrar sesión
 function logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isLoggedIn'); localStorage.removeItem('userType'); localStorage.removeItem('currentUser');
     showLogin();
-    document.getElementById('userType').value = '';
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
+    document.getElementById('userType').value = ''; document.getElementById('username').value = ''; document.getElementById('password').value = '';
     document.getElementById('loginError').style.display = 'none';
 }
 
-// Asignar eventos de logout
-['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.onclick = logout;
-});
-
-// =====================================================
-// CARGAR USUARIOS DESDE FIRESTORE Y CREAR ADMIN SI NO EXISTE
-// =====================================================
-async function cargarUsuariosYAdmin() {
-    if (!window.db) {
-        console.warn("Firebase no disponible");
-        return;
-    }
-    try {
-        const snapshot = await window.db.collection('usuarios').get();
-        const usuariosFirestore = {};
-        snapshot.forEach(doc => {
-            usuariosFirestore[doc.data().username] = doc.data();
-        });
-        
-        // Verificar específicamente si el usuario "admin" existe
-        if (!usuariosFirestore['admin']) {
-            const adminData = {
-                id: 1,
-                tipo: 'administrador',
-                username: 'admin',
-                password: 'admin123',
-                nombre: 'Administrador',
-                apellido: 'Principal',
-                email: 'admin@expresionmusical.com',
-                telefono: '',
-                estado: 'activo',
-                fechaCreacion: new Date().toISOString(),
-                notas: 'Usuario administrador por defecto'
-            };
-            await window.db.collection('usuarios').doc('admin').set(adminData);
-            usuariosFirestore['admin'] = adminData;
-            console.log("✅ Usuario administrador creado en Firestore");
-        }
-        
-        // Guardar en localStorage y variable global
-        localStorage.setItem('systemUsers', JSON.stringify(usuariosFirestore));
-        window.systemUsers = usuariosFirestore;
-        
-    } catch (e) {
-        console.error("Error cargando/creando usuarios:", e);
-        const stored = localStorage.getItem('systemUsers');
-        if (stored) window.systemUsers = JSON.parse(stored);
-    }
-}
-
-// =====================================================
-// MANEJADOR DE LOGIN (SOLO FIRESTORE)
-// =====================================================
 document.getElementById('loginForm').onsubmit = async function(e) {
     e.preventDefault();
     const userType = document.getElementById('userType').value;
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorElem = document.getElementById('loginError');
-
-    if (!userType) {
-        errorElem.textContent = "Seleccione un tipo de usuario";
-        errorElem.style.display = 'block';
-        return;
-    }
-
-    // Asegurar que los usuarios estén cargados (esperar hasta 5 segundos)
-    let espera = 0;
-    while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 50) {
-        await new Promise(r => setTimeout(r, 100));
-        espera++;
-    }
-
+    if (!userType) { errorElem.textContent = "Seleccione tipo de usuario"; errorElem.style.display = 'block'; return; }
+    await cargarUsuariosYAdmin();
     const usuario = (window.systemUsers || {})[username];
     if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
         errorElem.style.display = 'none';
@@ -20919,26 +20867,21 @@ document.getElementById('loginForm').onsubmit = async function(e) {
         localStorage.setItem('userType', usuario.tipo);
         localStorage.setItem('currentUser', JSON.stringify(usuario));
         hideLogin();
-        if (typeof mostrarBienvenidaConFrase === 'function') {
-            mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
-        }
+        if (typeof mostrarBienvenidaConFrase === 'function') mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
     } else {
         errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
         errorElem.style.display = 'block';
     }
 };
 
-// =====================================================
-// INICIALIZACIÓN
-// =====================================================
-(async function init() {
-    await cargarUsuariosYAdmin();
-    if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('userType')) {
-        hideLogin();
-    } else {
-        showLogin();
-    }
-})();
-</script>
+['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.onclick = logout;
+});
+
+cargarUsuariosYAdmin();
+if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('userType')) hideLogin();
+else showLogin();
+    
 </body>
 </html>        
