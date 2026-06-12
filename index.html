@@ -7318,7 +7318,7 @@ class GoogleSheetsDB {
             // Si llegamos aquí, la conexión fue exitosa (aunque no podamos leer la respuesta)
             this.initialized = true;
             console.log('✅ Conexión exitosa con Google Sheets');
-            showToast('🔗 Conectado a base de datos en la nube', 'success');
+           
             
         } catch (error) {
             console.warn('⚠️ Sin conexión a Google Sheets, usando almacenamiento local');
@@ -18449,6 +18449,12 @@ let peerIdGenerado = null;
 let tabletConectada = false;
 
 function iniciarPeerPC() {
+    // Solo mostrar el panel si el usuario está logueado y es secretaria o administrador
+    const userType = localStorage.getItem('userType');
+    if (!userType || (userType !== 'secretaria' && userType !== 'administrador')) {
+        console.log("Panel de Tablet solo para secretaría/administrador");
+        return;
+    }
     // Generar un ID único y fácil de recordar
     peerIdGenerado = 'expresion123'; // EL MISMO ID QUE PUSISTE EN LA TABLET
 
@@ -18866,7 +18872,7 @@ if (typeof showToast !== 'function') {
 }
 
 // Iniciar cuando cargue la página
-setTimeout(iniciarPeerPC, 2000);
+// setTimeout(iniciarPeerPC, 2000);   // ← Desactivado para que no salga en el login
       
       // Filtro de búsqueda en el historial de recibos
 (function() {
@@ -20720,6 +20726,9 @@ async function cargarUsuariosDesdeFirestore() {
             let unidos = { ...locales, ...usuariosFirestore };
             localStorage.setItem('systemUsers', JSON.stringify(unidos));
             window.systemUsers = unidos;
+              // ✅ Solo mostrar alert si el usuario logueado es secretaria o administrador
+            const userType = localStorage.getItem('userType');
+            if (userType === 'secretaria' || userType === 'administrador') {
             alert(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde la nube`);
             // Refrescar tabla si está visible
             if (document.getElementById('gestionUsuariosContainer')?.style.display === 'block') {
