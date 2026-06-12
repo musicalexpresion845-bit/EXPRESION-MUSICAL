@@ -20276,112 +20276,7 @@ if (originalEliminarInscripcion) {
 }
 
 
-  <script>
-// ==================== FUNCIÓN DE PAGO DEFINITIVA (CON REFRESCO ASEGURADO) ====================
-window.registrarPago = function(idEstudiante) {
-    console.log("💰 Botón Pagar clickeado para ID:", idEstudiante);
-    
-    // Obtener datos actuales de pagos
-    let pagosData = JSON.parse(localStorage.getItem('datosPagos')) || { estudiantes: [], pagos: [] };
-    
-    // Buscar el estudiante (convertir a string para comparación)
-    let estudiante = pagosData.estudiantes.find(e => String(e.id) === String(idEstudiante));
-    
-    if (!estudiante) {
-        alert("❌ Estudiante no encontrado. Verifica que la inscripción exista.");
-        console.error("Estudiante no encontrado con ID:", idEstudiante);
-        console.log("Estudiantes disponibles:", pagosData.estudiantes);
-        return;
-    }
-    
-    // Solicitar mes y año
-    let mes = prompt(`Mes (1-12) para ${estudiante.nombre}:`);
-    if (!mes) return;
-    mes = parseInt(mes);
-    if (isNaN(mes) || mes < 1 || mes > 12) {
-        alert("Mes inválido (1-12)");
-        return;
-    }
-    
-    let año = prompt(`Año (ej. ${new Date().getFullYear()}):`, new Date().getFullYear());
-    if (!año) return;
-    año = parseInt(año);
-    if (isNaN(año) || año < 2000 || año > 2030) {
-        alert("Año inválido (2000-2030)");
-        return;
-    }
-    
-    // Verificar si ya existe pago
-    const yaExiste = pagosData.pagos.some(p => 
-        String(p.idEstudiante) === String(idEstudiante) && 
-        p.mes === mes && 
-        p.año === año
-    );
-    
-    if (yaExiste) {
-        alert(`⚠️ Ya existe un pago para ${mes}/${año}`);
-        return;
-    }
-    
-    // Agregar el nuevo pago
-    pagosData.pagos.push({
-        idEstudiante: String(idEstudiante),
-        mes: mes,
-        año: año,
-        monto: estudiante.mensualidad,
-        fecha: new Date().toISOString().split('T')[0]
-    });
-    
-    // Guardar en localStorage
-    localStorage.setItem('datosPagos', JSON.stringify(pagosData));
-    console.log("✅ Pago guardado en localStorage:", pagosData.pagos);
-    window.datos = pagosData;   // Para que actualizarTabla use los datos frescos
-
-    // Mostrar confirmación
-    alert(`✅ Pago registrado: ${estudiante.nombre} - ${mes}/${año} - Q${estudiante.mensualidad}`);
-    
-    // REFRESCAR LA TABLA DE PAGOS (FUNCIONES DISPONIBLES)
-    if (typeof actualizarVista === 'function') {
-        actualizarVista();
-        console.log("🔄 Vista actualizada con actualizarVista()");
-    } else if (typeof actualizarTabla === 'function') {
-        actualizarTabla();
-        console.log("🔄 Tabla actualizada con actualizarTabla()");
-    } else {
-        // Fallback: recargar la página
-        console.warn("No se encontró actualizarVista ni actualizarTabla, recargando página...");
-        location.reload();
-    }
-    
-    // Sincronizar con Firebase (si está disponible)
-    if (typeof sincronizarTodoConFirebase === 'function') {
-        sincronizarTodoConFirebase();
-    } else if (window.db) {
-        window.db.collection('pagos').doc('global').set(pagosData)
-            .then(() => console.log("✅ Pago sincronizado con Firebase"))
-            .catch(err => console.error("Error al sincronizar:", err));
-    }
-};
-// Exponer también sin window (por si acaso)
-var registrarPago = window.registrarPago;
-
-console.log("✅ Función registrarPago instalada correctamente (con refresco asegurado)");
-      document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-pagar');
-        if (btn && btn.getAttribute('data-id')) {
-            e.preventDefault();
-            const id = btn.getAttribute('data-id');
-            if (typeof window.registrarPago === 'function') {
-                window.registrarPago(id);
-            } else {
-                console.error("registrarPago no definida aún");
-                alert("Error: la función de pago no está disponible. Recarga la página.");
-            }
-        }
-    });
-});
-</script>
+ 
     <script>
 // ========== VERSIÓN EN TIEMPO REAL (AUTOMÁTICA) ==========
 db.collection('pagos').doc('global').onSnapshot((doc) => {
@@ -20845,6 +20740,69 @@ if (window.db) {
         }
     });
 }
+</script>
+    <script>
+// ==================== FUNCIÓN DE PAGOS DEFINITIVA (SIN PARCHES) ====================
+window.registrarPago = function(idEstudiante) {
+    console.log("💰 Procesando pago para ID:", idEstudiante);
+    
+    let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
+    let estudiante = pagosData.estudiantes.find(e => String(e.id) === String(idEstudiante));
+    if (!estudiante) {
+        alert("❌ Estudiante no encontrado. Verifica que exista en la tabla de inscripciones.");
+        return;
+    }
+    
+    let mes = prompt(`Mes (1-12) para ${estudiante.nombre}:`);
+    if (!mes) return;
+    mes = parseInt(mes);
+    if (isNaN(mes) || mes < 1 || mes > 12) { alert("Mes inválido (1-12)"); return; }
+    
+    let año = prompt(`Año (ej. ${new Date().getFullYear()}):`, new Date().getFullYear());
+    if (!año) return;
+    año = parseInt(año);
+    if (isNaN(año) || año < 2000 || año > 2030) { alert("Año inválido"); return; }
+    
+    if (pagosData.pagos.some(p => String(p.idEstudiante) === String(idEstudiante) && p.mes === mes && p.año === año)) {
+        alert(`⚠️ Ya existe un pago para ${mes}/${año}`);
+        return;
+    }
+    
+    pagosData.pagos.push({
+        idEstudiante: String(idEstudiante),
+        mes: mes,
+        año: año,
+        monto: estudiante.mensualidad,
+        fecha: new Date().toISOString().split('T')[0]
+    });
+    
+    localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+    window.datos = pagosData;
+    alert(`✅ Pago registrado: ${estudiante.nombre} - ${mes}/${año} - Q${estudiante.mensualidad}`);
+    
+    // Refresca la tabla SIN recargar la página
+    if (typeof actualizarVista === 'function') actualizarVista();
+    else if (typeof actualizarTabla === 'function') actualizarTabla();
+    else location.reload();
+    
+    // Sincroniza con Firebase
+    if (window.db) {
+        window.db.collection('pagos').doc('global').set(pagosData).catch(console.error);
+    }
+};
+
+// Event listener GLOBAL (captura clics incluso en botones creados dinámicamente)
+document.body.addEventListener('click', function(e) {
+    let btn = e.target.closest('.btn-pagar');
+    if (btn && btn.hasAttribute('data-id')) {
+        e.preventDefault();
+        let id = btn.getAttribute('data-id');
+        console.log("🔘 Click en pagar, ID:", id);
+        window.registrarPago(id);
+    }
+});
+
+console.log("✅ Sistema de pagos listo (versión definitiva)");
 </script>
   <script>
 // ========== SINCRONIZACIÓN DE USUARIOS CON FIRESTORE (VERSIÓN CON ALERTAS) ==========
