@@ -8442,50 +8442,57 @@ function agregarEstudiante() {
             estudianteAEliminar = null;
         }
 
-        // Inicializar aplicación
- async function iniciarPagos() {
-    console.log("💰 Iniciando pagos...");
+      async function iniciarPagos() {
+    console.log("💰 Iniciando pagos (cargando desde Firebase)...");
     
-    // Cargar datos desde Firestore a window.datos
+    // 1. Cargar datos desde Firestore (igual que en tu prueba)
     if (window.db) {
         try {
             const doc = await window.db.collection('pagos').doc('global').get();
             if (doc.exists) {
                 window.datos = doc.data();
                 localStorage.setItem('datosPagos', JSON.stringify(window.datos));
-                console.log("✅ Datos desde Firestore, pagos:", window.datos.pagos.length);
+                console.log("✅ Datos cargados desde Firebase. Pagos:", window.datos.pagos?.length);
             } else {
                 window.datos = { estudiantes: [], pagos: [] };
                 await window.db.collection('pagos').doc('global').set(window.datos);
-                console.log("📄 Documento creado en Firestore");
+                console.log("📄 Documento creado en Firebase");
             }
         } catch(e) {
-            console.error("Error cargando de Firestore:", e);
-            const local = localStorage.getItem('datosPagos');
-            window.datos = local ? JSON.parse(local) : { estudiantes: [], pagos: [] };
+            console.error("Error cargando de Firebase:", e);
+            window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
         }
     } else {
-        const local = localStorage.getItem('datosPagos');
-        window.datos = local ? JSON.parse(local) : { estudiantes: [], pagos: [] };
+        window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
     }
     
-    // Asegurar estructura
+    // 2. Asegurar estructura
     if (!window.datos.estudiantes) window.datos.estudiantes = [];
     if (!window.datos.pagos) window.datos.pagos = [];
     
-    // Sincronizar estudiantes desde inscripciones
-    sincronizarPagosConInscripciones();
+    // 3. Guardar los pagos actuales (por si la sincronización los borra)
+    const pagosActuales = [...window.datos.pagos];
     
-    // Actualizar tabla
+    // 4. Sincronizar estudiantes desde inscripciones (no toca los pagos)
+    sincronizarPagosConInscripciones();   // esta función ya respeta los pagos existentes
+    
+    // 5. Restaurar pagos si la sincronización los perdió (seguridad)
+    if (pagosActuales.length > 0 && window.datos.pagos.length === 0) {
+        window.datos.pagos = pagosActuales;
+        localStorage.setItem('datosPagos', JSON.stringify(window.datos));
+        console.log("✅ Pagos restaurados después de sincronización.");
+    }
+    
+    // 6. Actualizar la tabla con los datos finales
     actualizarVista();
     
-    // Configurar filtros
+    // 7. Configurar filtros (como ya tenías)
     const añoInput = document.getElementById("filtroAnio");
     const mesSelect = document.getElementById("filtroMes");
     if (añoInput) añoInput.value = new Date().getFullYear();
     if (mesSelect) mesSelect.value = new Date().getMonth() + 1;
     
-    // Remover listeners anteriores y agregar nuevos
+    // 8. Remover listeners anteriores y agregar nuevos (igual que antes)
     const filtros = ['filtroNombre', 'filtroInstrumento', 'filtroEstado', 'filtroMes', 'filtroAnio'];
     filtros.forEach(id => {
         const el = document.getElementById(id);
