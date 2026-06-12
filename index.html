@@ -8675,7 +8675,7 @@ function actualizarTabla() {
             <td>${atrasos}</td>
             <td>Q${deuda.toFixed(2)}</td>
             <td class="no-print" style="white-space: nowrap;">
-                <button class="btn" onclick="registrarPago('${estudiante.id}')">
+              <button class="btn btn-pagar" data-id="${estudiante.id}">
                     <i class="fas fa-money-bill-wave"></i> Pagar
                 </button>
                 <button class="btn btn-ver" onclick="generarPDF('${estudiante.id}', 'ver')">
@@ -20366,6 +20366,21 @@ window.registrarPago = function(idEstudiante) {
 var registrarPago = window.registrarPago;
 
 console.log("✅ Función registrarPago instalada correctamente (con refresco asegurado)");
+      document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-pagar');
+        if (btn && btn.getAttribute('data-id')) {
+            e.preventDefault();
+            const id = btn.getAttribute('data-id');
+            if (typeof window.registrarPago === 'function') {
+                window.registrarPago(id);
+            } else {
+                console.error("registrarPago no definida aún");
+                alert("Error: la función de pago no está disponible. Recarga la página.");
+            }
+        }
+    });
+});
 </script>
     <script>
 // ========== VERSIÓN EN TIEMPO REAL (AUTOMÁTICA) ==========
