@@ -8227,14 +8227,21 @@ function toggleEstadoEstudiante(id) {
     // 3. Guardar en localStorage
     localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
     
-    // 4. Actualizar variable global si existe
+    // 4. 🔥 GUARDAR TAMBIÉN EN FIRESTORE (IMPORTANTE)
+    if (window.db) {
+        window.db.collection('inscripciones').doc(String(estudiante.id)).set(estudiante, { merge: true })
+            .then(() => console.log("✅ Estado actualizado en Firestore"))
+            .catch(err => console.error("❌ Error actualizando Firestore:", err));
+    }
+    
+    // 5. Actualizar variable global
     if (typeof window.inscriptions !== 'undefined') window.inscriptions = inscriptions;
     
-    // 5. Sincronizar con pagos y asistencia
+    // 6. Sincronizar con pagos y asistencia
     if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
     if (typeof sincronizarAsistenciaConInscripciones === 'function') sincronizarAsistenciaConInscripciones();
     
-    // 6. Cambiar el botón inmediatamente
+    // 7. Cambiar el botón inmediatamente
     const btn = document.querySelector(`.estado-btn[data-id="${id}"]`);
     if (btn) {
         const esActivo = (nuevoEstado === 'activo');
@@ -8247,10 +8254,10 @@ function toggleEstadoEstudiante(id) {
         if (typeof renderTable === 'function') renderTable();
     }
     
-    // 7. Actualizar selector de encargados (Recibos)
+    // 8. Actualizar selector de encargados (Recibos)
     if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
     
-    // 8. Refrescar asistencia si está visible
+    // 9. Refrescar asistencia si está visible
     const asistContainer = document.getElementById('asistenciaContainer');
     if (asistContainer && asistContainer.style.display !== 'none' && typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
         asistenciaApp.cargarEstudiantesAutomaticamente();
@@ -8258,7 +8265,6 @@ function toggleEstadoEstudiante(id) {
     
     alert(`Estudiante ${nuevoEstado === 'activo' ? 'activado' : 'suspendido'} correctamente`);
 }
-
 function sincronizarAsistenciaConInscripciones() {
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions')) || [];
     let asistenciaData = JSON.parse(localStorage.getItem('asistenciaData')) || { students: [], records: [] };
