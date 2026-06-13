@@ -7343,7 +7343,7 @@ class GoogleSheetsDB {
             // Si llegamos aquí, la conexión fue exitosa (aunque no podamos leer la respuesta)
             this.initialized = true;
             console.log('✅ Conexión exitosa con Google Sheets');
-            showToast('🔗 Conectado a base de datos en la nube', 'success');
+           // showToast('🔗 Conectado a base de datos en la nube', 'success');//
             
         } catch (error) {
             console.warn('⚠️ Sin conexión a Google Sheets, usando almacenamiento local');
@@ -17404,7 +17404,7 @@ function correccionEmergenciaFechas() {
     }));
     
     if (dateInput && daySelect) {
-        alert(`✅ Corrección aplicada:\n\n📅 Fecha: ${currentDate}\n🗓️ Día: ${diaActual}\n\nAhora puede cargar estudiantes y guardar asistencia correctamente.`);
+       // alert(`✅ Corrección aplicada:\n\n📅 Fecha: ${currentDate}\n🗓️ Día: ${diaActual}\n\nAhora puede cargar estudiantes y guardar asistencia correctamente.`);//
     }
 }
 
@@ -18659,7 +18659,7 @@ function iniciarPeerPC() {
     peerPC.on('error', function(error) {
         console.error('❌ Error PeerJS:', error);
         actualizarEstadoPanel('error', 'Error de conexión');
-        showToast('❌ Error de conexión: ' + error.type, 'error');
+        //showToast('❌ Error de conexión: ' + error.type, 'error');//
     });
 }
 
@@ -20901,7 +20901,7 @@ async function cargarUsuariosDesdeFirestore() {
             let unidos = { ...locales, ...usuariosFirestore };
             localStorage.setItem('systemUsers', JSON.stringify(unidos));
             window.systemUsers = unidos;
-            alert(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde la nube`);
+         //   alert(`✅ ${Object.keys(usuariosFirestore).length} usuarios cargados desde la nube`);//
             // Refrescar tabla si está visible
             if (document.getElementById('gestionUsuariosContainer')?.style.display === 'block') {
                 if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
