@@ -8501,6 +8501,39 @@ async function iniciarPagos() {
     
     console.log("✅ Estudiantes en pagos:", window.datos.estudiantes.length);
 }
+        function sincronizarEstudiantesParaPagos() {
+    console.log("🔄 Sincronizando estudiantes para tabla de pagos (sin borrar pagos)");
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions')) || [];
+    
+    // Crear lista de estudiantes activos
+    const nuevosEstudiantes = inscriptions
+        .filter(ins => (ins.estado || 'activo') === 'activo')
+        .map(ins => {
+            let mensualidad = 200;
+            if (ins.musical && ins.musical.mensualidad) mensualidad = parseFloat(ins.musical.mensualidad);
+            else if (ins.estudiante && ins.estudiante.mensualidad) mensualidad = parseFloat(ins.estudiante.mensualidad);
+            let ingreso = ins.academico?.fechaInicio || new Date().toISOString().split('T')[0];
+            return {
+                id: String(ins.id),
+                nombre: ins.estudiante?.nombre || "Sin nombre",
+                instrumento: ins.musical?.instrumentoPrincipal || "Sin instrumento",
+                mensualidad: mensualidad,
+                ingreso: ingreso
+            };
+        });
+    
+    // Si window.datos no existe, crearlo
+    if (!window.datos) window.datos = { estudiantes: [], pagos: [] };
+    
+    // Reemplazar estudiantes pero CONSERVAR pagos existentes
+    const pagosActuales = window.datos.pagos || [];
+    window.datos.estudiantes = nuevosEstudiantes;
+    window.datos.pagos = pagosActuales;
+    
+    // Guardar en localStorage
+    localStorage.setItem('datosPagos', JSON.stringify(window.datos));
+    console.log(`✅ Sincronizados ${nuevosEstudiantes.length} estudiantes, ${pagosActuales.length} pagos conservados.`);
+}
 // =====================================================
 // FUNCIÓN DE SINCRONIZACIÓN ESTUDIANTES -> PAGOS
 // =====================================================
