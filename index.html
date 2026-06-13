@@ -8443,40 +8443,29 @@ function agregarEstudiante() {
         }
 
 async function iniciarPagos() {
-    console.log("💰 Cargando pagos desde Firebase...");
-    
+    console.log("💰 IniciarPagos: forzando carga desde Firebase...");
     if (!window.db) {
-        console.warn("Firebase no disponible, usando localStorage");
-        window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
-        actualizarVista();
+        console.warn("Firebase no disponible");
         return;
     }
-    
     try {
         const doc = await window.db.collection('pagos').doc('global').get();
         if (doc.exists) {
             window.datos = doc.data();
             localStorage.setItem('datosPagos', JSON.stringify(window.datos));
-            console.log("✅ Pagos cargados desde Firebase. Total:", window.datos.pagos?.length);
+            console.log("✅ Pagos cargados. Total:", window.datos.pagos?.length);
         } else {
             window.datos = { estudiantes: [], pagos: [] };
             await window.db.collection('pagos').doc('global').set(window.datos);
-            console.log("📄 Documento creado en Firebase");
         }
     } catch (e) {
         console.error("Error cargando Firebase:", e);
         window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
     }
-    
-    // Asegurar arrays
     if (!window.datos.estudiantes) window.datos.estudiantes = [];
     if (!window.datos.pagos) window.datos.pagos = [];
     
-    // Sincronizar estudiantes (esto NO borra los pagos, solo actualiza la lista de estudiantes)
- //   sincronizarPagosConInscripciones(); //
-    
-    // Refrescar la tabla
-    actualizarVista();
+    actualizarVista();  // Refrescar tabla
     
     // Configurar filtros (año y mes actuales)
     const añoInput = document.getElementById("filtroAnio");
@@ -8484,7 +8473,7 @@ async function iniciarPagos() {
     if (añoInput) añoInput.value = new Date().getFullYear();
     if (mesSelect) mesSelect.value = new Date().getMonth() + 1;
     
-    // Reasignar eventos de filtros (como ya tenías)
+    // Reasignar eventos de filtros (si es necesario)
     const filtros = ['filtroNombre', 'filtroInstrumento', 'filtroEstado', 'filtroMes', 'filtroAnio'];
     filtros.forEach(id => {
         const el = document.getElementById(id);
@@ -8498,8 +8487,7 @@ async function iniciarPagos() {
             }
         }
     });
-    
-    console.log("✅ Inicio de pagos completado. Pagos visibles:", window.datos.pagos?.length);
+    console.log("✅ iniciarPagos completado. Pagos visibles ahora:", window.datos.pagos?.length);
 }
 // =====================================================
 // FUNCIÓN DE SINCRONIZACIÓN ESTUDIANTES -> PAGOS
