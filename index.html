@@ -20317,6 +20317,38 @@ db.collection('pagos').doc('global').onSnapshot((doc) => {
     console.error("Error en tiempo real:", error);
 });
 </script>
+     <script>
+         // ========== SINCRONIZACIÓN EN TIEMPO REAL DE INSCRIPCIONES ==========
+if (window.db) {
+    window.db.collection('inscripciones').onSnapshot((snapshot) => {
+        console.log("🔄 Cambios detectados en inscripciones, actualizando...");
+        const inscripcionesFirestore = [];
+        snapshot.forEach(doc => inscripcionesFirestore.push(doc.data()));
+        
+        if (inscripcionesFirestore.length > 0) {
+            localStorage.setItem('inscriptions', JSON.stringify(inscripcionesFirestore));
+            window.inscriptions = inscripcionesFirestore;
+            
+            // Refrescar todas las partes que dependen de estudiantes activos
+            if (typeof sincronizarPagosConInscripciones === 'function') {
+                sincronizarPagosConInscripciones();
+            }
+            if (typeof actualizarListaEncargados === 'function') {
+                actualizarListaEncargados();
+            }
+            if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
+                asistenciaApp.cargarEstudiantesAutomaticamente();
+            }
+            if (document.getElementById('dataTableContainer')?.style.display === 'block') {
+                if (typeof renderTable === 'function') renderTable();
+            }
+            console.log("✅ Inscripciones sincronizadas en tiempo real");
+        }
+    }, (error) => {
+        console.error("❌ Error en listener de inscripciones:", error);
+    });
+}
+         </script>
     <script>
 // ========== SINCRONIZACIÓN AUTOMÁTICA DE RECIBOS (TIEMPO REAL) ==========
 function iniciarSincronizacionRecibos() {
