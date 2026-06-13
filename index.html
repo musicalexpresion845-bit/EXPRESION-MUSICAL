@@ -20318,31 +20318,48 @@ db.collection('pagos').doc('global').onSnapshot((doc) => {
 });
 </script>
      <script>
-         // ========== SINCRONIZACIÓN EN TIEMPO REAL DE INSCRIPCIONES ==========
+    // ========== SINCRONIZACIÓN EN TIEMPO REAL DE INSCRIPCIONES (MEJORADA) ==========
 if (window.db) {
     window.db.collection('inscripciones').onSnapshot((snapshot) => {
         console.log("🔄 Cambios detectados en inscripciones, actualizando...");
         const inscripcionesFirestore = [];
-        snapshot.forEach(doc => inscripcionesFirestore.push(doc.data()));
+        snapshot.forEach(doc => inscripcionesFirestore.push({ id: doc.id, ...doc.data() }));
         
         if (inscripcionesFirestore.length > 0) {
+            // Actualizar localStorage y variable global
             localStorage.setItem('inscriptions', JSON.stringify(inscripcionesFirestore));
             window.inscriptions = inscripcionesFirestore;
             
-            // Refrescar todas las partes que dependen de estudiantes activos
+            // === REFRESCAR TODAS LAS SECCIONES ===
+            // 1. Pagos: actualizar lista de estudiantes sin perder pagos
             if (typeof sincronizarPagosConInscripciones === 'function') {
                 sincronizarPagosConInscripciones();
+                // Si la tabla de pagos está visible, forzar actualización
+                if (document.getElementById('pagosContainer')?.style.display !== 'none') {
+                    if (typeof actualizarVista === 'function') actualizarVista();
+                    else if (typeof actualizarTabla === 'function') actualizarTabla();
+                }
             }
+            
+            // 2. Recibos: actualizar lista de encargados (dropdown)
             if (typeof actualizarListaEncargados === 'function') {
                 actualizarListaEncargados();
             }
+            
+            // 3. Asistencia: recargar estudiantes si está activa
             if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
                 asistenciaApp.cargarEstudiantesAutomaticamente();
             }
+            
+            // 4. Base de datos: refrescar tabla si está visible
             if (document.getElementById('dataTableContainer')?.style.display === 'block') {
                 if (typeof renderTable === 'function') renderTable();
             }
-            console.log("✅ Inscripciones sincronizadas en tiempo real");
+            
+            // 5. Enviar un evento personalizado para que cualquier componente se entere
+            window.dispatchEvent(new CustomEvent('inscripciones-actualizadas', { detail: inscripcionesFirestore }));
+            
+            console.log("✅ Todas las secciones actualizadas por cambios en inscripciones");
         }
     }, (error) => {
         console.error("❌ Error en listener de inscripciones:", error);
