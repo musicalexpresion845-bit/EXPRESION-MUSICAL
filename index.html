@@ -8443,37 +8443,49 @@ function agregarEstudiante() {
         }
 
 async function iniciarPagos() {
-    console.log("💰 IniciarPagos: forzando carga desde Firebase...");
+    console.log("💰 Cargando pagos desde Firebase...");
+    
     if (!window.db) {
         console.warn("Firebase no disponible");
+        window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
+        // Configurar filtros ANTES de actualizar vista
+        const añoInput = document.getElementById("filtroAnio");
+        const mesSelect = document.getElementById("filtroMes");
+        if (añoInput) añoInput.value = new Date().getFullYear();
+        if (mesSelect) mesSelect.value = new Date().getMonth() + 1;
+        actualizarVista();
         return;
     }
+    
     try {
         const doc = await window.db.collection('pagos').doc('global').get();
         if (doc.exists) {
             window.datos = doc.data();
             localStorage.setItem('datosPagos', JSON.stringify(window.datos));
-            console.log("✅ Pagos cargados. Total:", window.datos.pagos?.length);
+            console.log("✅ Pagos cargados desde Firebase. Total:", window.datos.pagos?.length);
         } else {
             window.datos = { estudiantes: [], pagos: [] };
             await window.db.collection('pagos').doc('global').set(window.datos);
+            console.log("📄 Documento creado en Firebase");
         }
     } catch (e) {
         console.error("Error cargando Firebase:", e);
         window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
     }
+    
     if (!window.datos.estudiantes) window.datos.estudiantes = [];
     if (!window.datos.pagos) window.datos.pagos = [];
     
-    actualizarVista();  // Refrescar tabla
-    
-    // Configurar filtros (año y mes actuales)
+    // 🔥 1. CONFIGURAR FILTROS ANTES DE PINTAR LA TABLA
     const añoInput = document.getElementById("filtroAnio");
     const mesSelect = document.getElementById("filtroMes");
     if (añoInput) añoInput.value = new Date().getFullYear();
     if (mesSelect) mesSelect.value = new Date().getMonth() + 1;
     
-    // Reasignar eventos de filtros (si es necesario)
+    // 2. AHORA SÍ, actualizar la vista
+    actualizarVista();
+    
+    // Reasignar eventos de filtros (como ya tenías)
     const filtros = ['filtroNombre', 'filtroInstrumento', 'filtroEstado', 'filtroMes', 'filtroAnio'];
     filtros.forEach(id => {
         const el = document.getElementById(id);
@@ -8487,6 +8499,7 @@ async function iniciarPagos() {
             }
         }
     });
+    
     console.log("✅ iniciarPagos completado. Pagos visibles ahora:", window.datos.pagos?.length);
 }
 // =====================================================
