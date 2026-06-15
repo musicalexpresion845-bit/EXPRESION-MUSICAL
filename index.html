@@ -4706,6 +4706,318 @@ body.dark-mode .acciones .btn:hover {
     text-align: left !important;
     justify-content: flex-start !important;
 }
+/* =====================================================
+   PANEL ENCARGADO - ESTILOS MODERNOS (BARRA FIJA + TARJETA MEJORADA)
+   ===================================================== */
+#encargadoPanel {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f5f5f5;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Encabezado */
+.encabezado-encargado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
+}
+.encabezado-encargado img {
+    height: 45px;
+}
+.encabezado-encargado h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #E63946;
+}
+.logout-btn {
+    background: #E63946;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+/* Contenedor de pantallas (desplazable) */
+.pantallas-encargado {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    padding-bottom: 70px; /* Espacio para la barra fija */
+}
+.pantalla {
+    display: none;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+.pantalla.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ========== BARRA INFERIOR FIJA (como Facebook) ========== */
+.menu-inferior {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding: 8px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    z-index: 1000;
+}
+.menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: 0.2s;
+    color: #777;
+    font-size: 0.75rem;
+}
+.menu-item i {
+    font-size: 1.3rem;
+}
+.menu-item.active {
+    color: #E63946;
+    background: #ffe5e7;
+}
+.menu-item span {
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+/* Responsive menú */
+@media (max-width: 480px) {
+    .menu-inferior {
+        padding: 10px 0;
+    }
+    .menu-item {
+        padding: 8px 12px;
+    }
+    .menu-item i {
+        font-size: 1.4rem;
+    }
+    .menu-item span {
+        font-size: 0.75rem;
+    }
+}
+
+/* ========== TARJETA DE ESTUDIANTE MODERNA (sin cambiar HTML) ========== */
+#encargadoPanel .docente-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+#encargadoPanel .docente-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Simulamos una cabecera con color rojo (sin modificar HTML) */
+#encargadoPanel .docente-card::before {
+    content: '';
+    display: block;
+    height: 80px;
+    background: linear-gradient(135deg, #E63946, #C1121F);
+}
+
+/* Nombre del estudiante (dentro de h3) */
+#encargadoPanel .docente-card h3 {
+    margin: -40px 20px 15px 20px;
+    padding: 12px 15px;
+    background: white;
+    border-radius: 30px;
+    font-size: 1.3rem;
+    color: #1a1a1a;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+}
+
+/* Contenedor de la información (párrafo) */
+#encargadoPanel .docente-card p {
+    padding: 0 20px 20px 20px;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+/* Cada línea del párrafo (strong + texto) */
+#encargadoPanel .docente-card p strong {
+    display: block;
+    font-size: 0.7rem;
+    color: #E63946;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+/* Para que los saltos de línea <br> no rompan el grid */
+#encargadoPanel .docente-card p br {
+    display: none;
+}
+
+/* Cada bloque (Instrumento, Nivel, Horario, Días, Encargado, Teléfono) se convierte en un item del grid */
+#encargadoPanel .docente-card p {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+#encargadoPanel .docente-card p strong + br + text,
+#encargadoPanel .docente-card p strong + text {
+    font-weight: 600;
+    color: #1a1a1a;
+    font-size: 0.9rem;
+}
+
+/* Ajuste en móviles: una columna */
+@media (max-width: 640px) {
+    #encargadoPanel .docente-card p {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    #encargadoPanel .docente-card h3 {
+        font-size: 1.1rem;
+        margin-top: -30px;
+        padding: 10px 15px;
+    }
+    #encargadoPanel .docente-card::before {
+        height: 60px;
+    }
+}
+
+/* ========== ESTILOS PARA LISTA DE PAGOS, ASISTENCIA, CLASES Y GRABACIONES (compatibles con lo que ya tenías) ========== */
+.pagos-lista {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.pagos-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    background: #E63946;
+    color: white;
+    padding: 12px 16px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+.pago-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+.pago-item:last-child {
+    border-bottom: none;
+}
+
+.asistencia-lista {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+.asistencia-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 2fr;
+    background: #E63946;
+    color: white;
+    padding: 12px 16px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+.asistencia-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 2fr;
+    padding: 10px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+}
+
+.clases-grid, .grabaciones-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+.clase-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.clase-header {
+    background: #E63946;
+    color: white;
+    padding: 12px 16px;
+    font-weight: bold;
+}
+.clase-body {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.btn-meet, .btn-grabacion {
+    background: #0F9D58;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+.btn-grabacion {
+    background: #FF9800;
+}
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    color: #888;
+    background: white;
+    border-radius: 16px;
+}
+
+@media (max-width: 640px) {
+    .pagos-header, .pago-item {
+        grid-template-columns: 1fr 1fr 1.2fr;
+        font-size: 0.75rem;
+        gap: 8px;
+    }
+    .asistencia-header, .asistencia-item {
+        grid-template-columns: 1fr 1fr 1fr 1.5fr;
+        font-size: 0.7rem;
+        gap: 5px;
+    }
+    .clase-body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
     </style>
   <!-- Firebase versión compat (funciona en archivos locales) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -4965,6 +5277,14 @@ body.dark-mode .acciones .btn:hover {
         <option value="Congas">Congas</option>
     </select>
     <small class="hint">Mantén presionada la tecla Ctrl (Cmd en Mac) para seleccionar múltiples instrumentos</small>
+</div>
+              <!-- Sección para vincular estudiantes (solo para encargados) -->
+<div id="estudiantes-vinculacion" style="display: none; margin-top: 15px;">
+    <label class="recibos-label">👨‍🎓 Estudiantes a cargo:</label>
+    <div id="listaEstudiantesParaEncargado" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; border-radius: 8px;">
+        <p>Cargando estudiantes...</p>
+    </div>
+    <small class="hint">Seleccione los estudiantes que están a cargo de este encargado</small>
 </div>
             </form>
         </div>
@@ -7246,25 +7566,67 @@ body.personalizado .step.active::before {
         100% { top: 100%; opacity: 0; }
     }
 </style>
-  <!-- PANEL PARA ENCARGADO -->
-<div id="encargadoPanel" class="secretaria-panel-container" style="display: none;">
-    <div class="secretaria-header-panel">
-        <h2>Portal del Encargado</h2>
-        <button class="logout-btn" id="logoutButtonEncargado">Cerrar Sesión</button>
+ <!-- PANEL PARA ENCARGADO - NUEVO DISEÑO TIPO FACEBOOK -->
+<div id="encargadoPanel">
+    <!-- Logo y título -->
+  <div class="encabezado-encargado">
+    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo">
+    <div>
+        <h2 style="margin: 0;">Academia Expresión Musical</h2>
+        <small style="font-size: 12px;">Portal del Encargado</small>
     </div>
-    <div style="padding: 20px;">
-        <div class="tabs-encargado">
-            <div class="tab active" data-tab-enc="info">📋 Información del Estudiante</div>
-            <div class="tab" data-tab-enc="pagos">💰 Pagos</div>
-            <div class="tab" data-tab-enc="asistencia">📅 Asistencia</div>
-            <div class="tab" data-tab-enc="clases">🎥 Clases Virtuales</div>
-            <div class="tab" data-tab-enc="grabaciones">📹 Grabaciones</div>
+    <button class="logout-btn" id="logoutButtonEncargado">Cerrar Sesión</button>
+</div>
+ <div id="selectorEstudiantesContainer" style="background: #f0f2f5; padding: 12px; margin: 10px; border-radius: 12px;">
+    <label style="font-weight: bold;">👨‍👩‍👧‍👦 Seleccionar estudiante:</label>
+    <select id="selectorEstudianteEnc" style="width: 100%; padding: 8px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc;"></select>
+</div>
+    <!-- Contenedor de las pantallas (contenido) -->
+    <div class="pantallas-encargado">
+        <div id="pantalla-info" class="pantalla active">
+            <h3>📋 Información del Estudiante</h3>
+            <div id="infoEstudianteEnc">Cargando...</div>
         </div>
-        <div id="encInfoTab" class="tab-content-enc active"><div id="infoEstudianteEnc"></div></div>
-        <div id="encPagosTab" class="tab-content-enc"><div id="pagosEstudianteEnc"></div></div>
-        <div id="encAsistenciaTab" class="tab-content-enc"><div id="asistenciaEstudianteEnc"></div></div>
-        <div id="encClasesTab" class="tab-content-enc"><div id="clasesEstudianteEnc" class="clases-list"></div></div>
-        <div id="encGrabacionesTab" class="tab-content-enc"><div id="grabacionesEstudianteEnc" class="clases-list"></div></div>
+        <div id="pantalla-pagos" class="pantalla">
+            <h3>💰 Pagos</h3>
+            <div id="pagosEstudianteEnc">Cargando...</div>
+        </div>
+        <div id="pantalla-asistencia" class="pantalla">
+            <h3>📅 Asistencia</h3>
+            <div id="asistenciaEstudianteEnc">Cargando...</div>
+        </div>
+        <div id="pantalla-clases" class="pantalla">
+            <h3>🎥 Clases Virtuales</h3>
+            <div id="clasesEstudianteEnc" class="clases-list">Cargando...</div>
+        </div>
+        <div id="pantalla-grabaciones" class="pantalla">
+            <h3>📹 Grabaciones</h3>
+            <div id="grabacionesEstudianteEnc" class="clases-list">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- Menú inferior (como Facebook) -->
+    <div class="menu-inferior">
+        <div class="menu-item active" data-pantalla="info">
+            <i class="fas fa-user-graduate"></i>
+            <span>Info</span>
+        </div>
+        <div class="menu-item" data-pantalla="pagos">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Pagos</span>
+        </div>
+        <div class="menu-item" data-pantalla="asistencia">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Asistencia</span>
+        </div>
+        <div class="menu-item" data-pantalla="clases">
+            <i class="fas fa-video"></i>
+            <span>Clases</span>
+        </div>
+        <div class="menu-item" data-pantalla="grabaciones">
+            <i class="fas fa-record-vinyl"></i>
+            <span>Grabaciones</span>
+        </div>
     </div>
 </div>
 
@@ -14617,6 +14979,7 @@ function logout() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userType');
     localStorage.removeItem('currentUser');
+   limpiarConexionTablet();   // 👈 NUEVA LÍNEA
     showLogin();
     document.getElementById('userType').value = '';
     document.getElementById('username').value = '';
@@ -14650,6 +15013,7 @@ async function hideLogin() {
         if (typeof window.mostrarPanelEncargado === 'function') {
             window.mostrarPanelEncargado();
         }
+       activarActualizacionEncargado();   // <--- PON ESTA LÍNEA AQUÍ
     }
 }
 
@@ -16618,6 +16982,7 @@ function limpiarBotonesDocente() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userType');
     localStorage.removeItem('currentUser');
+        limpiarConexionTablet();   // 👈 NUEVA LÍNEA
     ocultarRecibo();
     showLogin();
     
@@ -16775,7 +17140,27 @@ function mostrarModalUsuario(usuarioId = null) {
     
     // Mostrar/ocultar campo de instrumentos según el tipo seleccionado
     toggleInstrumentosField();
-    
+        // ========== NUEVO: Mostrar selector de estudiantes para encargados ==========
+    const divVinculacion = document.getElementById('estudiantes-vinculacion');
+    if (divVinculacion) {
+        function toggleVinculacion() {
+            if (selectTipo.value === 'encargado') {
+                divVinculacion.style.display = 'block';
+                let estudiantesIds = [];
+                if (usuarioId) {
+                    const usuario = Object.values(systemUsers).find(u => u.id == usuarioId);
+                    if (usuario && usuario.estudiantesIds) estudiantesIds = usuario.estudiantesIds;
+                }
+                mostrarListaEstudiantes(estudiantesIds);
+            } else {
+                divVinculacion.style.display = 'none';
+            }
+        }
+        selectTipo.removeEventListener('change', toggleVinculacion);
+        selectTipo.addEventListener('change', toggleVinculacion);
+        toggleVinculacion();
+    }
+    // ========== FIN NUEVO ==========
     // Mostrar el modal
     modal.style.display = 'block';
 }
@@ -16790,7 +17175,6 @@ function guardarUsuario() {
     const tipo = document.getElementById('usuarioTipo').value;
     const userType = localStorage.getItem('userType');
     
-    // Validar permisos según el tipo de usuario
     if (userType === 'secretaria') {
         if (tipo !== 'encargado') {
             alert('No tiene permisos para crear usuarios de este tipo. Solo puede crear usuarios de tipo "Encargado".');
@@ -16839,6 +17223,13 @@ function guardarUsuario() {
         }
     }
 
+    // ================== NUEVO: OBTENER ESTUDIANTES SELECCIONADOS ==================
+    let estudiantesIds = [];
+    if (tipo === 'encargado') {
+        estudiantesIds = getEstudiantesSeleccionados();
+    }
+    // ============================================================================
+
     if (!tipo || !username || !password || !nombre || !email) {
         alert('Por favor complete todos los campos obligatorios');
         return;
@@ -16866,6 +17257,7 @@ function guardarUsuario() {
         telefono: telefono,
         notas: notas,
         instrumentos: instrumentos,
+        estudiantesIds: estudiantesIds,   // <--- AGREGADO
         fechaActualizacion: new Date().toISOString()
     };
 
@@ -16873,12 +17265,15 @@ function guardarUsuario() {
         usuarioData.fechaCreacion = new Date().toISOString();
     }
 
-    // Guardar en localStorage y en la variable global
-   systemUsers[username] = usuarioData;
-window.systemUsers = systemUsers; // <-- esta línea debe estar
-guardarUsuarios();
-    
-    // === NUEVO: Guardar también en Firestore ===
+    systemUsers[username] = usuarioData;
+    window.systemUsers = systemUsers;
+    guardarUsuarios();
+    // ✅ NUEVO: Si es un encargado, notificar a todas las ventanas abiertas
+if (tipo === 'encargado') {
+    window.dispatchEvent(new CustomEvent('encargado-actualizado', { 
+        detail: { username: username }
+    }));
+}
     if (window.db) {
         window.db.collection('usuarios').doc(username).set(usuarioData)
             .then(() => console.log(`☁️ Usuario ${username} guardado en Firestore`))
@@ -18608,6 +19003,15 @@ let peerIdGenerado = null;
 let tabletConectada = false;
 
 function iniciarPeerPC() {
+    // 🔒 Solo permitir si el usuario es secretaria
+    const userType = localStorage.getItem('userType');
+    if (userType !== 'secretaria') {
+        console.log("📱 Conexión tablet solo disponible para secretaria. Rol actual:", userType);
+        // Limpiar cualquier panel o conexión residual
+        limpiarConexionTablet();
+        return;
+    }
+
     // Generar un ID único y fácil de recordar
     peerIdGenerado = 'expresion123'; // EL MISMO ID QUE PUSISTE EN LA TABLET
 
@@ -18615,7 +19019,8 @@ function iniciarPeerPC() {
     crearPanelConexion();
 
     // Actualizar el ID en el panel
-    document.getElementById('peerIdDisplay').textContent = peerIdGenerado;
+    const idDisplay = document.getElementById('peerIdDisplay');
+    if (idDisplay) idDisplay.textContent = peerIdGenerado;
 
     // Crear conexión PeerJS
     peerPC = new Peer(peerIdGenerado);
@@ -18635,32 +19040,45 @@ function iniciarPeerPC() {
         actualizarEstadoPanel('connected', 'Tablet conectada');
 
         // Mostrar notificación
-        showToast('✅ Tablet conectada', 'success');
+        if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
 
         connTablet.on('data', function(data) {
             console.log('📦 Datos recibidos:', data);
-            procesarAsistenciaDesdeTablet(data);
+            if (typeof procesarAsistenciaDesdeTablet === 'function') {
+                procesarAsistenciaDesdeTablet(data);
+            }
         });
 
         connTablet.on('close', function() {
             console.log('📱 Tablet desconectada');
             tabletConectada = false;
             actualizarEstadoPanel('ready', 'Esperando tablet...');
-            showToast('📱 Tablet desconectada', 'warning');
+            if (typeof showToast === 'function') showToast('📱 Tablet desconectada', 'warning');
             connTablet = null;
         });
 
         connTablet.on('error', function(err) {
             console.error('Error en conexión:', err);
-            connTablet.close();
+            if (connTablet) connTablet.close();
         });
     });
 
     peerPC.on('error', function(error) {
         console.error('❌ Error PeerJS:', error);
         actualizarEstadoPanel('error', 'Error de conexión');
-        //showToast('❌ Error de conexión: ' + error.type, 'error');//
     });
+}
+
+// Función para limpiar la conexión tablet (útil al cerrar sesión)
+function limpiarConexionTablet() {
+    if (peerPC) {
+        try { peerPC.destroy(); } catch(e) {}
+        peerPC = null;
+    }
+    connTablet = null;
+    tabletConectada = false;
+    const panel = document.getElementById('tabletConnectionPanel');
+    if (panel) panel.remove();
 }
 
 function crearPanelConexion() {
@@ -18812,9 +19230,9 @@ function expandirPanel() {
 function copiarIdAlPortapapeles() {
     const id = document.getElementById('peerIdDisplay').textContent;
     navigator.clipboard.writeText(id).then(() => {
-        showToast('✅ ID copiado al portapapeles', 'success');
+        if (typeof showToast === 'function') showToast('✅ ID copiado al portapapeles', 'success');
     }).catch(() => {
-        showToast('❌ No se pudo copiar', 'error');
+        if (typeof showToast === 'function') showToast('❌ No se pudo copiar', 'error');
     });
 }
 
@@ -19025,7 +19443,18 @@ if (typeof showToast !== 'function') {
 }
 
 // Iniciar cuando cargue la página
-setTimeout(iniciarPeerPC, 2000);
+// Iniciar conexión tablet solo si el usuario es secretaria
+setTimeout(() => {
+    iniciarPeerPC();
+}, 2000);
+
+// Escuchar cambios de login para reiniciar/limpiar según el rol
+window.addEventListener('storage', function(e) {
+    if (e.key === 'userType' || e.key === 'currentUser') {
+        limpiarConexionTablet();
+        iniciarPeerPC();
+    }
+});
       
       // Filtro de búsqueda en el historial de recibos
 (function() {
@@ -20963,12 +21392,20 @@ window.hideLogin = function() {
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) loginScreen.style.display = 'none';
     
+    // ===== NUEVO: OCULTAR TODOS LOS PANELES =====
+    const secretariaScreen = document.getElementById('secretariaScreen');
+    const docentePanel = document.getElementById('docentePanelVirtual');
+    const encargadoPanel = document.getElementById('encargadoPanel');
+    
+    if (secretariaScreen) secretariaScreen.style.display = 'none';
+    if (docentePanel) docentePanel.style.display = 'none';
+    if (encargadoPanel) encargadoPanel.style.display = 'none';
+    // ============================================
+    
     const userType = localStorage.getItem('userType');
     
     if (userType === 'administrador' || userType === 'secretaria') {
-        const secretariaScreen = document.getElementById('secretariaScreen');
         if (secretariaScreen) secretariaScreen.style.display = 'block';
-        // Mostrar barra lateral
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
         if (sidebar) sidebar.style.display = 'flex';
@@ -20978,9 +21415,7 @@ window.hideLogin = function() {
         if (panelTitle) panelTitle.textContent = (userType === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría';
     } 
     else if (userType === 'docente') {
-        const docentePanel = document.getElementById('docentePanelVirtual');
         if (docentePanel) docentePanel.style.display = 'block';
-        // Ocultar barra lateral
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
         if (sidebar) sidebar.style.display = 'none';
@@ -20988,9 +21423,11 @@ window.hideLogin = function() {
         document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = 'Panel del Docente';
+        if (typeof window.mostrarPanelDocenteVirtual === 'function') {
+            window.mostrarPanelDocenteVirtual();
+        }
     }
     else if (userType === 'encargado') {
-        const encargadoPanel = document.getElementById('encargadoPanel');
         if (encargadoPanel) encargadoPanel.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
@@ -20999,17 +21436,9 @@ window.hideLogin = function() {
         document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'none');
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = 'Portal del Encargado';
-    }
-};
-
-// Verificar estado de login al cargar la página
-window.checkLoginStatus = function() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userType = localStorage.getItem('userType');
-    if (isLoggedIn && userType) {
-        window.hideLogin();
-    } else {
-        window.showLogin();
+        if (typeof cargarSelector === 'function') {
+            cargarSelector();
+        }
     }
 };
 
@@ -21018,6 +21447,7 @@ function cerrarSesion() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userType');
     localStorage.removeItem('currentUser');
+   limpiarConexionTablet();   // 👈 NUEVA LÍNEA
     window.showLogin();
     // Limpiar campos
     const userTypeSelect = document.getElementById('userType');
@@ -21092,6 +21522,514 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Inicializar verificación de login al cargar
 window.checkLoginStatus();
+  // =============================================
+// MAGIA: El flotante aparece cada vez que eres secretaria
+// =============================================
+(function() {
+    let ultimoRol = null;
+
+    function refrescarPanelTablet() {
+        const rolActual = localStorage.getItem('userType');
+        if (rolActual === 'secretaria') {
+            if (!document.getElementById('tabletConnectionPanel')) {
+                console.log('🎯 Secretaria detectada. Mostrando flotante tablet.');
+                if (typeof iniciarPeerPC === 'function') iniciarPeerPC();
+            }
+        } else {
+            if (document.getElementById('tabletConnectionPanel')) {
+                console.log('🧹 Rol no secretaria. Limpiando flotante.');
+                if (typeof limpiarConexionTablet === 'function') limpiarConexionTablet();
+            }
+        }
+        ultimoRol = rolActual;
+    }
+
+    // Escuchar cambios en localStorage (login/logout automático)
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'userType') {
+            refrescarPanelTablet();
+        }
+    });
+
+    // También ejecutar cada segundo por si acaso (para cambios internos sin evento storage)
+    setInterval(() => {
+        const rolActual = localStorage.getItem('userType');
+        if (rolActual !== ultimoRol) {
+            refrescarPanelTablet();
+        }
+    }, 500);
+
+    // Ejecutar al inicio
+    refrescarPanelTablet();
+})();
+// =====================================================
+// PANEL ENCARGADO - DISEÑO FACEBOOK (CON SWIPE Y SELECTOR) + DATOS REALES
+// =====================================================
+(function() {
+    // ---------- Elementos DOM ----------
+    const panel = document.getElementById('encargadoPanel');
+    if (!panel) return;
+
+    const menuItems = panel.querySelectorAll('.menu-item');
+    const pantallas = {
+        info: document.getElementById('pantalla-info'),
+        pagos: document.getElementById('pantalla-pagos'),
+        asistencia: document.getElementById('pantalla-asistencia'),
+        clases: document.getElementById('pantalla-clases'),
+        grabaciones: document.getElementById('pantalla-grabaciones')
+    };
+
+    // ---------- Cambiar de pestaña ----------
+    function cambiarPantalla(idPantalla) {
+        Object.values(pantallas).forEach(p => p?.classList.remove('active'));
+        menuItems.forEach(item => item.classList.remove('active'));
+        if (pantallas[idPantalla]) pantallas[idPantalla].classList.add('active');
+        const menuActivo = Array.from(menuItems).find(item => item.getAttribute('data-pantalla') === idPantalla);
+        if (menuActivo) menuActivo.classList.add('active');
+        localStorage.setItem('encargadoPantallaActual', idPantalla);
+    }
+
+    // Eventos clic
+    menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = item.getAttribute('data-pantalla');
+            if (id && pantallas[id]) cambiarPantalla(id);
+        });
+    });
+
+    // Restaurar última pantalla
+    const ultima = localStorage.getItem('encargadoPantallaActual');
+    if (ultima && pantallas[ultima]) cambiarPantalla(ultima);
+    else cambiarPantalla('info');
+
+    // ---------- SWIPE ----------
+    let touchStartX = 0;
+    const orden = ['info', 'pagos', 'asistencia', 'clases', 'grabaciones'];
+    function getIndiceActual() {
+        for (let i = 0; i < orden.length; i++) {
+            const id = orden[i];
+            if (pantallas[id] && pantallas[id].classList.contains('active')) return i;
+        }
+        return 0;
+    }
+    panel.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+    panel.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].screenX - touchStartX;
+        if (Math.abs(diff) < 50) return;
+        let actual = getIndiceActual();
+        if (diff > 0 && actual > 0) cambiarPantalla(orden[actual - 1]);
+        else if (diff < 0 && actual < orden.length - 1) cambiarPantalla(orden[actual + 1]);
+    });
+})();
+
+// =====================================================
+// CARGAR ESTUDIANTES DEL ENCARGADO + ACTUALIZACIÓN EN TIEMPO REAL
+// =====================================================
+(function() {
+    let estudianteActualId = null;
+    let encargadoUnsubscribe = null;
+
+    // ---------- Funciones auxiliares ----------
+    function getNombreMes(mes) {
+        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        return meses[mes-1] || mes;
+    }
+    function formatearFecha(fechaISO) {
+        if (!fechaISO) return '';
+        const fecha = new Date(fechaISO);
+        return `${fecha.getDate()}/${fecha.getMonth()+1}/${fecha.getFullYear()}`;
+    }
+function calcularDeudaEstudiante(estudianteId) {
+    let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
+    let pagos = pagosData.pagos || [];
+    let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+    if (!estudiante) return 0;
+    
+    const mensualidad = estudiante.musical?.mensualidad || 200;
+    const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
+    if (isNaN(fechaIngreso.getTime())) return 0;
+    
+    const añoIngreso = fechaIngreso.getFullYear();
+    const mesIngreso = fechaIngreso.getMonth() + 1;
+    const diaIngreso = fechaIngreso.getDate();
+    let primerMes = mesIngreso;
+    let primerAño = añoIngreso;
+    if (diaIngreso > 20) {
+        primerMes++;
+        if (primerMes > 12) { primerMes = 1; primerAño++; }
+    }
+    
+    const hoy = new Date();
+    const añoActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth() + 1;
+    const diaActual = hoy.getDate();
+    
+    let deuda = 0;
+    for (let año = primerAño; año <= añoActual; año++) {
+        let mesInicio = (año === primerAño) ? primerMes : 1;
+        let mesFin = (año === añoActual) ? mesActual : 12;
+        for (let mes = mesInicio; mes <= mesFin; mes++) {
+            if (año === añoActual && mes === mesActual && diaActual <= 5) continue;
+            const pagado = pagos.some(p => String(p.idEstudiante) === String(estudianteId) && p.mes === mes && p.año === año);
+            if (!pagado) deuda += mensualidad;
+        }
+    }
+    return deuda;
+}
+    // ---------- Mostrar pagos ----------
+    function mostrarPagosEncargado(estudianteId) {
+        const container = document.getElementById('pagosEstudianteEnc');
+        if (!container) return;
+        let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
+        let pagos = pagosData.pagos || [];
+        const filtrados = pagos.filter(p => String(p.idEstudiante) === String(estudianteId));
+        if (filtrados.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay pagos registrados.</p>';
+            return;
+        }
+        filtrados.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+        let html = `<div class="pagos-lista"><div class="pagos-header"><div>Mes/Año</div><div>Monto</div><div>Fecha pago</div></div>`;
+        filtrados.forEach(p => {
+            html += `<div class="pago-item">
+                        <div>${getNombreMes(p.mes)} ${p.año}</div>
+                        <div>Q${p.monto.toFixed(2)}</div>
+                        <div>${formatearFecha(p.fecha)}</div>
+                    </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    // ---------- Mostrar asistencia ----------
+    function mostrarAsistenciaEncargado(estudianteId) {
+        const container = document.getElementById('asistenciaEstudianteEnc');
+        if (!container) return;
+        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        let filtrados = historial.filter(r => String(r.studentId) === String(estudianteId));
+        if (filtrados.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay registros de asistencia.</p>';
+            return;
+        }
+        filtrados.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+        let html = `<div class="asistencia-lista"><div class="asistencia-header"><div>Fecha</div><div>Estado</div><div>Horario</div><div>Observación</div></div>`;
+        filtrados.forEach(r => {
+            let estadoTexto = r.estado === 'presente' ? '✅ Presente' : (r.estado === 'ausente' ? '❌ Ausente' : (r.estado === 'justificado' ? '📝 Justificado' : '🔄 Reposición'));
+            html += `<div class="asistencia-item">
+                        <div>${formatearFecha(r.fecha)}</div>
+                        <div>${estadoTexto}</div>
+                        <div>${r.horario || ''}</div>
+                        <div>${r.observaciones || ''}</div>
+                    </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    // ---------- Mostrar clases virtuales (próximas) ----------
+    function mostrarClasesEncargado(estudianteId) {
+        const container = document.getElementById('clasesEstudianteEnc');
+        if (!container) return;
+        let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        let todasClases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        const ahora = new Date();
+        let futuras = todasClases.filter(c => 
+            c.instrumento === estudiante.musical.instrumentoPrincipal &&
+            c.nivel === estudiante.estudiante.nivel &&
+            new Date(c.fechaHora) > ahora
+        );
+        futuras.sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+        if (futuras.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay clases próximas para este nivel e instrumento.</p>';
+            return;
+        }
+        let html = `<div class="clases-grid">`;
+        futuras.forEach(c => {
+            html += `<div class="clase-card">
+                        <div class="clase-header">${c.titulo}</div>
+                        <div class="clase-body">
+                            <div>📅 ${new Date(c.fechaHora).toLocaleString()}</div>
+                            <div>⏱️ ${c.duracion} min</div>
+                            ${c.meetLink ? `<a href="${c.meetLink}" target="_blank" class="btn-meet">Unirse a Meet</a>` : ''}
+                        </div>
+                    </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    // ---------- Mostrar grabaciones ----------
+    function mostrarGrabacionesEncargado(estudianteId) {
+        const container = document.getElementById('grabacionesEstudianteEnc');
+        if (!container) return;
+        let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        let todasClases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        let grabaciones = todasClases.filter(c => 
+            c.instrumento === estudiante.musical.instrumentoPrincipal &&
+            c.nivel === estudiante.estudiante.nivel &&
+            c.grabacionUrl
+        );
+        grabaciones.sort((a,b) => new Date(b.fechaHora) - new Date(a.fechaHora));
+        if (grabaciones.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay grabaciones disponibles.</p>';
+            return;
+        }
+        let html = `<div class="grabaciones-grid">`;
+        grabaciones.forEach(c => {
+            html += `<div class="clase-card">
+                        <div class="clase-header">${c.titulo}</div>
+                        <div class="clase-body">
+                            <div>📅 ${new Date(c.fechaHora).toLocaleDateString()}</div>
+                            <a href="${c.grabacionUrl}" target="_blank" class="btn-grabacion">Ver grabación</a>
+                        </div>
+                    </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    // ---------- Actualizar TODA la interfaz (info + todas las pestañas) ----------
+    window.actualizarInfoEstudiante = function(estudianteId) {
+        console.log("🔄 actualizarInfoEstudiante ID:", estudianteId);
+        estudianteActualId = estudianteId;
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+
+        // 1. Info (tarjeta moderna)
+        const infoDiv = document.getElementById('infoEstudianteEnc');
+        if (infoDiv) {
+            const nombre = estudiante.estudiante?.nombre || 'Sin nombre';
+            const nivel = estudiante.estudiante?.nivel || 'Sin nivel';
+            const instrumento = estudiante.musical?.instrumentoPrincipal || 'No especificado';
+            const horario = estudiante.academico?.horario || 'No especificado';
+            const dias = (estudiante.academico?.dias?.length) ? estudiante.academico.dias.join(', ') : 'No especificado';
+            const encargadoNombre = estudiante.encargado?.nombre || 'No especificado';
+            const telefono = estudiante.encargado?.telefono || 'No especificado';
+            const foto = estudiante.estudiante?.foto || null;
+            let fotoHtml = (foto && foto !== 'null') ? `<img src="${foto}" alt="Foto">` : `<i class="fas fa-user-circle"></i>`;
+    const deuda = calcularDeudaEstudiante(estudianteId);
+    let deudaHtml = '';
+    if (deuda > 0) {
+        deudaHtml = `<div class="deuda-badge" style="background: #f44336; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin-left: 8px;">💰 Deuda: Q${deuda.toFixed(2)}</div>`;
+    } else {
+        deudaHtml = `<div class="deuda-badge" style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin-left: 8px;">✅ Al día</div>`;
+    }
+            infoDiv.innerHTML = `
+                <div class="docente-card">
+                    <div class="profile-cover"></div>
+                    <div class="profile-avatar">${fotoHtml}</div>
+                    <div class="profile-info">
+                       <div class="profile-name">${nombre}</div>
+<div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div class="profile-level">${nivel}</div>
+    ${deudaHtml}
+</div>
+                        <div class="details-grid">
+                            <div class="detail-item"><i class="fas fa-guitar"></i><div><div class="label">Instrumento</div><div class="value">${instrumento}</div></div></div>
+                            <div class="detail-item"><i class="fas fa-clock"></i><div><div class="label">Horario</div><div class="value">${horario}</div></div></div>
+                            <div class="detail-item"><i class="fas fa-calendar-week"></i><div><div class="label">Días</div><div class="value">${dias}</div></div></div>
+                            <div class="detail-item"><i class="fas fa-user-tie"></i><div><div class="label">Encargado</div><div class="value">${encargadoNombre}</div></div></div>
+                            <div class="detail-item"><i class="fas fa-phone-alt"></i><div><div class="label">Teléfono</div><div class="value">${telefono}</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. Actualizar las otras pestañas con datos reales
+        mostrarPagosEncargado(estudianteId);
+        mostrarAsistenciaEncargado(estudianteId);
+        mostrarClasesEncargado(estudianteId);
+        mostrarGrabacionesEncargado(estudianteId);
+    };
+
+    // ---------- Cargar selector de estudiantes ----------
+    async function cargarSelector() {
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        let inscriptions = [];
+
+        if (window.db && currentUser.username && currentUser.tipo === 'encargado') {
+            try {
+                const userDoc = await window.db.collection('usuarios').doc(currentUser.username).get();
+                if (userDoc.exists) {
+                    const freshUser = userDoc.data();
+                    if (JSON.stringify(freshUser.estudiantesIds) !== JSON.stringify(currentUser.estudiantesIds)) {
+                        localStorage.setItem('currentUser', JSON.stringify(freshUser));
+                        currentUser = freshUser;
+                    }
+                }
+                const snapshot = await window.db.collection('inscripciones').get();
+                inscriptions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+            } catch(e) {
+                inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            }
+        } else {
+            inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        }
+
+        const estudiantesIds = currentUser.estudiantesIds || [];
+        const misEstudiantes = inscriptions.filter(ins => estudiantesIds.includes(String(ins.id)));
+        const selectorDiv = document.getElementById('selectorEstudiantesContainer');
+        const select = document.getElementById('selectorEstudianteEnc');
+        if (!selectorDiv || !select) return;
+        selectorDiv.style.display = 'block';
+
+        if (misEstudiantes.length === 0) {
+            select.innerHTML = '<option>⚠️ No hay estudiantes asociados</option>';
+            const infoDiv = document.getElementById('infoEstudianteEnc');
+            if (infoDiv) infoDiv.innerHTML = '<p style="color:red;">No se encontraron estudiantes para este encargado.</p>';
+            return;
+        }
+
+        select.innerHTML = '';
+        misEstudiantes.forEach(est => {
+            const option = document.createElement('option');
+            option.value = est.id;
+            option.textContent = `${est.estudiante.nombre} (${est.musical.instrumentoPrincipal})`;
+            select.appendChild(option);
+        });
+
+        select.removeEventListener('change', window.handleEstudianteChange);
+        window.handleEstudianteChange = function() {
+            window.actualizarInfoEstudiante(parseInt(this.value));
+        };
+        select.addEventListener('change', window.handleEstudianteChange);
+
+        // Cargar primer estudiante
+        if (misEstudiantes.length) {
+            window.actualizarInfoEstudiante(misEstudiantes[0].id);
+        }
+    }
+
+    // ---------- Actualización en tiempo real (Firestore) ----------
+    function iniciarActualizacionAutomatica() {
+        if (localStorage.getItem('userType') !== 'encargado') return;
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.username || !window.db) return;
+        if (encargadoUnsubscribe) encargadoUnsubscribe();
+        encargadoUnsubscribe = window.db.collection('usuarios').doc(currentUser.username).onSnapshot(async (doc) => {
+            if (!doc.exists) return;
+            const nuevosDatos = doc.data();
+            const viejosIds = (JSON.parse(localStorage.getItem('currentUser') || '{}').estudiantesIds || []).map(String).sort().join();
+            const nuevosIds = (nuevosDatos.estudiantesIds || []).map(String).sort().join();
+            if (viejosIds !== nuevosIds) {
+                console.log("🔄 Cambio detectado en estudiantes vinculados. Actualizando...");
+                localStorage.setItem('currentUser', JSON.stringify(nuevosDatos));
+                const snapshot = await window.db.collection('inscripciones').get();
+                const inscriptions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+                await cargarSelector(); // recarga selector y datos
+            }
+        });
+    }
+
+    // ---------- Evento manual (desde secretaria) ----------
+    window.addEventListener('encargado-actualizado', (e) => {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.username === e.detail.username) {
+            console.log("📡 Evento manual recibido. Forzando actualización...");
+            if (encargadoUnsubscribe) encargadoUnsubscribe();
+            iniciarActualizacionAutomatica();
+            setTimeout(() => cargarSelector(), 500);
+        }
+    });
+
+    function activarActualizacionEncargado() {
+        if (localStorage.getItem('userType') === 'encargado') iniciarActualizacionAutomatica();
+    }
+
+    // ---------- Inicialización ----------
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => { cargarSelector(); activarActualizacionEncargado(); });
+    } else {
+        cargarSelector();
+        activarActualizacionEncargado();
+    }
+})();
+
+// FORZAR DISEÑO MODERNO DESDE EL INICIO (YA INCLUYE TODAS LAS PESTAÑAS)
+(function() {
+    window.addEventListener('load', function() {
+        if (localStorage.getItem('userType') === 'encargado') {
+            setTimeout(function() {
+                const select = document.getElementById('selectorEstudianteEnc');
+                if (select && select.value && typeof window.actualizarInfoEstudiante === 'function') {
+                    window.actualizarInfoEstudiante(parseInt(select.value));
+                }
+            }, 1000);
+        }
+    });
+})();
+</script>
+  <script>
+// =====================================================
+// REPARACIÓN GLOBAL - FUNCIONES FALTANTES
+// =====================================================
+
+// Definir mostrarListaEstudiantes si no existe
+if (typeof window.mostrarListaEstudiantes === 'undefined') {
+    window.mostrarListaEstudiantes = async function(estudiantesSeleccionadosIds = []) {
+        const container = document.getElementById('listaEstudiantesParaEncargado');
+        if (!container) return;
+        
+        // Obtener inscripciones desde localStorage o Firestore
+        let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        if (window.db && inscriptions.length === 0) {
+            const snapshot = await window.db.collection('inscripciones').get();
+            inscriptions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+        }
+        
+        if (inscriptions.length === 0) {
+            container.innerHTML = '<p>No hay estudiantes inscritos aún.</p>';
+            return;
+        }
+        
+        let html = '';
+        inscriptions.forEach(est => {
+            const nombre = est.estudiante?.nombre || 'Sin nombre';
+            const instrumento = est.musical?.instrumentoPrincipal || '';
+            const checked = estudiantesSeleccionadosIds.map(String).includes(String(est.id)) ? 'checked' : '';
+            html += `
+                <div style="margin-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" value="${est.id}" ${checked}>
+                        <strong>${nombre}</strong> ${instrumento ? `(${instrumento})` : ''}
+                    </label>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    };
+}
+
+// Definir getEstudiantesSeleccionados si no existe
+if (typeof window.getEstudiantesSeleccionados === 'undefined') {
+    window.getEstudiantesSeleccionados = function() {
+        const checkboxes = document.querySelectorAll('#listaEstudiantesParaEncargado input[type="checkbox"]');
+        const seleccionados = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) seleccionados.push(cb.value);
+        });
+        return seleccionados;
+    };
+}
+
+// Asegurar que las funciones existan globalmente
+window.mostrarListaEstudiantes = window.mostrarListaEstudiantes;
+window.getEstudiantesSeleccionados = window.getEstudiantesSeleccionados;
+
+// También asegurar que mostrarModalUsuario pueda usarlas
+// (no es necesario reemplazarla, solo asegurar que las funciones estén disponibles)
+
+console.log("✅ Funciones de vinculación reparadas globalmente");
 </script>
 </body>
-</html>         
+</html>      
