@@ -10786,6 +10786,52 @@ const frasesMotivacionales = [
     "¡Asombroso! Tu disciplina musical da frutos 🎺"
 ];
 
+
+    // =====================================================
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL DE ASISTENCIA
+// =====================================================
+
+function iniciarSincronizacionAsistencia() {
+    console.log('🔄 Iniciando sincronización de asistencia en tiempo real...');
+    
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible, asistencia solo local');
+        return;
+    }
+    
+    window.db.collection('asistencia')
+        .onSnapshot((snapshot) => {
+            console.log('📡 Cambios detectados en asistencia:', snapshot.size);
+            
+            let firestoreData = [];
+            snapshot.forEach(doc => {
+                firestoreData.push({ id: doc.id, ...doc.data() });
+            });
+            
+            if (firestoreData.length > 0) {
+                let locales = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+                let unidos = [...locales];
+                
+                firestoreData.forEach(r => {
+                    if (!unidos.some(u => u.id === r.id)) {
+                        unidos.push(r);
+                    }
+                });
+                
+                localStorage.setItem('historialAsistencia', JSON.stringify(unidos));
+                console.log('✅ Asistencia sincronizada desde Firebase:', unidos.length);
+                
+                const historyTab = document.querySelector('.tab[data-tab="history"]');
+                if (historyTab && historyTab.classList.contains('active')) {
+                    if (typeof asistenciaApp !== 'undefined' && asistenciaApp.mostrarHistorialCompleto) {
+                        asistenciaApp.mostrarHistorialCompleto();
+                    }
+                }
+            }
+        }, (error) => {
+            console.error('❌ Error en listener de asistencia:', error);
+        });
+}
 // =====================================================
 // OBJETO PRINCIPAL DE ASISTENCIA
 // =====================================================
@@ -10794,15 +10840,22 @@ const asistenciaApp = {
     inicializada: false,
     data: { students: [], records: [] },
 
-    init: function() {
-        console.log("🎯 INICIANDO SISTEMA DE ASISTENCIA MEJORADO...");
-        this.inicializarSistemaHistorial();
-        this.inicializarInterfaz();
-        this.configurarEventosCompletos();
-        this.limpiarEstudiantesEscaneados();
-        console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
-        this.inicializada = true;
-    },
+  init: function() {
+    console.log("🎯 INICIANDO SISTEMA DE ASISTENCIA MEJORADO...");
+    this.inicializarSistemaHistorial();
+    this.inicializarInterfaz();
+    this.configurarEventosCompletos();
+    this.limpiarEstudiantesEscaneados();
+    
+    // 🔥 NUEVO: Iniciar sincronización con Firebase
+    if (typeof iniciarSincronizacionAsistencia === 'function') {
+        iniciarSincronizacionAsistencia();
+        console.log('🔄 Sincronización de asistencia iniciada');
+    }
+    
+    console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
+    this.inicializada = true;
+},
 
     inicializarSistemaHistorial: function() {
         console.log("🔄 Inicializando sistema de historial...");
