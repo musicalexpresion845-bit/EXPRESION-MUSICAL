@@ -8733,7 +8733,289 @@ function cargarTablaUsuarios() {
         tbody.appendChild(fila);
     });
 }
-  
+  // =====================================================
+// CONEXIÓN CON TABLET (PEERJS) - VERSIÓN COMPLETA CORREGIDA
+// =====================================================
+
+let peerPC = null;
+let connTablet = null;
+let peerIdGenerado = null;
+let tabletConectada = false;
+
+function iniciarPeerPC() {
+    const userType = localStorage.getItem('userType');
+    if (userType !== 'secretaria') {
+        console.log("📱 Conexión tablet solo disponible para secretaria. Rol actual:", userType);
+        limpiarConexionTablet();
+        return;
+    }
+
+    peerIdGenerado = 'expresion123';
+    crearPanelConexion();
+    const idDisplay = document.getElementById('peerIdDisplay');
+    if (idDisplay) idDisplay.textContent = peerIdGenerado;
+
+    try {
+        peerPC = new Peer(peerIdGenerado);
+        peerPC.on('open', function(id) {
+            console.log('✅ PC conectada con ID:', id);
+            actualizarEstadoPanel('ready', 'Esperando tablet...');
+        });
+        peerPC.on('connection', function(connection) {
+            connTablet = connection;
+            tabletConectada = true;
+            console.log('📱 Tablet conectada');
+            actualizarEstadoPanel('connected', 'Tablet conectada');
+            if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
+
+            connTablet.on('data', function(data) {
+                console.log('📦 Datos recibidos:', data);
+                if (typeof procesarAsistenciaDesdeTablet === 'function') {
+                    procesarAsistenciaDesdeTablet(data);
+                }
+            });
+            connTablet.on('close', function() {
+                console.log('📱 Tablet desconectada');
+                tabletConectada = false;
+                actualizarEstadoPanel('ready', 'Esperando tablet...');
+                if (typeof showToast === 'function') showToast('📱 Tablet desconectada', 'warning');
+                connTablet = null;
+            });
+            connTablet.on('error', function(err) {
+                console.error('Error en conexión:', err);
+                if (connTablet) connTablet.close();
+            });
+        });
+        peerPC.on('error', function(error) {
+            console.error('❌ Error PeerJS:', error);
+            actualizarEstadoPanel('error', 'Error de conexión');
+        });
+    } catch (e) {
+        console.error('❌ Error al crear Peer:', e);
+        actualizarEstadoPanel('error', 'Error al conectar');
+    }
+}
+
+function limpiarConexionTablet() {
+    if (peerPC) {
+        try { peerPC.destroy(); } catch(e) {}
+        peerPC = null;
+    }
+    connTablet = null;
+    tabletConectada = false;
+    const panel = document.getElementById('tabletConnectionPanel');
+    if (panel) panel.remove();
+}
+
+function crearPanelConexion() {
+    if (document.getElementById('tabletConnectionPanel')) return;
+    const panel = document.createElement('div');
+    panel.id = 'tabletConnectionPanel';
+    panel.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999;';
+    panel.innerHTML = `
+        <div id="panelExpanded" style="background: #333; color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-family: monospace; width: 280px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-weight: bold; color: #FFD700;">📱 Conexión Tablet</span>
+                <button id="minimizeBtn" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">−</button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span id="peerIdDisplay" style="font-size: 16px; color: #FFD700;">Cargando...</span>
+                <button onclick="copiarIdAlPortapapeles()" style="background: #4CAF50; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">
+                    <i class="fas fa-copy"></i> Copiar ID
+                </button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                <span id="statusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9800; box-shadow: 0 0 10px #FF9800;"></span>
+                <span id="statusText" style="color: #FF9800;">Iniciando...</span>
+            </div>
+            <div style="font-size: 12px; color: #ccc;">Usa este ID en la tablet para conectarte</div>
+        </div>
+        <div id="panelMinimized" style="display: none; background: rgba(51, 51, 51, 0.9); backdrop-filter: blur(5px); color: white; padding: 10px; border-radius: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); align-items: center; gap: 8px; cursor: pointer; border-left: 4px solid #4CAF50;">
+            <span id="miniStatusDot" style="width: 16px; height: 16px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 10px #4CAF50;"></span>
+            <span style="font-size: 14px;">Tablet conectada</span>
+        </div>
+    `;
+    document.body.appendChild(panel);
+
+    document.getElementById('minimizeBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        minimizarPanel();
+    });
+    document.getElementById('panelMinimized').addEventListener('click', function() {
+        expandirPanel();
+    });
+}
+
+function actualizarEstadoPanel(estado, mensaje) {
+    const dot = document.getElementById('statusDot');
+    const miniDot = document.getElementById('miniStatusDot');
+    const text = document.getElementById('statusText');
+    const panelExpanded = document.getElementById('panelExpanded');
+    const panelMinimized = document.getElementById('panelMinimized');
+    if (!dot || !text || !panelExpanded || !panelMinimized) return;
+
+    switch(estado) {
+        case 'connected':
+            panelExpanded.style.display = 'none';
+            panelMinimized.style.display = 'flex';
+            if (miniDot) { miniDot.style.background = '#4CAF50'; miniDot.style.boxShadow = '0 0 10px #4CAF50'; }
+            break;
+        case 'ready':
+        case 'error':
+        default:
+            panelExpanded.style.display = 'block';
+            panelMinimized.style.display = 'none';
+            if (estado === 'ready') {
+                dot.style.background = '#FF9800';
+                dot.style.boxShadow = '0 0 10px #FF9800';
+                text.textContent = mensaje;
+                text.style.color = '#FF9800';
+            } else if (estado === 'error') {
+                dot.style.background = '#f44336';
+                dot.style.boxShadow = '0 0 10px #f44336';
+                text.textContent = mensaje;
+                text.style.color = '#f44336';
+            }
+            break;
+    }
+}
+
+function minimizarPanel() {
+    const panelExpanded = document.getElementById('panelExpanded');
+    const panelMinimized = document.getElementById('panelMinimized');
+    if (panelExpanded && panelMinimized) {
+        panelExpanded.style.display = 'none';
+        panelMinimized.style.display = 'flex';
+    }
+}
+
+function expandirPanel() {
+    const panelExpanded = document.getElementById('panelExpanded');
+    const panelMinimized = document.getElementById('panelMinimized');
+    if (panelExpanded && panelMinimized) {
+        panelExpanded.style.display = 'block';
+        panelMinimized.style.display = 'none';
+    }
+}
+
+function copiarIdAlPortapapeles() {
+    const id = document.getElementById('peerIdDisplay').textContent;
+    navigator.clipboard.writeText(id).then(() => {
+        if (typeof showToast === 'function') showToast('✅ ID copiado al portapapeles', 'success');
+    }).catch(() => {
+        if (typeof showToast === 'function') showToast('❌ No se pudo copiar', 'error');
+    });
+}
+
+function procesarAsistenciaDesdeTablet(datos) {
+    console.log('📦 Datos recibidos:', datos);
+    try {
+        let id = datos.id || datos.ID;
+        let nombre = datos.nombre || datos.estudiante;
+        let estudiante = null;
+
+        // Buscar por ID
+        if (id) {
+            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            estudiante = inscriptions.find(ins => ins.id == id);
+        }
+
+        // Buscar por nombre
+        if (!estudiante && nombre) {
+            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            estudiante = inscriptions.find(ins => ins.estudiante.nombre.toLowerCase().includes(nombre.toLowerCase()));
+        }
+
+        if (!estudiante) {
+            console.error('❌ Estudiante no encontrado');
+            if (typeof showToast === 'function') showToast('❌ Estudiante no reconocido', 'error');
+            if (connTablet && connTablet.open) {
+                connTablet.send({ error: 'no_reconocido' });
+            }
+            return;
+        }
+
+        const daySelect = document.getElementById('filter-day');
+        const scheduleSelect = document.getElementById('filter-schedule');
+        const diaSeleccionado = daySelect ? daySelect.value : '';
+        const horarioSeleccionado = scheduleSelect ? scheduleSelect.value : '';
+
+        if (!diaSeleccionado || !horarioSeleccionado) {
+            if (typeof showToast === 'function') showToast('❌ Selecciona un día y horario en el filtro', 'error');
+            return;
+        }
+
+        let estado = 'presente';
+        if (estudiante.academico) {
+            const diasEstudio = estudiante.academico.dias || [];
+            const horarioEstudio = estudiante.academico.horario || '';
+            const diaCorrecto = diasEstudio.includes(diaSeleccionado);
+            const horarioCorrecto = horarioEstudio === horarioSeleccionado;
+            if (!diaCorrecto || !horarioCorrecto) {
+                estado = 'reposicion';
+            }
+        }
+
+        if (window.asistenciaApp && typeof window.asistenciaApp.registrarEstudianteEnTabla === 'function') {
+            window.asistenciaApp.registrarEstudianteEnTabla(
+                estudiante,
+                estado,
+                new Date().toISOString().split('T')[0],
+                diaSeleccionado,
+                horarioSeleccionado
+            );
+        }
+
+        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        const fechaReal = new Date().toISOString().split('T')[0];
+        const nuevoRegistro = {
+            id: Date.now(),
+            studentId: estudiante.id,
+            studentName: estudiante.estudiante.nombre,
+            instrumento: estudiante.musical?.instrumentoPrincipal || 'No especificado',
+            nivel: estudiante.estudiante.nivel || 'No especificado',
+            fecha: fechaReal,
+            dia: diaSeleccionado,
+            horario: horarioSeleccionado,
+            estado: estado,
+            tipo: estado === 'presente' ? 'asistencia_tablet' : 'reposicion_tablet',
+            horaRegistro: new Date().toLocaleTimeString(),
+            observaciones: estado === 'reposicion' ? 'Registrado fuera de horario' : '',
+            timestamp: new Date().toISOString()
+        };
+        historial.push(nuevoRegistro);
+        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+
+        if (connTablet && connTablet.open) {
+            connTablet.send({
+                tipo: 'confirmacion',
+                nombre: estudiante.estudiante.nombre,
+                estado: estado
+            });
+        }
+
+        if (typeof showToast === 'function') showToast(`✅ ${estudiante.estudiante.nombre} (${estado})`, 'success');
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        if (typeof showToast === 'function') showToast('❌ Error al procesar', 'error');
+    }
+}
+
+// Iniciar peer PC automáticamente para secretaria
+(function() {
+    const userType = localStorage.getItem('userType');
+    if (userType === 'secretaria') {
+        setTimeout(function() {
+            if (typeof iniciarPeerPC === 'function') {
+                iniciarPeerPC();
+                console.log('✅ Panel de tablet iniciado correctamente');
+            } else {
+                console.warn('⚠️ iniciarPeerPC no está definida');
+            }
+        }, 1500);
+    }
+})();
 console.log("✅ Bloque 1 cargado: Sistema de usuarios y login");
 </script>
 
@@ -17141,289 +17423,7 @@ if (typeof window.checkLoginStatus === 'function') {
     window.checkLoginStatus();
 }
 
-// =====================================================
-// CONEXIÓN CON TABLET (PEERJS) - VERSIÓN COMPLETA CORREGIDA
-// =====================================================
 
-let peerPC = null;
-let connTablet = null;
-let peerIdGenerado = null;
-let tabletConectada = false;
-
-function iniciarPeerPC() {
-    const userType = localStorage.getItem('userType');
-    if (userType !== 'secretaria') {
-        console.log("📱 Conexión tablet solo disponible para secretaria. Rol actual:", userType);
-        limpiarConexionTablet();
-        return;
-    }
-
-    peerIdGenerado = 'expresion123';
-    crearPanelConexion();
-    const idDisplay = document.getElementById('peerIdDisplay');
-    if (idDisplay) idDisplay.textContent = peerIdGenerado;
-
-    try {
-        peerPC = new Peer(peerIdGenerado);
-        peerPC.on('open', function(id) {
-            console.log('✅ PC conectada con ID:', id);
-            actualizarEstadoPanel('ready', 'Esperando tablet...');
-        });
-        peerPC.on('connection', function(connection) {
-            connTablet = connection;
-            tabletConectada = true;
-            console.log('📱 Tablet conectada');
-            actualizarEstadoPanel('connected', 'Tablet conectada');
-            if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
-
-            connTablet.on('data', function(data) {
-                console.log('📦 Datos recibidos:', data);
-                if (typeof procesarAsistenciaDesdeTablet === 'function') {
-                    procesarAsistenciaDesdeTablet(data);
-                }
-            });
-            connTablet.on('close', function() {
-                console.log('📱 Tablet desconectada');
-                tabletConectada = false;
-                actualizarEstadoPanel('ready', 'Esperando tablet...');
-                if (typeof showToast === 'function') showToast('📱 Tablet desconectada', 'warning');
-                connTablet = null;
-            });
-            connTablet.on('error', function(err) {
-                console.error('Error en conexión:', err);
-                if (connTablet) connTablet.close();
-            });
-        });
-        peerPC.on('error', function(error) {
-            console.error('❌ Error PeerJS:', error);
-            actualizarEstadoPanel('error', 'Error de conexión');
-        });
-    } catch (e) {
-        console.error('❌ Error al crear Peer:', e);
-        actualizarEstadoPanel('error', 'Error al conectar');
-    }
-}
-
-function limpiarConexionTablet() {
-    if (peerPC) {
-        try { peerPC.destroy(); } catch(e) {}
-        peerPC = null;
-    }
-    connTablet = null;
-    tabletConectada = false;
-    const panel = document.getElementById('tabletConnectionPanel');
-    if (panel) panel.remove();
-}
-
-function crearPanelConexion() {
-    if (document.getElementById('tabletConnectionPanel')) return;
-    const panel = document.createElement('div');
-    panel.id = 'tabletConnectionPanel';
-    panel.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999;';
-    panel.innerHTML = `
-        <div id="panelExpanded" style="background: #333; color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-family: monospace; width: 280px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-weight: bold; color: #FFD700;">📱 Conexión Tablet</span>
-                <button id="minimizeBtn" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">−</button>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                <span id="peerIdDisplay" style="font-size: 16px; color: #FFD700;">Cargando...</span>
-                <button onclick="copiarIdAlPortapapeles()" style="background: #4CAF50; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">
-                    <i class="fas fa-copy"></i> Copiar ID
-                </button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                <span id="statusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9800; box-shadow: 0 0 10px #FF9800;"></span>
-                <span id="statusText" style="color: #FF9800;">Iniciando...</span>
-            </div>
-            <div style="font-size: 12px; color: #ccc;">Usa este ID en la tablet para conectarte</div>
-        </div>
-        <div id="panelMinimized" style="display: none; background: rgba(51, 51, 51, 0.9); backdrop-filter: blur(5px); color: white; padding: 10px; border-radius: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); align-items: center; gap: 8px; cursor: pointer; border-left: 4px solid #4CAF50;">
-            <span id="miniStatusDot" style="width: 16px; height: 16px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 10px #4CAF50;"></span>
-            <span style="font-size: 14px;">Tablet conectada</span>
-        </div>
-    `;
-    document.body.appendChild(panel);
-
-    document.getElementById('minimizeBtn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        minimizarPanel();
-    });
-    document.getElementById('panelMinimized').addEventListener('click', function() {
-        expandirPanel();
-    });
-}
-
-function actualizarEstadoPanel(estado, mensaje) {
-    const dot = document.getElementById('statusDot');
-    const miniDot = document.getElementById('miniStatusDot');
-    const text = document.getElementById('statusText');
-    const panelExpanded = document.getElementById('panelExpanded');
-    const panelMinimized = document.getElementById('panelMinimized');
-    if (!dot || !text || !panelExpanded || !panelMinimized) return;
-
-    switch(estado) {
-        case 'connected':
-            panelExpanded.style.display = 'none';
-            panelMinimized.style.display = 'flex';
-            if (miniDot) { miniDot.style.background = '#4CAF50'; miniDot.style.boxShadow = '0 0 10px #4CAF50'; }
-            break;
-        case 'ready':
-        case 'error':
-        default:
-            panelExpanded.style.display = 'block';
-            panelMinimized.style.display = 'none';
-            if (estado === 'ready') {
-                dot.style.background = '#FF9800';
-                dot.style.boxShadow = '0 0 10px #FF9800';
-                text.textContent = mensaje;
-                text.style.color = '#FF9800';
-            } else if (estado === 'error') {
-                dot.style.background = '#f44336';
-                dot.style.boxShadow = '0 0 10px #f44336';
-                text.textContent = mensaje;
-                text.style.color = '#f44336';
-            }
-            break;
-    }
-}
-
-function minimizarPanel() {
-    const panelExpanded = document.getElementById('panelExpanded');
-    const panelMinimized = document.getElementById('panelMinimized');
-    if (panelExpanded && panelMinimized) {
-        panelExpanded.style.display = 'none';
-        panelMinimized.style.display = 'flex';
-    }
-}
-
-function expandirPanel() {
-    const panelExpanded = document.getElementById('panelExpanded');
-    const panelMinimized = document.getElementById('panelMinimized');
-    if (panelExpanded && panelMinimized) {
-        panelExpanded.style.display = 'block';
-        panelMinimized.style.display = 'none';
-    }
-}
-
-function copiarIdAlPortapapeles() {
-    const id = document.getElementById('peerIdDisplay').textContent;
-    navigator.clipboard.writeText(id).then(() => {
-        if (typeof showToast === 'function') showToast('✅ ID copiado al portapapeles', 'success');
-    }).catch(() => {
-        if (typeof showToast === 'function') showToast('❌ No se pudo copiar', 'error');
-    });
-}
-
-function procesarAsistenciaDesdeTablet(datos) {
-    console.log('📦 Datos recibidos:', datos);
-    try {
-        let id = datos.id || datos.ID;
-        let nombre = datos.nombre || datos.estudiante;
-        let estudiante = null;
-
-        // Buscar por ID
-        if (id) {
-            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            estudiante = inscriptions.find(ins => ins.id == id);
-        }
-
-        // Buscar por nombre
-        if (!estudiante && nombre) {
-            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            estudiante = inscriptions.find(ins => ins.estudiante.nombre.toLowerCase().includes(nombre.toLowerCase()));
-        }
-
-        if (!estudiante) {
-            console.error('❌ Estudiante no encontrado');
-            if (typeof showToast === 'function') showToast('❌ Estudiante no reconocido', 'error');
-            if (connTablet && connTablet.open) {
-                connTablet.send({ error: 'no_reconocido' });
-            }
-            return;
-        }
-
-        const daySelect = document.getElementById('filter-day');
-        const scheduleSelect = document.getElementById('filter-schedule');
-        const diaSeleccionado = daySelect ? daySelect.value : '';
-        const horarioSeleccionado = scheduleSelect ? scheduleSelect.value : '';
-
-        if (!diaSeleccionado || !horarioSeleccionado) {
-            if (typeof showToast === 'function') showToast('❌ Selecciona un día y horario en el filtro', 'error');
-            return;
-        }
-
-        let estado = 'presente';
-        if (estudiante.academico) {
-            const diasEstudio = estudiante.academico.dias || [];
-            const horarioEstudio = estudiante.academico.horario || '';
-            const diaCorrecto = diasEstudio.includes(diaSeleccionado);
-            const horarioCorrecto = horarioEstudio === horarioSeleccionado;
-            if (!diaCorrecto || !horarioCorrecto) {
-                estado = 'reposicion';
-            }
-        }
-
-        if (window.asistenciaApp && typeof window.asistenciaApp.registrarEstudianteEnTabla === 'function') {
-            window.asistenciaApp.registrarEstudianteEnTabla(
-                estudiante,
-                estado,
-                new Date().toISOString().split('T')[0],
-                diaSeleccionado,
-                horarioSeleccionado
-            );
-        }
-
-        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        const fechaReal = new Date().toISOString().split('T')[0];
-        const nuevoRegistro = {
-            id: Date.now(),
-            studentId: estudiante.id,
-            studentName: estudiante.estudiante.nombre,
-            instrumento: estudiante.musical?.instrumentoPrincipal || 'No especificado',
-            nivel: estudiante.estudiante.nivel || 'No especificado',
-            fecha: fechaReal,
-            dia: diaSeleccionado,
-            horario: horarioSeleccionado,
-            estado: estado,
-            tipo: estado === 'presente' ? 'asistencia_tablet' : 'reposicion_tablet',
-            horaRegistro: new Date().toLocaleTimeString(),
-            observaciones: estado === 'reposicion' ? 'Registrado fuera de horario' : '',
-            timestamp: new Date().toISOString()
-        };
-        historial.push(nuevoRegistro);
-        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-
-        if (connTablet && connTablet.open) {
-            connTablet.send({
-                tipo: 'confirmacion',
-                nombre: estudiante.estudiante.nombre,
-                estado: estado
-            });
-        }
-
-        if (typeof showToast === 'function') showToast(`✅ ${estudiante.estudiante.nombre} (${estado})`, 'success');
-
-    } catch (error) {
-        console.error('❌ Error:', error);
-        if (typeof showToast === 'function') showToast('❌ Error al procesar', 'error');
-    }
-}
-
-// Iniciar peer PC automáticamente para secretaria
-(function() {
-    const userType = localStorage.getItem('userType');
-    if (userType === 'secretaria') {
-        setTimeout(function() {
-            if (typeof iniciarPeerPC === 'function') {
-                iniciarPeerPC();
-                console.log('✅ Panel de tablet iniciado correctamente');
-            } else {
-                console.warn('⚠️ iniciarPeerPC no está definida');
-            }
-        }, 1500);
-    }
-})();
 
 // =====================================================
 // PERSONALIZACIÓN DEL SISTEMA
