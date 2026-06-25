@@ -15546,102 +15546,130 @@ function renderNotas(tareasEstudiante, cuerpo) {
 // 13. NAVEGACIÓN DEL PANEL ENCARGADO
 // =====================================================
 
-// =====================================================
-// 13. NAVEGACIÓN DEL PANEL ENCARGADO
-// =====================================================
-
 function iniciarNavegacionEncargado() {
     console.log('🔄 Iniciando navegación del panel encargado...');
     
-    const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
-    const pantallas = {
-        info: document.getElementById('pantalla-info'),
-        pagos: document.getElementById('pantalla-pagos'),
-        asistencia: document.getElementById('pantalla-asistencia'),
-        clases: document.getElementById('pantalla-clases'),
-        grabaciones: document.getElementById('pantalla-grabaciones'),
-        claseactual: document.getElementById('pantalla-claseactual'),
-        tarea: document.getElementById('pantalla-tarea'),
-        notas: document.getElementById('pantalla-notas'),
-        historial: document.getElementById('pantalla-historial')  // ← NUEVO
-    };
-    
-    function mostrarPantalla(pantallaId) {
-        console.log('📱 Mostrando pantalla:', pantallaId);
+    setTimeout(function() {
+        const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
+        const pantallas = {
+            info: document.getElementById('pantalla-info'),
+            pagos: document.getElementById('pantalla-pagos'),
+            asistencia: document.getElementById('pantalla-asistencia'),
+            clases: document.getElementById('pantalla-clases'),
+            grabaciones: document.getElementById('pantalla-grabaciones'),
+            claseactual: document.getElementById('pantalla-claseactual'),
+            tarea: document.getElementById('pantalla-tarea'),
+            notas: document.getElementById('pantalla-notas'),
+            historial: document.getElementById('pantalla-historial')
+        };
         
-        Object.values(pantallas).forEach(p => {
-            if (p) p.classList.remove('active');
-        });
-        
-        if (pantallas[pantallaId]) {
-            pantallas[pantallaId].classList.add('active');
-        }
-        
-        menuItems.forEach(item => {
-            item.classList.remove('active');
-            if (item.getAttribute('data-pantalla') === pantallaId) {
-                item.classList.add('active');
-            }
-        });
-        
-        // Cargar datos según la pantalla
-        const select = document.getElementById('selectorEstudianteEnc');
-        if (select && select.value) {
-            const estudianteId = parseInt(select.value);
+        function mostrarPantalla(pantallaId) {
+            console.log('📱 Mostrando pantalla:', pantallaId);
             
-            if (pantallaId === 'claseactual') {
-                iniciarTemarioTiempoReal(estudianteId);
+            Object.values(pantallas).forEach(p => {
+                if (p) p.classList.remove('active');
+            });
+            
+            if (pantallas[pantallaId]) {
+                pantallas[pantallaId].classList.add('active');
             }
-            if (pantallaId === 'tarea') {
-                iniciarInfoTareaTiempoReal(estudianteId);
-            }
-            if (pantallaId === 'notas') {
-                iniciarTareasTiempoReal(estudianteId);
-            }
-            if (pantallaId === 'historial') {  // ← NUEVO
-                cargarHistorialCompleto(estudianteId);
+            
+            menuItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-pantalla') === pantallaId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Cargar datos según la pantalla
+            const select = document.getElementById('selectorEstudianteEnc');
+            if (select && select.value) {
+                const estudianteId = parseInt(select.value);
+                
+                if (pantallaId === 'claseactual') {
+                    iniciarTemarioTiempoReal(estudianteId);
+                }
+                if (pantallaId === 'tarea') {
+                    iniciarInfoTareaTiempoReal(estudianteId);
+                }
+                if (pantallaId === 'notas') {
+                    iniciarTareasTiempoReal(estudianteId);
+                }
+                if (pantallaId === 'historial') {
+                    cargarHistorialCompleto(estudianteId);
+                }
             }
         }
-    }
-    
-    menuItems.forEach(item => {
-        item.removeEventListener('click', window._handleEncargadoMenuClick);
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const pantalla = this.getAttribute('data-pantalla');
-            if (pantalla) {
-                mostrarPantalla(pantalla);
-            }
-        });
-    });
-    
-    // Eventos del menú hamburguesa
-    document.querySelectorAll('.menu-hamburguesa-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const pantalla = this.getAttribute('data-pantalla');
-            cerrarMenuHamburguesa();
-            setTimeout(() => {
+        
+        // 🔥 REEMPLAZAR TODOS LOS BOTONES PARA EVITAR EVENTOS DUPLICADOS
+        // Botones del menú inferior
+        menuItems.forEach(item => {
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+            
+            newItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                const pantalla = this.getAttribute('data-pantalla');
                 if (pantalla) {
+                    console.log('🔘 Click en menú:', pantalla);
                     mostrarPantalla(pantalla);
                 }
-            }, 200);
+            });
         });
-    });
-    
-    document.getElementById('btnMenuHamburguesa')?.addEventListener('click', function(e) {
-        e.stopPropagation();
-        abrirMenuHamburguesa();
-    });
-    
-    document.getElementById('cerrarMenuHamburguesa')?.addEventListener('click', function() {
-        cerrarMenuHamburguesa();
-    });
-    
-    document.getElementById('menuHamburguesaOverlay')?.addEventListener('click', function(e) {
-        if (e.target === this) cerrarMenuHamburguesa();
-    });
-    
-    mostrarPantalla('info');
+        
+        // 🔥 Botones del menú hamburguesa
+        document.querySelectorAll('.menu-hamburguesa-item').forEach(item => {
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+            
+            newItem.addEventListener('click', function() {
+                const pantalla = this.getAttribute('data-pantalla');
+                cerrarMenuHamburguesa();
+                setTimeout(() => {
+                    if (pantalla) {
+                        console.log('🔘 Click en hamburguesa:', pantalla);
+                        mostrarPantalla(pantalla);
+                    }
+                }, 200);
+            });
+        });
+        
+        // 🔥 Botón de abrir menú hamburguesa
+        const btnMenu = document.getElementById('btnMenuHamburguesa');
+        if (btnMenu) {
+            const newBtn = btnMenu.cloneNode(true);
+            btnMenu.parentNode.replaceChild(newBtn, btnMenu);
+            newBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                abrirMenuHamburguesa();
+            });
+        }
+        
+        // 🔥 Botón de cerrar menú hamburguesa
+        const cerrarMenu = document.getElementById('cerrarMenuHamburguesa');
+        if (cerrarMenu) {
+            const newBtn = cerrarMenu.cloneNode(true);
+            cerrarMenu.parentNode.replaceChild(newBtn, cerrarMenu);
+            newBtn.addEventListener('click', function() {
+                cerrarMenuHamburguesa();
+            });
+        }
+        
+        // 🔥 Overlay del menú hamburguesa
+        const overlay = document.getElementById('menuHamburguesaOverlay');
+        if (overlay) {
+            const newOverlay = overlay.cloneNode(true);
+            overlay.parentNode.replaceChild(newOverlay, overlay);
+            newOverlay.addEventListener('click', function(e) {
+                if (e.target === this) cerrarMenuHamburguesa();
+            });
+        }
+        
+        // Mostrar pantalla inicial
+        mostrarPantalla('info');
+        
+        console.log('✅ Navegación del encargado inicializada correctamente');
+    }, 300);
 }
 
 // =====================================================
