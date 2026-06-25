@@ -7818,246 +7818,220 @@ body.dark-mode .acciones .btn:hover {
 </div>  <!-- CIERRA ENCARGADO PANEL -->
 
 <!-- ============================================ -->
-<!-- PANEL PARA DOCENTE (adaptable: lateral escritorio, inferior móvil) -->
+<!-- PANEL PARA DOCENTE (IGUAL QUE ENCARGADO) -->
 <!-- ============================================ -->
-<div id="docentePanelVirtual" class="docente-panel-adaptable" style="display: none;">
-    <div class="docente-main-container">
-        <!-- Barra lateral (visible en escritorio, oculta en móvil) -->
-        <div class="docente-sidebar">
-            <div class="docente-logo">🎓 Panel Docente</div>
-            <div class="docente-menu-vertical">
-                <div class="docente-menu-item active" data-seccion="clases">
-                    <i class="fas fa-calendar-alt"></i> <span>Mis Clases</span>
+<div id="docentePanelVirtual" style="display: none;">
+    
+    <!-- ENCABEZADO -->
+    <div class="encabezado-encargado" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: white; border-bottom: 1px solid #ddd; flex-wrap: wrap;">
+        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo" style="height: 45px;">
+        <div>
+            <h2 style="margin: 0; font-size: 1.2rem; color: #E63946;">Panel Docente</h2>
+            <small style="font-size: 12px;">🎓 Academia Expresión Musical</small>
+        </div>
+        <button class="logout-btn" id="logoutButtonDocenteVirtual" style="background: #E63946; color: white; border: none; border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">Cerrar Sesión</button>
+    </div>
+
+    <!-- CONTENEDOR DE PANTALLAS -->
+    <div class="pantallas-encargado" style="flex: 1; overflow-y: auto; padding-bottom: 80px;">
+
+        <!-- PANTALLA CLASES -->
+        <div id="docPantallaClases" class="pantalla active">
+            <div style="padding: 0 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin:0;"><i class="fas fa-calendar-alt"></i> Mis Clases</h3>
+                    <button class="btn-primary-docente" onclick="mostrarModalNuevaClase()" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">+ Nueva</button>
                 </div>
-                <div class="docente-menu-item" data-seccion="nuevaClase">
-                    <i class="fas fa-plus-circle"></i> <span>Crear Clase</span>
-                </div>
-                <div class="docente-menu-item" data-seccion="grabaciones">
-                    <i class="fas fa-video"></i> <span>Grabaciones</span>
-                </div>
-                <div class="docente-menu-item" data-seccion="estudiantes">
-                    <i class="fas fa-users"></i> <span>Mis Estudiantes</span>
-                </div>
-                <div class="docente-menu-item" data-seccion="calificaciones">
-                    <i class="fas fa-star"></i> <span>Calificaciones</span>
-                </div>
-                <!-- 🆕 NUEVAS OPCIONES DOCENTE -->
-                <div class="docente-menu-item" data-seccion="temario">
-                    <i class="fas fa-book"></i> <span>Crear Temario</span>
-                </div>
-                <div class="docente-menu-item" data-seccion="tareas">
-                    <i class="fas fa-tasks"></i> <span>Tareas</span>
-                </div>
-                <div class="docente-menu-item" data-seccion="calificarTareas">
-                    <i class="fas fa-star"></i> <span>Calificar</span>
+                <div id="misClasesVirtuales" class="clases-list"></div>
+            </div>
+        </div>
+
+        <!-- PANTALLA NUEVA CLASE -->
+        <div id="docPantallaNuevaClase" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-plus-circle"></i> Crear Clase Virtual</h3>
+                <div class="docente-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px;">
+                    <div class="form-row">
+                        <div class="input-group"><label>Título:</label><input type="text" id="docTituloClase" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                        <div class="input-group"><label>Instrumento:</label><select id="docInstrumentoClase" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                            <option value="">Cargando...</option>
+                        </select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Nivel:</label><select id="docNivelClase" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                            <option>Principiante</option><option>Intermedio</option><option>Avanzado</option>
+                        </select></div>
+                        <div class="input-group"><label>Fecha y hora:</label><input type="datetime-local" id="docFechaHoraClase" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Enlace Google Meet:</label><input type="url" id="docMeetLink" placeholder="https://meet.google.com/..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                        <div class="input-group"><label>Duración (min):</label><input type="number" id="docDuracion" value="60" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                    </div>
+                    <div class="form-group"><label>Descripción:</label><textarea id="docDescripcionClase" rows="2" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></textarea></div>
+                    <button class="btn-primary-docente" id="btnCrearClaseVirtual" style="padding:10px 20px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-save"></i> Crear Clase</button>
                 </div>
             </div>
         </div>
 
-        <!-- Contenido principal -->
-        <div class="docente-contenido">
-            <div class="docente-header-top">
-                <h2>Panel del Docente</h2>
-                <button class="logout-btn" id="logoutButtonDocenteVirtual">Cerrar Sesión</button>
+        <!-- PANTALLA GRABACIONES -->
+        <div id="docPantallaGrabaciones" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-video"></i> Grabaciones Archivadas</h3>
+                <div id="grabacionesVirtualesDocente" class="clases-list"></div>
             </div>
-            <div class="docente-pages">
-                <div id="docPageClases" class="docente-page active">
-                    <div class="docente-page-header">
-                        <h3><i class="fas fa-calendar-alt"></i> Mis Clases</h3>
-                        <button class="btn-primary-docente" onclick="mostrarModalNuevaClase()">+ Nueva Clase</button>
-                    </div>
-                    <div id="misClasesVirtuales" class="clases-list"></div>
-                </div>
-                <div id="docPageNuevaClase" class="docente-page">
-                    <div class="docente-card">
-                        <h3><i class="fab fa-google"></i> Nueva Clase Virtual</h3>
-                        <div class="form-row">
-                            <div class="input-group"><label>Título:</label><input type="text" id="docTituloClase"></div>
-                            <div class="input-group"><label>Instrumento:</label><select id="docInstrumentoClase">
-    <option value="">Cargando instrumentos...</option>
-</select></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="input-group"><label>Nivel:</label><select id="docNivelClase"><option>Principiante</option><option>Intermedio</option><option>Avanzado</option></select></div>
-                            <div class="input-group"><label>Fecha y hora:</label><input type="datetime-local" id="docFechaHoraClase"></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="input-group"><label>Enlace Google Meet:</label><input type="url" id="docMeetLink" placeholder="https://meet.google.com/..."></div>
-                            <div class="input-group"><label>Duración (min):</label><input type="number" id="docDuracion" value="60"></div>
-                        </div>
-                        <div class="form-group"><label>Descripción:</label><textarea id="docDescripcionClase" rows="2"></textarea></div>
-                        <button class="btn-primary-docente" id="btnCrearClaseVirtual"><i class="fas fa-save"></i> Crear Clase</button>
-                    </div>
-                </div>
-                <div id="docPageGrabaciones" class="docente-page">
-                    <div class="docente-page-header">
-                        <h3><i class="fas fa-video"></i> Grabaciones Archivadas</h3>
-                    </div>
-                    <div id="grabacionesVirtualesDocente" class="clases-list"></div>
-                </div>
-                <div id="docPageEstudiantes" class="docente-page">
-                    <div class="docente-card">
-                        <h3><i class="fas fa-users"></i> Mis Estudiantes</h3>
-                        <div id="listaEstudiantesDocente" style="margin-top: 15px;"><p>Cargando estudiantes...</p></div>
-                    </div>
-                </div>
-              <div id="docPageCalificaciones" class="docente-page">
-    <div class="docente-card">
-        <h3><i class="fas fa-star"></i> Calificaciones Mensuales</h3>
-        <p style="color:#666; margin-bottom:15px;">Resumen de calificaciones de tus estudiantes</p>
-        <div id="tablaCalificacionesDocente" style="overflow-x:auto;">
-            <p style="text-align:center; padding:20px; color:#888;">
-                <i class="fas fa-spinner fa-spin"></i> Cargando calificaciones...
-            </p>
         </div>
-    </div>
-</div>
-                <!-- 🆕 PÁGINA: CREAR TEMARIO -->
-                <div id="docPageTemario" class="docente-page">
-                    <div class="docente-card">
-                        <h3><i class="fas fa-book"></i> Crear Temario del Curso</h3>
-                        <p style="color:#666; margin-bottom:15px;">Crea las 44 semanas del curso. Cada semana tendrá un tema, descripción, material y ponderación.</p>
-                        
-                        <div class="form-temario">
-                            <div class="form-row">
-                                <div class="input-group">
-                                    <label>Instrumento:</label>
-                                 <select id="temarioInstrumento" class="recibos-input">
-    <option value="">Cargando instrumentos...</option>
-</select>
-                                </div>
-                                <div class="input-group">
-                                    <label>Nivel:</label>
-                                    <select id="temarioNivel" class="recibos-input">
-                                        <option value="Principiante">Principiante</option>
-                                        <option value="Intermedio">Intermedio</option>
-                                        <option value="Avanzado">Avanzado</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="input-group">
-                                    <label>Semana (1-44):</label>
-                                    <input type="number" id="temarioSemana" min="1" max="44" value="1" class="recibos-input">
-                                </div>
-                                <div class="input-group">
-                                    <label>Ponderación (puntos):</label>
-                                    <input type="number" id="temarioPonderacion" min="0" max="10" step="0.5" value="2.5" class="recibos-input">
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>Tema:</label>
-                                <input type="text" id="temarioTema" placeholder="Ej: Escalas Mayores" class="recibos-input">
-                            </div>
-                            <div class="input-group">
-                                <label>Descripción:</label>
-                                <textarea id="temarioDescripcion" rows="3" placeholder="Describe el contenido de la clase..." class="recibos-input"></textarea>
-                            </div>
-                            <div class="input-group">
-                                <label>Material (URL o texto):</label>
-                                <input type="text" id="temarioMaterial" placeholder="Ej: https://... o descripción del material" class="recibos-input">
-                            </div>
-                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                <button class="btn-temario" onclick="guardarSemanaTemario()">
-                                    <i class="fas fa-save"></i> Guardar Semana
-                                </button>
-                                <button class="btn-temario btn-temario-success" onclick="guardarTemarioCompleto()" style="background:#4CAF50;">
-                                    <i class="fas fa-check"></i> Finalizar Temario
-                                </button>
-                                <button class="btn-temario" onclick="cargarTemarioExistente()" style="background:#2196F3;">
-                                    <i class="fas fa-download"></i> Cargar Temario Guardado
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div id="temarioPreview" style="margin-top:20px;">
-                            <h4>📋 Vista previa del temario</h4>
-                            <div id="semanasList" style="max-height:400px; overflow-y:auto;"></div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 🆕 PÁGINA: TAREAS SUBIDAS -->
-                <div id="docPageTareas" class="docente-page">
-                    <div class="docente-card">
-                        <h3><i class="fas fa-tasks"></i> Tareas Subidas por Estudiantes</h3>
-                        
-                        <div style="display:flex; gap:15px; flex-wrap:wrap; margin:15px 0;">
-                            <div class="input-group" style="flex:1; min-width:150px;">
-                                <label>Instrumento:</label>
-                                <select id="filtroTareaInstrumento" class="recibos-input">
-                                    <option value="">Todos</option>
-                                    <option value="Piano">Piano</option>
-                                    <option value="Guitarra">Guitarra</option>
-                                    <option value="Batería">Batería</option>
-                                    <option value="Canto">Canto</option>
-                                    <option value="Violín">Violín</option>
-                                    <option value="Bajo">Bajo</option>
-                                </select>
-                            </div>
-                            <div class="input-group" style="flex:1; min-width:100px;">
-                                <label>Semana:</label>
-                                <input type="number" id="filtroTareaSemana" placeholder="Ej: 1" min="1" max="44" class="recibos-input">
-                            </div>
-                            <div class="input-group" style="flex:0; display:flex; align-items:flex-end;">
-                                <button class="btn-temario" onclick="filtrarTareas()" style="padding:8px 20px;">
-                                    <i class="fas fa-search"></i> Buscar
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div id="tareasListContainer">
-                            <div class="empty-state">
-                                <i class="fas fa-inbox" style="font-size:48px; color:#ccc;"></i>
-                                <p>No hay tareas subidas aún</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- PANTALLA ESTUDIANTES -->
+        <div id="docPantallaEstudiantes" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-users"></i> Mis Estudiantes</h3>
+                <div id="listaEstudiantesDocente" style="margin-top: 15px;"><p>Cargando estudiantes...</p></div>
+            </div>
+        </div>
 
-                <!-- 🆕 PÁGINA: CALIFICAR TAREAS -->
-                <div id="docPageCalificarTareas" class="docente-page">
-                    <div class="docente-card">
-                        <h3><i class="fas fa-star"></i> Calificar Tareas</h3>
-                        <p style="color:#666; margin-bottom:15px;">Selecciona una tarea pendiente para calificar</p>
-                        <div id="calificarListContainer">
-                            <div class="empty-state">
-                                <i class="fas fa-clipboard-list" style="font-size:48px; color:#ccc;"></i>
-                                <p>No hay tareas pendientes de calificar</p>
-                            </div>
-                        </div>
+        <!-- PANTALLA CALIFICACIONES -->
+        <div id="docPantallaCalificaciones" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-star"></i> Calificaciones Mensuales</h3>
+                <p style="color:#666; margin-bottom:15px;">Resumen de calificaciones de tus estudiantes</p>
+                <div id="tablaCalificacionesDocente" style="overflow-x:auto;background:white;border-radius:8px;padding:15px;">
+                    <p style="text-align:center; padding:20px; color:#888;"><i class="fas fa-spinner fa-spin"></i> Cargando calificaciones...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA TEMARIO -->
+        <div id="docPantallaTemario" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-book"></i> Crear Temario</h3>
+                <div class="docente-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px;">
+                    <div class="form-row">
+                        <div class="input-group"><label>Instrumento:</label><select id="temarioInstrumento" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="">Cargando...</option></select></div>
+                        <div class="input-group"><label>Nivel:</label><select id="temarioNivel" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                            <option value="Principiante">Principiante</option><option value="Intermedio">Intermedio</option><option value="Avanzado">Avanzado</option>
+                        </select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Semana (1-44):</label><input type="number" id="temarioSemana" min="1" max="44" value="1" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                        <div class="input-group"><label>Ponderación:</label><input type="number" id="temarioPonderacion" min="0" max="10" step="0.5" value="2.5" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                    </div>
+                    <div class="input-group"><label>Tema:</label><input type="text" id="temarioTema" placeholder="Ej: Escalas Mayores" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                    <div class="input-group"><label>Descripción:</label><textarea id="temarioDescripcion" rows="3" placeholder="Describe el contenido..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></textarea></div>
+                    <div class="input-group"><label>Material (URL o texto):</label><input type="text" id="temarioMaterial" placeholder="https://... o descripción" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn-temario" onclick="guardarSemanaTemario()" style="padding:8px 15px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-save"></i> Guardar Semana</button>
+                        <button class="btn-temario btn-temario-success" onclick="guardarTemarioCompleto()" style="padding:8px 15px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-check"></i> Finalizar</button>
+                        <button class="btn-temario" onclick="cargarTemarioExistente()" style="padding:8px 15px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-download"></i> Cargar Guardado</button>
+                    </div>
+                    <div id="temarioPreview" style="margin-top:20px;">
+                        <h4>📋 Vista previa</h4>
+                        <div id="semanasList" style="max-height:400px; overflow-y:auto;"></div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- PANTALLA TAREAS -->
+        <div id="docPantallaTareas" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-tasks"></i> Tareas Subidas</h3>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin:10px 0;">
+                    <div class="input-group" style="flex:1; min-width:120px;">
+                        <label style="font-size:12px;">Instrumento:</label>
+                        <select id="filtroTareaInstrumento" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:12px;">
+                            <option value="">Todos</option>
+                            <option value="Piano">Piano</option><option value="Guitarra">Guitarra</option>
+                            <option value="Batería">Batería</option><option value="Canto">Canto</option>
+                            <option value="Violín">Violín</option><option value="Bajo">Bajo</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex:1; min-width:80px;">
+                        <label style="font-size:12px;">Semana:</label>
+                        <input type="number" id="filtroTareaSemana" placeholder="Ej: 1" min="1" max="44" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:12px;">
+                    </div>
+                    <div class="input-group" style="flex:0; display:flex; align-items:flex-end;">
+                        <button class="btn-temario" onclick="filtrarTareas()" style="padding:6px 15px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;font-size:12px;"><i class="fas fa-search"></i> Buscar</button>
+                    </div>
+                </div>
+                <div id="tareasListContainer">
+                    <div class="empty-state"><i class="fas fa-inbox" style="font-size:48px;color:#ccc;"></i><p>No hay tareas subidas</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA CALIFICAR TAREAS -->
+        <div id="docPantallaCalificarTareas" class="pantalla">
+            <div style="padding: 0 15px;">
+                <h3><i class="fas fa-star"></i> Calificar Tareas</h3>
+                <p style="color:#666; margin-bottom:15px;">Tareas pendientes de calificar</p>
+                <div id="calificarListContainer">
+                    <div class="empty-state"><i class="fas fa-clipboard-list" style="font-size:48px;color:#ccc;"></i><p>No hay tareas pendientes</p></div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- CIERRA pantallas-encargado -->
+
+    <!-- MENÚ INFERIOR FIJO -->
+    <div class="menu-inferior" style="position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; align-items:center; background:white; border-top:1px solid #e0e0e0; padding:8px 0; box-shadow:0 -2px 10px rgba(0,0,0,0.05); z-index:1000;">
+        
+        <div class="menu-item" id="btnMenuHamburguesaDocente" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-bars" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Menú</span>
+        </div>
+        
+        <div class="menu-item active" data-pantalla-docente="clases" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-calendar-alt" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Clases</span>
+        </div>
+        
+        <div class="menu-item" data-pantalla-docente="nuevaClase" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-plus-circle" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Crear</span>
+        </div>
+        
+        <div class="menu-item" data-pantalla-docente="grabaciones" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-video" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Grab.</span>
+        </div>
+        
+        <div class="menu-item" data-pantalla-docente="estudiantes" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-users" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Estud.</span>
+        </div>
+        
+        <div class="menu-item" data-pantalla-docente="calificaciones" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-star" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Notas</span>
+        </div>
+        
     </div>
 
-    <!-- Menú inferior (visible solo en móvil, oculto en escritorio) -->
-    <div class="docente-menu-inferior">
-        <div class="docente-menu-item-mobile active" data-seccion="clases">
-            <i class="fas fa-calendar-alt"></i><span>Clases</span>
-        </div>
-        <div class="docente-menu-item-mobile" data-seccion="nuevaClase">
-            <i class="fas fa-plus-circle"></i><span>Crear</span>
-        </div>
-        <div class="docente-menu-item-mobile" data-seccion="grabaciones">
-            <i class="fas fa-video"></i><span>Grabaciones</span>
-        </div>
-        <div class="docente-menu-item-mobile" data-seccion="estudiantes">
-            <i class="fas fa-users"></i><span>Estudiantes</span>
-        </div>
-        <div class="docente-menu-item-mobile" data-seccion="calificaciones">
-            <i class="fas fa-star"></i><span>Notas</span>
-        </div>
-        <!-- 🆕 NUEVAS OPCIONES DOCENTE MÓVIL -->
-        <div class="docente-menu-item-mobile" data-seccion="temario">
-            <i class="fas fa-book"></i><span>Temario</span>
-        </div>
-        <div class="docente-menu-item-mobile" data-seccion="calificarTareas">
-            <i class="fas fa-star"></i><span>Calificar</span>
+    <!-- MENÚ HAMBURGUESA DOCENTE -->
+    <div id="menuHamburguesaDocenteOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; animation:fadeIn 0.3s ease;">
+        <div id="menuHamburguesaDocentePanel" style="background:white; width:280px; height:100%; padding:20px 0; box-shadow:2px 0 15px rgba(0,0,0,0.2); overflow-y:auto; animation:slideInLeft 0.3s ease;">
+            <div style="padding:0 20px 15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:#E63946; font-size:1.1rem;"><i class="fas fa-bars"></i> Menú Docente</h3>
+                <button id="cerrarMenuHamburguesaDocente" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:10px 0;">
+                <div class="menu-hamburguesa-item" data-pantalla-docente="temario" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-book" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Temario</span>
+                </div>
+                <div class="menu-hamburguesa-item" data-pantalla-docente="tareas" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-tasks" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Tareas Subidas</span>
+                </div>
+                <div class="menu-hamburguesa-item" data-pantalla-docente="calificarTareas" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-star" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Calificar Tareas</span>
+                </div>
+            </div>
+            <div style="padding:10px 20px; border-top:1px solid #eee; margin-top:10px;">
+                <div style="font-size:0.7rem;color:#999;text-align:center;">Expresión Musical v1.0</div>
+            </div>
         </div>
     </div>
-</div>
+
+</div> <!-- CIERRA DOCENTE PANEL -->
 
 <!-- ============================================ -->
 <!-- FAB BUTTON (botón flotante para nueva inscripción) -->
@@ -8489,16 +8463,37 @@ function abrirModalEditarUsuario(username) {
     
     console.log('📝 Datos del usuario:', usuario);
     
-    // Llenar el formulario
+    // 🔥 1. CARGAR TIPOS DE USUARIO
+    cargarTiposUsuario();
+    
+    // 🔥 2. LLENAR EL FORMULARIO
     document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
     document.getElementById('usuarioId').value = usuario.username;
     document.getElementById('usuarioUsername').value = usuario.username;
     document.getElementById('usuarioUsername').disabled = true;
     
-    // 🔥 FALTA ESTA LÍNEA - AGREGAR AQUÍ
-    cargarTiposUsuario();
+    // 🔥 3. SELECCIONAR EL TIPO DE USUARIO CORRECTO
+    const tipoSelect = document.getElementById('usuarioTipo');
+    if (tipoSelect) {
+        let encontrado = false;
+        for (let i = 0; i < tipoSelect.options.length; i++) {
+            if (tipoSelect.options[i].value === usuario.tipo) {
+                tipoSelect.selectedIndex = i;
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado) {
+            // Si el tipo no existe, agregarlo temporalmente
+            const option = document.createElement('option');
+            option.value = usuario.tipo;
+            option.textContent = usuario.tipo.charAt(0).toUpperCase() + usuario.tipo.slice(1);
+            tipoSelect.appendChild(option);
+            tipoSelect.value = usuario.tipo;
+        }
+    }
     
-    document.getElementById('usuarioTipo').value = usuario.tipo || '';
+    // 🔥 4. CARGAR EL RESTO DE LOS CAMPOS
     document.getElementById('usuarioEstado').value = usuario.estado || 'activo';
     document.getElementById('usuarioPassword').value = usuario.password || '';
     document.getElementById('usuarioConfirmarPassword').value = usuario.password || '';
@@ -8508,7 +8503,7 @@ function abrirModalEditarUsuario(username) {
     document.getElementById('usuarioTelefono').value = usuario.telefono || '';
     document.getElementById('usuarioNotas').value = usuario.notas || '';
     
-    // Instrumentos
+    // 🔥 5. INSTRUMENTOS (si es docente)
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect && usuario.instrumentos) {
         Array.from(instrumentosSelect.options).forEach(opt => {
@@ -8516,23 +8511,36 @@ function abrirModalEditarUsuario(username) {
         });
     }
     
-    // Mostrar estudiantes vinculados si es encargado
+    // 🔥 6. ESTUDIANTES VINCULADOS (si es encargado)
     const estudiantesDiv = document.getElementById('estudiantes-vinculacion');
     if (estudiantesDiv && usuario.tipo === 'encargado') {
         estudiantesDiv.style.display = 'block';
-        cargarEstudiantesParaEncargado(usuario.estudiantesIds || []);
+        if (typeof cargarEstudiantesParaEncargado === 'function') {
+            cargarEstudiantesParaEncargado(usuario.estudiantesIds || []);
+        }
     } else if (estudiantesDiv) {
         estudiantesDiv.style.display = 'none';
     }
     
-    // Mostrar instrumentos si es docente
+    // 🔥 7. MOSTRAR/OCULTAR INSTRUMENTOS
     const instrumentosGroup = document.getElementById('instrumentos-group');
     if (instrumentosGroup) {
         instrumentosGroup.style.display = usuario.tipo === 'docente' ? 'block' : 'none';
     }
     
+    // 🔥 8. HABILITAR SELECT DE TIPO SEGÚN ROL
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (tipoSelect) {
+        if (currentUser.tipo === 'administrador') {
+            tipoSelect.disabled = false;  // Admin puede cambiar el tipo
+        } else {
+            tipoSelect.disabled = true;   // Secretaria NO puede cambiar el tipo
+        }
+    }
+    
     // Mostrar el modal
     document.getElementById('usuarioModal').style.display = 'block';
+    console.log('✅ Modal de edición abierto para:', username);
 }
 
 // =====================================================
@@ -8589,20 +8597,21 @@ function cargarTiposUsuario() {
     select.innerHTML = '';
     
     if (userType === 'secretaria') {
-        // 🔥 SECRETARIA: ENCARGADO FIJO, SIN OPCIÓN A CAMBIAR
+        // 🔥 SECRETARIA: ENCARGADO FIJO
         const option = document.createElement('option');
         option.value = 'encargado';
         option.textContent = 'Encargado';
         option.selected = true;
         select.appendChild(option);
-        select.disabled = true; // 🔥 BLOQUEADO
+        select.disabled = true;
         console.log('✅ Secretaria - Encargado (fijo)');
         
     } else if (userType === 'administrador') {
-        // 🔥 ADMINISTRADOR: SOLO SECRETARIA Y DOCENTE
+        // 🔥 ADMINISTRADOR: TODOS LOS TIPOS (excepto administrador)
         const opciones = [
             { value: 'secretaria', text: 'Secretaría' },
-            { value: 'docente', text: 'Docente' }
+            { value: 'docente', text: 'Docente' },
+            { value: 'encargado', text: 'Encargado' }
         ];
         opciones.forEach(opt => {
             const option = document.createElement('option');
@@ -8611,7 +8620,7 @@ function cargarTiposUsuario() {
             select.appendChild(option);
         });
         select.disabled = false;
-        console.log('✅ Administrador - Secretaria y Docente');
+        console.log('✅ Administrador - Todos los tipos');
         
     } else {
         // Sin permisos
@@ -12021,14 +12030,16 @@ function mostrarPanelDocenteVirtual() {
     iniciarEstudiantesDocenteTiempoReal();
     iniciarTareasDocenteTiempoReal();
     iniciarTemarioDocenteTiempoReal();
+    iniciarListenerTareasTiempoReal();
     
-    iniciarNavegacionDocente();
-     iniciarListenerTareasTiempoReal();
-    // Cargar instrumentos en selects
+    // 🔥 NUEVO: Navegación estilo encargado
+    iniciarNavegacionDocenteEncargado();
+    iniciarSwipeDocenteEncargado();
+    
+    // Cargar instrumentos
     setTimeout(function() {
         cargarInstrumentosDocenteEnSelects();
     }, 300);
-  setTimeout(mostrarCalificacionesDocente, 500);
 }
 
 // =====================================================
@@ -12811,7 +12822,7 @@ function cargarTemarioPorId(temarioId) {
     
     // Deshabilitar el campo de instrumento y nivel para que no se modifiquen
     document.getElementById('temarioInstrumento').disabled = true;
-    document.getElementById('temarioNivel').disabled = true;
+    document.getElementById('temarioNivel').disabled = false;  // ✅ DESBLOQUEADO
     
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
@@ -12948,17 +12959,60 @@ function editarSemanaTemario(numeroSemana) {
 // =====================================================
 // 8.4 ELIMINAR SEMANA DEL TEMARIO
 // =====================================================
-
 function eliminarSemanaTemario(numeroSemana) {
+    console.log(`🗑️ Eliminando Semana ${numeroSemana}...`);
+    
     if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) {
         return;
     }
-    
+
+    // 🔥 1. ELIMINAR DE LA MEMORIA LOCAL (temarioTemporal)
     temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== numeroSemana);
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
     
+    // 🔥 2. ACTUALIZAR LA VISTA PREVIA
     mostrarVistaPreviaTemario();
-    alert(`✅ Semana ${numeroSemana} eliminada`);
+
+    // 🔥 3. SI EL TEMARIO YA ESTÁ GUARDADO (temarioActual existe)
+    if (temarioActual) {
+        console.log('📦 Temario ya guardado, eliminando de Firebase y localStorage...');
+        
+        // Eliminar del temarioActual
+        temarioActual.semanas = temarioActual.semanas.filter(s => s.numero !== numeroSemana);
+        temarioActual.semanas.sort((a, b) => a.numero - b.numero);
+        temarioActual.fechaActualizacion = new Date().toISOString();
+        
+        // 🔥 3a. ACTUALIZAR EN LOCALSTORAGE
+        let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+        const index = temarios.findIndex(t => t.id === temarioActual.id);
+        if (index !== -1) {
+            temarios[index] = temarioActual;
+            localStorage.setItem('temarios', JSON.stringify(temarios));
+            console.log('✅ Eliminado de localStorage');
+        }
+        
+        // 🔥 3b. ACTUALIZAR EN FIREBASE
+        if (window.db) {
+            window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
+                .then(() => {
+                    console.log('☁️ Semana eliminada de Firebase');
+                    // 🔥 Notificar a todos los usuarios
+                    if (typeof actualizarVistaTemarios === 'function') {
+                        actualizarVistaTemarios();
+                    }
+                    // 🔥 Recargar la lista de temarios
+                    iniciarTemarioDocenteTiempoReal();
+                })
+                .catch(e => console.error('❌ Error en Firebase:', e));
+        }
+        
+        alert(`✅ Semana ${numeroSemana} eliminada de ${temarioActual.instrumento} - ${temarioActual.nivel}`);
+        
+    } else {
+        // 🔥 4. SI EL TEMARIO NO ESTÁ GUARDADO (solo en memoria)
+        console.log('📝 Temario no guardado, eliminando solo de memoria local');
+        alert(`✅ Semana ${numeroSemana} eliminada (aún no guardada en Firebase)`);
+    }
 }
 
 // =====================================================
@@ -12966,157 +13020,232 @@ function eliminarSemanaTemario(numeroSemana) {
 // =====================================================
 
 function guardarSemanaTemario() {
+    console.log('🟢 Guardando semana en Firebase...');
+    
+    // 🔥 1. OBTENER DATOS DEL FILTRO
+    const instrumento = document.getElementById('temarioInstrumento')?.value;
+    const nivel = document.getElementById('temarioNivel')?.value;
+    
+    // 🔥 2. OBTENER DATOS DE LA SEMANA
     const semana = parseInt(document.getElementById('temarioSemana')?.value);
     const tema = document.getElementById('temarioTema')?.value?.trim();
     const descripcion = document.getElementById('temarioDescripcion')?.value?.trim();
     const material = document.getElementById('temarioMaterial')?.value?.trim();
     const ponderacion = parseFloat(document.getElementById('temarioPonderacion')?.value);
-    
+
+    // ============ VALIDACIONES ============
+    if (!instrumento || !nivel) {
+        alert('⚠️ Selecciona un Instrumento y Nivel primero');
+        return;
+    }
     if (!tema) {
-        alert('⚠️ Por favor ingresa un tema para la semana');
+        alert('⚠️ Ingresa un tema para la semana');
         return;
     }
-    
     if (isNaN(semana) || semana < 1 || semana > 44) {
-        alert('⚠️ La semana debe ser un número entre 1 y 44');
+        alert('⚠️ La semana debe ser entre 1 y 44');
         return;
     }
-    
     if (isNaN(ponderacion) || ponderacion < 0) {
         alert('⚠️ La ponderación debe ser un número válido');
         return;
     }
+
+    // ============ 🔥 BUSCAR EN LOCALSTORAGE ============
+    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     
-    // Si estamos editando, eliminar la semana anterior (si cambió el número)
-    if (semanaEnEdicion !== null && semanaEnEdicion !== semana) {
-        temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== semanaEnEdicion);
+    // 🔥 BUSCAR TEMARIO QUE COINCIDE CON INSTRUMENTO + NIVEL
+    let temarioExistente = temarios.find(t => 
+        t.instrumento === instrumento && t.nivel === nivel
+    );
+
+    // ============ 🔥 VERIFICAR DUPLICADO EN ESE TEMARIO ============
+    if (temarioExistente) {
+        const semanaDuplicada = temarioExistente.semanas.some(s => s.numero === semana);
+        
+        if (semanaDuplicada) {
+            alert(`❌ La Semana ${semana} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
+            return;
+        }
     }
-    
-    // Eliminar posible duplicado (si existe la misma semana)
+
+    // ============ AGREGAR LA SEMANA ============
     temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== semana);
     
-    // Agregar/actualizar la semana
-    temarioTemporal.semanas.push({ numero: semana, tema, descripcion, material, ponderacion });
+    temarioTemporal.semanas.push({ 
+        numero: semana, 
+        tema, 
+        descripcion, 
+        material, 
+        ponderacion 
+    });
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-    
-    // Limpiar el estado de edición
+
+    // ============ LIMPIAR ESTADO ============
     semanaEnEdicion = null;
     
-    // Restaurar el botón de guardar
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
-    
+
     mostrarVistaPreviaTemario();
-    
-    // Limpiar campos (excepto la semana, que se incrementa)
+
+    // Limpiar campos
     document.getElementById('temarioTema').value = '';
     document.getElementById('temarioDescripcion').value = '';
     document.getElementById('temarioMaterial').value = '';
     document.getElementById('temarioSemana').value = semana + 1;
-    
-    alert(`✅ Semana ${semana} guardada correctamente`);
+    document.getElementById('temarioPonderacion').value = 2.5;
+
+    alert(`✅ Semana ${semana} guardada en ${instrumento} - ${nivel}`);
 }
 
 // =====================================================
-// 8.6 GUARDAR TEMARIO COMPLETO (MODIFICADO)
+// 8.6 GUARDAR TEMARIO COMPLETO (ACTUALIZAR O CREAR)
 // =====================================================
 
 function guardarTemarioCompleto() {
+    console.log('🟢 Guardando temario COMPLETO en Firebase...');
+    
     if (temarioTemporal.semanas.length === 0) {
         alert('⚠️ Debes agregar al menos una semana al temario');
         return;
     }
-    
+
+    // 🔥 LEER DIRECTAMENTE DE LOS SELECTS DEL FILTRO
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
+
     if (!currentUser.username) {
         alert('⚠️ No se encontró el usuario docente');
         return;
     }
-    
     if (!instrumento) {
         alert('⚠️ Selecciona un instrumento');
         return;
     }
-    
-    // Verificar si es un temario existente (reemplazo)
-    const temarioExistente = temarioActual;
-    const temarioId = temarioExistente ? temarioExistente.id : `temario_${instrumento}_${nivel}_${Date.now()}`;
-    
-    const temario = {
-        id: temarioId,
-        instrumento: instrumento,
-        nivel: nivel,
-        docenteId: currentUser.username,
-        docenteNombre: currentUser.nombre || currentUser.username,
-        fechaCreacion: temarioExistente ? temarioExistente.fechaCreacion : new Date().toISOString(),
-        fechaActualizacion: new Date().toISOString(),
-        semanas: temarioTemporal.semanas
-    };
-    
+    if (!nivel) {
+        alert('⚠️ Selecciona un nivel');
+        return;
+    }
+
+    // 🔥 LEER TODOS LOS TEMARIOS DESDE LOCALSTORAGE
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
-    // Si es un temario existente, reemplazarlo
-    if (temarioExistente) {
-        temarios = temarios.filter(t => t.id !== temarioId);
-    } else {
-        // Verificar si ya existe otro temario con el mismo instrumento y nivel
-        const existe = temarios.some(t => t.instrumento === instrumento && t.nivel === nivel);
-        if (existe) {
-            if (!confirm(`⚠️ Ya existe un temario para ${instrumento} - Nivel ${nivel}. ¿Deseas reemplazarlo?`)) {
-                return;
-            }
-            temarios = temarios.filter(t => !(t.instrumento === instrumento && t.nivel === nivel));
+
+    // 🔥 BUSCAR TEMARIO CON EL MISMO INSTRUMENTO + NIVEL
+    let temarioExistente = temarios.find(t => 
+        t.instrumento === instrumento && t.nivel === nivel
+    );
+
+    // =============================================
+    // 🔥 FUNCIÓN PARA NOTIFICAR A TODOS LOS USUARIOS
+    // =============================================
+    function notificarCambio(temario) {
+        // Guardar en localStorage para que otros usuarios lo vean
+        let todosTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+        const index = todosTemarios.findIndex(t => t.id === temario.id);
+        if (index !== -1) {
+            todosTemarios[index] = temario;
+        } else {
+            todosTemarios.push(temario);
+        }
+        localStorage.setItem('temarios', JSON.stringify(todosTemarios));
+        
+        // 🔥 GUARDAR EN FIREBASE (esto notifica a TODOS los usuarios conectados)
+        if (window.db) {
+            window.db.collection('temarios').doc(temario.id).set(temario)
+                .then(() => {
+                    console.log('☁️ Temario guardado en Firebase');
+                    // 🔥 Actualizar la vista de TODOS los usuarios conectados
+                    if (typeof actualizarVistaTemarios === 'function') {
+                        actualizarVistaTemarios();
+                    }
+                })
+                .catch(e => console.error('❌ Error en Firebase:', e));
         }
     }
-    
-    temarios.push(temario);
-    localStorage.setItem('temarios', JSON.stringify(temarios));
-    
-    if (window.db) {
-        window.db.collection('temarios').doc(temarioId).set(temario)
-            .then(() => {
-                console.log('☁️ Temario guardado en Firebase');
-                // Actualizar la vista del encargado
-                if (typeof iniciarTemarioTiempoReal === 'function') {
-                    const select = document.getElementById('selectorEstudianteEnc');
-                    if (select && select.value) {
-                        iniciarTemarioTiempoReal(parseInt(select.value));
-                    }
-                }
-            })
-            .catch(e => console.error('❌ Error guardando temario:', e));
+
+    if (temarioExistente) {
+        // =============================================
+        // ✅ CASO 1: YA EXISTE → AGREGAR SEMANAS NUEVAS
+        // =============================================
+
+        let semanaDuplicada = null;
+        for (const semanaNueva of temarioTemporal.semanas) {
+            const existe = temarioExistente.semanas.some(s => s.numero === semanaNueva.numero);
+            if (existe) {
+                semanaDuplicada = semanaNueva.numero;
+                break;
+            }
+        }
+
+        if (semanaDuplicada) {
+            alert(`❌ La Semana ${semanaDuplicada} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
+            return;
+        }
+
+        // AGREGAR semanas
+        temarioExistente.semanas = [...temarioExistente.semanas, ...temarioTemporal.semanas];
+        temarioExistente.semanas.sort((a, b) => a.numero - b.numero);
+        temarioExistente.fechaActualizacion = new Date().toISOString();
+
+        // 🔥 NOTIFICAR A TODOS
+        notificarCambio(temarioExistente);
+
+        alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}\n📌 Total semanas: ${temarioExistente.semanas.length}`);
+
+    } else {
+        // =============================================
+        // ✅ CASO 2: NO EXISTE → CREAR NUEVO TEMARIO
+        // =============================================
+
+        const temarioId = `temario_${instrumento}_${nivel}_${Date.now()}`;
+
+        const temario = {
+            id: temarioId,
+            instrumento: instrumento,
+            nivel: nivel,
+            docenteId: currentUser.username,
+            docenteNombre: currentUser.nombre || currentUser.username,
+            fechaCreacion: new Date().toISOString(),
+            fechaActualizacion: new Date().toISOString(),
+            semanas: temarioTemporal.semanas
+        };
+
+        // 🔥 NOTIFICAR A TODOS
+        notificarCambio(temario);
+
+        alert(`✅ Temario "${instrumento} - ${nivel}" CREADO\n📌 Semanas: ${temario.semanas.length}`);
     }
-    
-    temarioActual = temario;
-    alert('✅ Temario guardado correctamente');
-    
-    // Reiniciar estado
+
+    // =============================================
+    // 🔥 REINICIAR FORMULARIO
+    // =============================================
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
     semanaEnEdicion = null;
-    
+
     temarioTemporal = { semanas: [] };
     document.getElementById('temarioTema').value = '';
     document.getElementById('temarioDescripcion').value = '';
     document.getElementById('temarioMaterial').value = '';
     document.getElementById('temarioSemana').value = 1;
+    document.getElementById('temarioPonderacion').value = 2.5;
+    
     document.getElementById('temarioInstrumento').disabled = false;
     document.getElementById('temarioNivel').disabled = false;
-    mostrarVistaPreviaTemario();
     
-    // Recargar lista de temarios
+    mostrarVistaPreviaTemario();
+
+    // 🔥 RECARGAR LISTA DE TEMARIOS (desde Firebase)
     iniciarTemarioDocenteTiempoReal();
 }
-
 // =====================================================
 // 8.7 CARGAR TEMARIO EXISTENTE (MODIFICADO)
 // =====================================================
@@ -13352,62 +13481,208 @@ function cargarInstrumentosDocenteEnSelects() {
 }
 
 // =====================================================
-// 12. NAVEGACIÓN DEL DOCENTE
+// NAVEGACIÓN DEL DOCENTE (IGUAL QUE ENCARGADO)
 // =====================================================
 
-function iniciarNavegacionDocente() {
-    const menuItems = document.querySelectorAll('#docentePanelVirtual .docente-menu-item, #docentePanelVirtual .docente-menu-item-mobile');
+function iniciarNavegacionDocenteEncargado() {
+    console.log('🔄 Iniciando navegación del docente (estilo encargado)...');
     
-    const pages = {
-        clases: document.getElementById('docPageClases'),
-        nuevaClase: document.getElementById('docPageNuevaClase'),
-        grabaciones: document.getElementById('docPageGrabaciones'),
-        estudiantes: document.getElementById('docPageEstudiantes'),
-        calificaciones: document.getElementById('docPageCalificaciones'),
-        temario: document.getElementById('docPageTemario'),
-        tareas: document.getElementById('docPageTareas'),
-        calificarTareas: document.getElementById('docPageCalificarTareas')
+    const menuItems = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
+    const pantallas = {
+        clases: document.getElementById('docPantallaClases'),
+        nuevaClase: document.getElementById('docPantallaNuevaClase'),
+        grabaciones: document.getElementById('docPantallaGrabaciones'),
+        estudiantes: document.getElementById('docPantallaEstudiantes'),
+        calificaciones: document.getElementById('docPantallaCalificaciones'),
+        temario: document.getElementById('docPantallaTemario'),
+        tareas: document.getElementById('docPantallaTareas'),
+        calificarTareas: document.getElementById('docPantallaCalificarTareas')
     };
     
-    function mostrarPagina(seccionId) {
-        Object.values(pages).forEach(page => { if (page) page.classList.remove('active'); });
-        if (pages[seccionId]) pages[seccionId].classList.add('active');
+    function mostrarPantalla(pantallaId) {
+        console.log('📱 Mostrando pantalla docente:', pantallaId);
         
-        document.querySelectorAll('#docentePanelVirtual .docente-menu-item, #docentePanelVirtual .docente-menu-item-mobile').forEach(item => {
-            item.classList.remove('active');
-            if (item.getAttribute('data-seccion') === seccionId) item.classList.add('active');
+        // Ocultar todas
+        Object.values(pantallas).forEach(p => {
+            if (p) p.classList.remove('active');
         });
         
-        localStorage.setItem('docenteSeccionActual', seccionId);
+        // Mostrar la seleccionada
+        if (pantallas[pantallaId]) {
+            pantallas[pantallaId].classList.add('active');
+        }
         
-        if (seccionId === 'estudiantes') {
+        // Actualizar menú inferior
+        menuItems.forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-pantalla-docente') === pantallaId) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Cargar datos según la pantalla
+        if (pantallaId === 'clases') {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (currentUser.username) {
+                iniciarClasesDocenteTiempoReal(currentUser.username);
+            }
+        }
+        if (pantallaId === 'estudiantes') {
             iniciarEstudiantesDocenteTiempoReal();
         }
-        if (seccionId === 'tareas') {
+        if (pantallaId === 'calificaciones') {
+            setTimeout(mostrarCalificacionesDocente, 200);
+        }
+        if (pantallaId === 'tareas') {
             iniciarTareasDocenteTiempoReal();
         }
-        if (seccionId === 'calificarTareas') {
+        if (pantallaId === 'calificarTareas') {
             cargarTareasPendientes();
         }
-        if (seccionId === 'temario') {
+        if (pantallaId === 'temario') {
             iniciarTemarioDocenteTiempoReal();
             setTimeout(cargarInstrumentosDocenteEnSelects, 200);
         }
-        if (seccionId === 'nuevaClase') {
+        if (pantallaId === 'nuevaClase') {
             setTimeout(cargarInstrumentosDocenteEnSelects, 200);
         }
     }
     
+    // Eventos de menú inferior
     menuItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const seccion = item.getAttribute('data-seccion');
-            if (seccion && pages[seccion]) mostrarPagina(seccion);
+        item.addEventListener('click', function(e) {
+            const pantalla = this.getAttribute('data-pantalla-docente');
+            if (pantalla) {
+                mostrarPantalla(pantalla);
+            }
         });
     });
     
-    const ultima = localStorage.getItem('docenteSeccionActual');
-    if (ultima && pages[ultima]) mostrarPagina(ultima);
-    else mostrarPagina('clases');
+    // Eventos del menú hamburguesa
+    document.querySelectorAll('#menuHamburguesaDocentePanel .menu-hamburguesa-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const pantalla = this.getAttribute('data-pantalla-docente');
+            cerrarMenuHamburguesaDocente();
+            setTimeout(() => {
+                if (pantalla) {
+                    mostrarPantalla(pantalla);
+                }
+            }, 200);
+        });
+    });
+    
+    // Abrir/cerrar menú hamburguesa
+    document.getElementById('btnMenuHamburguesaDocente')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        abrirMenuHamburguesaDocente();
+    });
+    
+    document.getElementById('cerrarMenuHamburguesaDocente')?.addEventListener('click', function() {
+        cerrarMenuHamburguesaDocente();
+    });
+    
+    document.getElementById('menuHamburguesaDocenteOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) cerrarMenuHamburguesaDocente();
+    });
+    
+    // Mostrar pantalla inicial
+    mostrarPantalla('clases');
+}
+
+// =====================================================
+// MENÚ HAMBURGUESA DOCENTE
+// =====================================================
+
+function abrirMenuHamburguesaDocente() {
+    const overlay = document.getElementById('menuHamburguesaDocenteOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function cerrarMenuHamburguesaDocente() {
+    const overlay = document.getElementById('menuHamburguesaDocenteOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// =====================================================
+// SWIPE PARA DOCENTE (IGUAL QUE ENCARGADO)
+// =====================================================
+
+function iniciarSwipeDocenteEncargado() {
+    console.log('🔄 Iniciando swipe en panel docente (estilo encargado)...');
+    const panel = document.getElementById('docentePanelVirtual');
+    if (!panel) return;
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    
+    const pantallasConSwipe = ['clases', 'nuevaClase', 'grabaciones', 'estudiantes', 'calificaciones'];
+    
+    function getIndiceActual() {
+        const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
+        let activo = 'clases';
+        items.forEach(item => {
+            if (item.classList.contains('active')) {
+                activo = item.getAttribute('data-pantalla-docente') || 'clases';
+            }
+        });
+        const index = pantallasConSwipe.indexOf(activo);
+        return index !== -1 ? index : 0;
+    }
+    
+    function cambiarPantalla(direccion) {
+        const idx = getIndiceActual();
+        let nuevoIdx = idx + direccion;
+        if (nuevoIdx < 0) nuevoIdx = 0;
+        if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
+        
+        if (nuevoIdx !== idx) {
+            const nuevaPantalla = pantallasConSwipe[nuevoIdx];
+            console.log('👆 Swipe a:', nuevaPantalla);
+            const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
+            items.forEach(item => {
+                if (item.getAttribute('data-pantalla-docente') === nuevaPantalla) {
+                    item.click();
+                }
+            });
+        }
+    }
+    
+    panel.removeEventListener('touchstart', window._swipeDocenteStartHandler);
+    panel.removeEventListener('touchend', window._swipeDocenteEndHandler);
+    
+    window._swipeDocenteStartHandler = function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    };
+    
+    window._swipeDocenteEndHandler = function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+            if (diffX > 0) {
+                cambiarPantalla(1);
+            } else {
+                cambiarPantalla(-1);
+            }
+        }
+    };
+    
+    panel.addEventListener('touchstart', window._swipeDocenteStartHandler, { passive: true });
+    panel.addEventListener('touchend', window._swipeDocenteEndHandler, { passive: true });
+    
+    console.log('✅ Swipe activado en panel docente (estilo encargado)');
 }
 
 // =====================================================
