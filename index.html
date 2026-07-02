@@ -7588,9 +7588,8 @@ body.dark-mode .acciones .btn:hover {
     }
 </style>
 <!-- ============================================ -->
-<!-- PANEL PARA ENCARGADO - MENÚ HAMBURGUESA COMPLETO -->
+<!-- PANEL PARA ENCARGADO - MENÚS INTERCAMBIADOS -->
 <!-- ============================================ -->
-
 <div id="encargadoPanel" style="display: none;">
 
     <!-- ENCABEZADO -->
@@ -7609,6 +7608,10 @@ body.dark-mode .acciones .btn:hover {
         <select id="selectorEstudianteEnc" style="width: 100%; padding: 8px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc;"></select>
     </div>
 
+    <!-- SELECTOR DE INSTRUMENTOS (se llena con JavaScript) -->
+    <div id="selectorInstrumentosContainer" style="background: #f0f2f5; padding: 10px; margin: 5px 10px 10px 10px; border-radius: 12px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; border: 1px solid #ddd;">
+    </div>
+
     <!-- CONTENEDOR DE PANTALLAS -->
     <div class="pantallas-encargado" style="flex: 1; overflow-y: auto; padding-bottom: 80px;">
 
@@ -7616,30 +7619,6 @@ body.dark-mode .acciones .btn:hover {
         <div id="pantalla-info" class="pantalla active">
             <h3 style="padding: 0 15px;">📋 Información del Estudiante</h3>
             <div id="infoEstudianteEnc" style="padding: 0 15px;">Cargando...</div>
-        </div>
-
-        <!-- PANTALLA PAGOS -->
-        <div id="pantalla-pagos" class="pantalla">
-            <h3 style="padding: 0 15px;">💰 Pagos</h3>
-            <div id="pagosEstudianteEnc" style="padding: 0 15px;">Cargando...</div>
-        </div>
-
-        <!-- PANTALLA ASISTENCIA -->
-        <div id="pantalla-asistencia" class="pantalla">
-            <h3 style="padding: 0 15px;">📅 Asistencia</h3>
-            <div id="asistenciaEstudianteEnc" style="padding: 0 15px;">Cargando...</div>
-        </div>
-
-        <!-- PANTALLA CLASES -->
-        <div id="pantalla-clases" class="pantalla">
-            <h3 style="padding: 0 15px;">🎥 Clases Virtuales</h3>
-            <div id="clasesEstudianteEnc" class="clases-list" style="padding: 0 15px;">Cargando...</div>
-        </div>
-
-        <!-- PANTALLA GRABACIONES -->
-        <div id="pantalla-grabaciones" class="pantalla">
-            <h3 style="padding: 0 15px;">📹 Grabaciones</h3>
-            <div id="grabacionesEstudianteEnc" class="clases-list" style="padding: 0 15px;">Cargando...</div>
         </div>
 
         <!-- PANTALLA CLASE ACTUAL -->
@@ -7750,39 +7729,71 @@ body.dark-mode .acciones .btn:hover {
             </div>
         </div>
 
+        <!-- PANTALLA PAGOS -->
+        <div id="pantalla-pagos" class="pantalla">
+            <h3 style="padding: 0 15px;">💰 Pagos</h3>
+            <div id="pagosEstudianteEnc" style="padding: 0 15px;">Cargando...</div>
+        </div>
+
+        <!-- PANTALLA ASISTENCIA -->
+        <div id="pantalla-asistencia" class="pantalla">
+            <h3 style="padding: 0 15px;">📅 Asistencia</h3>
+            <div id="asistenciaEstudianteEnc" style="padding: 0 15px;">Cargando...</div>
+        </div>
+
+        <!-- PANTALLA CLASES VIRTUALES -->
+        <div id="pantalla-clases" class="pantalla">
+            <h3 style="padding: 0 15px;">🎥 Clases Virtuales</h3>
+            <div id="clasesEstudianteEnc" class="clases-list" style="padding: 0 15px;">Cargando...</div>
+        </div>
+
+        <!-- PANTALLA GRABACIONES -->
+        <div id="pantalla-grabaciones" class="pantalla">
+            <h3 style="padding: 0 15px;">📹 Grabaciones</h3>
+            <div id="grabacionesEstudianteEnc" class="clases-list" style="padding: 0 15px;">Cargando...</div>
+        </div>
+
     </div>  <!-- CIERRA pantallas-encargado -->
 
-    <!-- MENÚ INFERIOR -->
+    <!-- ===== MENÚ INFERIOR (SIEMPRE VISIBLE) ===== -->
     <div class="menu-inferior" style="position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; align-items:center; background:white; border-top:1px solid #e0e0e0; padding:8px 0; box-shadow:0 -2px 10px rgba(0,0,0,0.05); z-index:1000;">
+
         <div class="menu-item" id="btnMenuHamburguesa" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
             <i class="fas fa-bars" style="font-size:1.3rem;"></i>
             <span style="font-size:0.7rem;font-weight:500;">Menú</span>
         </div>
+
         <div class="menu-item active" data-pantalla="info" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
             <i class="fas fa-user-graduate" style="font-size:1.3rem;"></i>
             <span style="font-size:0.7rem;font-weight:500;">Info</span>
         </div>
-        <div class="menu-item" data-pantalla="pagos" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-money-bill-wave" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.7rem;font-weight:500;">Pagos</span>
-        </div>
-        <div class="menu-item" data-pantalla="asistencia" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-clipboard-list" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.7rem;font-weight:500;">Asistencia</span>
-        </div>
-        <div class="menu-item" data-pantalla="clases" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-video" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.7rem;font-weight:500;">Clases</span>
-        </div>
-        <div class="menu-item" data-pantalla="grabaciones" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-record-vinyl" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.7rem;font-weight:500;">Grabaciones</span>
-        </div>
-    </div>
 
-    <!-- MENÚ HAMBURGUESA -->
+        <div class="menu-item" data-pantalla="claseactual" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-book" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.7rem;font-weight:500;">Clase</span>
+        </div>
+
+        <div class="menu-item" data-pantalla="tarea" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-upload" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.7rem;font-weight:500;">Tarea</span>
+        </div>
+
+        <div class="menu-item" data-pantalla="notas" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-chart-bar" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.7rem;font-weight:500;">Notas</span>
+        </div>
+
+        <div class="menu-item" data-pantalla="historial" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-history" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.7rem;font-weight:500;">Historial</span>
+        </div>
+
+    </div> <!-- fin menú inferior -->
+
+    <!-- ===== MENÚ HAMBURGUESA (DESPLEGABLE) ===== -->
     <div id="menuHamburguesaOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; animation:fadeIn 0.3s ease;">
         <div id="menuHamburguesaPanel" style="background:white; width:280px; height:100%; padding:20px 0; box-shadow:2px 0 15px rgba(0,0,0,0.2); overflow-y:auto; animation:slideInLeft 0.3s ease;">
+
             <div style="padding:0 20px 15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; color:#E63946; font-size:1.1rem;">
                     <i class="fas fa-bars"></i> Menú
@@ -7791,37 +7802,56 @@ body.dark-mode .acciones .btn:hover {
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+
             <div style="padding:10px 0;">
-                <div class="menu-hamburguesa-item" data-pantalla="claseactual" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-book" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Clase Actual</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla="pagos" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-money-bill-wave" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Pagos</span>
                 </div>
-                <div class="menu-hamburguesa-item" data-pantalla="tarea" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-upload" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Subir Tarea</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla="asistencia" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-clipboard-list" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Asistencia</span>
                 </div>
-                <div class="menu-hamburguesa-item" data-pantalla="notas" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-chart-bar" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Mis Notas</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla="clases" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-video" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Clases Virtuales</span>
                 </div>
-                <div class="menu-hamburguesa-item" data-pantalla="historial" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-history" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Historial de Clases</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla="grabaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-record-vinyl" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Grabaciones</span>
                 </div>
+
+                <div style="border-top:1px solid #eee; margin:10px 20px;"></div>
+
+                <div class="menu-hamburguesa-item" data-pantalla="cambiarInstrumento" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-exchange-alt" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Cambiar Instrumento</span>
+                </div>
+
+                <div class="menu-hamburguesa-item" data-pantalla="editarPerfil" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-user-edit" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Editar Perfil</span>
+                </div>
+
             </div>
+
             <div style="padding:10px 20px; border-top:1px solid #eee; margin-top:10px;">
                 <div style="font-size:0.7rem;color:#999;text-align:center;">Expresión Musical v1.0</div>
             </div>
+
         </div>
-    </div>
+    </div> <!-- fin menú hamburguesa -->
 
-</div>  <!-- CIERRA ENCARGADO PANEL -->
-
-<!-- ============================================ -->
-<!-- PANEL PARA DOCENTE (IGUAL QUE ENCARGADO) -->
+</div> <!-- fin panel encargado -->
+  <!-- ============================================ -->
+<!-- PANEL PARA DOCENTE - MENÚS INTERCAMBIADOS -->
 <!-- ============================================ -->
 <div id="docentePanelVirtual" style="display: none;">
-    
+
     <!-- ENCABEZADO -->
     <div class="encabezado-encargado" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: white; border-bottom: 1px solid #ddd; flex-wrap: wrap;">
         <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo" style="height: 45px;">
@@ -7889,7 +7919,7 @@ body.dark-mode .acciones .btn:hover {
             </div>
         </div>
 
-        <!-- PANTALLA CALIFICACIONES -->
+        <!-- PANTALLA CALIFICACIONES (NOTAS) -->
         <div id="docPantallaCalificaciones" class="pantalla">
             <div style="padding: 0 15px;">
                 <h3><i class="fas fa-star"></i> Calificaciones Mensuales</h3>
@@ -7931,7 +7961,7 @@ body.dark-mode .acciones .btn:hover {
             </div>
         </div>
 
-        <!-- PANTALLA TAREAS -->
+        <!-- PANTALLA TAREAS SUBIDAS -->
         <div id="docPantallaTareas" class="pantalla">
             <div style="padding: 0 15px;">
                 <h3><i class="fas fa-tasks"></i> Tareas Subidas</h3>
@@ -7940,9 +7970,6 @@ body.dark-mode .acciones .btn:hover {
                         <label style="font-size:12px;">Instrumento:</label>
                         <select id="filtroTareaInstrumento" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:12px;">
                             <option value="">Todos</option>
-                            <option value="Piano">Piano</option><option value="Guitarra">Guitarra</option>
-                            <option value="Batería">Batería</option><option value="Canto">Canto</option>
-                            <option value="Violín">Violín</option><option value="Bajo">Bajo</option>
                         </select>
                     </div>
                     <div class="input-group" style="flex:1; min-width:80px;">
@@ -7970,68 +7997,91 @@ body.dark-mode .acciones .btn:hover {
             </div>
         </div>
 
-    </div> <!-- CIERRA pantallas-encargado -->
+    </div> <!-- fin contenedor de pantallas -->
 
-    <!-- MENÚ INFERIOR FIJO -->
+    <!-- ===== MENÚ INFERIOR (SIEMPRE VISIBLE) ===== -->
     <div class="menu-inferior" style="position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; align-items:center; background:white; border-top:1px solid #e0e0e0; padding:8px 0; box-shadow:0 -2px 10px rgba(0,0,0,0.05); z-index:1000;">
-        
+
         <div class="menu-item" id="btnMenuHamburguesaDocente" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
             <i class="fas fa-bars" style="font-size:1.3rem;"></i>
             <span style="font-size:0.6rem;font-weight:500;">Menú</span>
         </div>
-        
-        <div class="menu-item active" data-pantalla-docente="clases" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-calendar-alt" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.6rem;font-weight:500;">Clases</span>
+
+        <div class="menu-item" data-pantalla-docente="temario" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-book" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Temario</span>
         </div>
-        
-        <div class="menu-item" data-pantalla-docente="nuevaClase" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-plus-circle" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.6rem;font-weight:500;">Crear</span>
+
+        <div class="menu-item" data-pantalla-docente="tareas" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-tasks" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Tareas</span>
         </div>
-        
-        <div class="menu-item" data-pantalla-docente="grabaciones" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
-            <i class="fas fa-video" style="font-size:1.3rem;"></i>
-            <span style="font-size:0.6rem;font-weight:500;">Grab.</span>
+
+        <div class="menu-item" data-pantalla-docente="calificarTareas" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
+            <i class="fas fa-star" style="font-size:1.3rem;"></i>
+            <span style="font-size:0.6rem;font-weight:500;">Calificar</span>
         </div>
-        
+
         <div class="menu-item" data-pantalla-docente="estudiantes" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
             <i class="fas fa-users" style="font-size:1.3rem;"></i>
             <span style="font-size:0.6rem;font-weight:500;">Estud.</span>
         </div>
-        
+
         <div class="menu-item" data-pantalla-docente="calificaciones" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 12px; border-radius:30px; transition:0.2s; color:#777; font-size:0.75rem;">
             <i class="fas fa-star" style="font-size:1.3rem;"></i>
             <span style="font-size:0.6rem;font-weight:500;">Notas</span>
         </div>
-        
-    </div>
 
-    <!-- MENÚ HAMBURGUESA DOCENTE -->
+    </div> <!-- fin menú inferior -->
+
+    <!-- ===== MENÚ HAMBURGUESA (DESPLEGABLE) ===== -->
     <div id="menuHamburguesaDocenteOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; animation:fadeIn 0.3s ease;">
         <div id="menuHamburguesaDocentePanel" style="background:white; width:280px; height:100%; padding:20px 0; box-shadow:2px 0 15px rgba(0,0,0,0.2); overflow-y:auto; animation:slideInLeft 0.3s ease;">
+
             <div style="padding:0 20px 15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; color:#E63946; font-size:1.1rem;"><i class="fas fa-bars"></i> Menú Docente</h3>
                 <button id="cerrarMenuHamburguesaDocente" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;"><i class="fas fa-times"></i></button>
             </div>
+
             <div style="padding:10px 0;">
-                <div class="menu-hamburguesa-item" data-pantalla-docente="temario" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-book" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Temario</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla-docente="clases" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-calendar-alt" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Clases</span>
                 </div>
-                <div class="menu-hamburguesa-item" data-pantalla-docente="tareas" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-tasks" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Tareas Subidas</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla-docente="nuevaClase" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-plus-circle" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Crear Clase</span>
                 </div>
-                <div class="menu-hamburguesa-item" data-pantalla-docente="calificarTareas" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-star" style="color:#E63946;width:20px;font-size:1.1rem;"></i><span>Calificar Tareas</span>
+
+                <div class="menu-hamburguesa-item" data-pantalla-docente="grabaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-video" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Grabaciones</span>
                 </div>
+
+                <div style="border-top:1px solid #eee; margin:10px 20px;"></div>
+
+                <div class="menu-hamburguesa-item" data-pantalla-docente="estudiantes" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-users" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Estudiantes</span>
+                </div>
+
+                <div class="menu-hamburguesa-item" data-pantalla-docente="calificaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                    <i class="fas fa-star" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                    <span>Calificaciones</span>
+                </div>
+
             </div>
+
             <div style="padding:10px 20px; border-top:1px solid #eee; margin-top:10px;">
                 <div style="font-size:0.7rem;color:#999;text-align:center;">Expresión Musical v1.0</div>
             </div>
-        </div>
-    </div>
 
-</div> <!-- CIERRA DOCENTE PANEL -->
+        </div>
+    </div> <!-- fin menú hamburguesa -->
+
+</div> <!-- fin panel docente -->
 
 <!-- ============================================ -->
 <!-- FAB BUTTON (botón flotante para nueva inscripción) -->
@@ -12527,11 +12577,71 @@ console.log('✅ Día automático activado para asistencia');
   
 console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado");
 </script>
-<!-- ============================================ -->
+  <!-- ============================================ -->
 <!-- BLOQUE 5: PANEL DE DOCENTE - TIEMPO REAL COMPLETO -->
 <!-- ============================================ -->
 
 <script>
+// =====================================================
+// 🔥 FUNCIÓN CENTRAL DE FILTRADO (se usa en TODOS lados)
+// =====================================================
+function estudianteCoincideConDocente(estudiante, instrumentosDocente) {
+    if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
+        return false;
+    }
+
+    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim().toLowerCase();
+    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim().toLowerCase();
+
+    return instrumentosDocente.some(instr => {
+        const instrTrim = (instr || '').trim().toLowerCase();
+        return instrTrim === principal || (secundario && instrTrim === secundario);
+    });
+}
+
+// =====================================================
+// 🔥 OBTENER EL INSTRUMENTO QUE COINCIDE (para agrupar y mostrar correctamente)
+// =====================================================
+function obtenerInstrumentoCoincidente(estudiante, instrumentosDocente) {
+    if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
+        return null;
+    }
+
+    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim().toLowerCase();
+    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim().toLowerCase();
+
+    for (let instr of instrumentosDocente) {
+        const instrTrim = (instr || '').trim().toLowerCase();
+        if (instrTrim === principal) return instr;
+        if (secundario && instrTrim === secundario) return instr;
+    }
+    return null;
+}
+
+// =====================================================
+// 🔥 OBTENER EL INSTRUMENTO DE UNA TAREA (según el estudiante y el temario)
+// =====================================================
+function obtenerInstrumentoTarea(tarea, inscriptions, temarios) {
+    const estudiante = inscriptions.find(ins => ins.id == tarea.estudianteId);
+    if (!estudiante) return null;
+    
+    const instrumentos = [
+        estudiante.musical?.instrumentoPrincipal,
+        estudiante.musical?.instrumentoSecundario
+    ].filter(Boolean);
+    
+    const nivel = estudiante.estudiante?.nivel;
+    
+    for (let instr of instrumentos) {
+        const temario = temarios.find(t => 
+            t.instrumento === instr && t.nivel === nivel
+        );
+        if (temario) return instr;
+    }
+    
+    return estudiante.musical?.instrumentoPrincipal || null;
+}
+
 // =====================================================
 // VARIABLES GLOBALES DEL DOCENTE
 // =====================================================
@@ -12547,7 +12657,7 @@ let docenteListeners = {
 };
 let temarioTemporal = { semanas: [] };
 let temarioActual = null;
-let semanaEnEdicion = null; // ← NUEVO: para saber qué semana se está editando
+let semanaEnEdicion = null;
 
 // =====================================================
 // FUNCIONES PARA EL PANEL DE DOCENTE
@@ -12562,7 +12672,6 @@ function mostrarPanelDocenteVirtual() {
     const docentePanel = document.getElementById('docentePanelVirtual');
     if (docentePanel) docentePanel.style.display = 'block';
     
-    // Iniciar todas las secciones en tiempo real
     iniciarClasesDocenteTiempoReal(docenteUserName);
     iniciarGrabacionesDocenteTiempoReal(docenteUserName);
     iniciarEstudiantesDocenteTiempoReal();
@@ -12570,13 +12679,12 @@ function mostrarPanelDocenteVirtual() {
     iniciarTemarioDocenteTiempoReal();
     iniciarListenerTareasTiempoReal();
     
-    // 🔥 NUEVO: Navegación estilo encargado
     iniciarNavegacionDocenteEncargado();
     iniciarSwipeDocenteEncargado();
     
-    // Cargar instrumentos
     setTimeout(function() {
         cargarInstrumentosDocenteEnSelects();
+        cargarFiltroInstrumentosDocente();
     }, 300);
 }
 
@@ -12665,7 +12773,6 @@ function renderClasesDocente(clases, container, username) {
         </div>
     `).join('');
     
-    // Eventos para agregar grabación
     container.querySelectorAll('.agregar-grabacion').forEach(btn => {
         btn.addEventListener('click', function() {
             const claseId = this.getAttribute('data-id');
@@ -12745,7 +12852,7 @@ function renderGrabacionesDocente(grabaciones, container) {
 }
 
 // =====================================================
-// 3. ESTUDIANTES DEL DOCENTE - TIEMPO REAL
+// 3. ESTUDIANTES DEL DOCENTE - TIEMPO REAL (FILTRADO Y AGRUPADO)
 // =====================================================
 
 function iniciarEstudiantesDocenteTiempoReal() {
@@ -12760,8 +12867,10 @@ function iniciarEstudiantesDocenteTiempoReal() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
     
+    console.log('🎸 [DOCENTE] Instrumentos asignados:', instrumentosDocente);
+    
     if (instrumentosDocente.length === 0) {
-        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados.</p>';
+        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados. Contacta a la secretaría.</p>';
         return;
     }
     
@@ -12779,6 +12888,9 @@ function iniciarEstudiantesDocenteTiempoReal() {
                 localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
                 window.inscriptions = firestoreData;
                 renderEstudiantesDocente(firestoreData, container, instrumentosDocente);
+            } else {
+                const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+                renderEstudiantesDocente(localData, container, instrumentosDocente);
             }
         }, (error) => {
             console.error('❌ Error en listener de estudiantes:', error);
@@ -12791,22 +12903,32 @@ function cargarEstudiantesDocenteLocal(container, instrumentosDocente) {
     renderEstudiantesDocente(inscriptions, container, instrumentosDocente);
 }
 
+// =====================================================
+// 🔥 RENDER ESTUDIANTES - FILTRO CORREGIDO, AGRUPACIÓN POR COINCIDENCIA Y ACORDEONES CERRADOS
+// =====================================================
 function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) {
-    const misEstudiantes = inscriptions.filter(ins => {
-        const instrumento = ins.musical?.instrumentoPrincipal;
-        return instrumentosDocente.includes(instrumento);
+    console.log('🔍 [DOCENTE] Aplicando filtro con instrumentos:', instrumentosDocente);
+    
+    const estudiantesFiltrados = inscriptions.filter(ins => {
+        if ((ins.estado || 'activo') !== 'activo') return false;
+        return estudianteCoincideConDocente(ins, instrumentosDocente);
     });
     
-    if (misEstudiantes.length === 0) {
-        container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">No hay estudiantes asignados a tus instrumentos: ${instrumentosDocente.join(', ') || 'Ninguno'}</p>`;
+    console.log(`🎯 [DOCENTE] Total estudiantes que coinciden: ${estudiantesFiltrados.length} de ${inscriptions.length}`);
+    
+    if (estudiantesFiltrados.length === 0) {
+        container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">
+            No hay estudiantes asignados a tus instrumentos: ${instrumentosDocente.join(', ')}
+        </p>`;
         return;
     }
     
     const grupos = {};
-    misEstudiantes.forEach(est => {
-        const instr = est.musical?.instrumentoPrincipal || 'Sin instrumento';
-        if (!grupos[instr]) grupos[instr] = [];
-        grupos[instr].push(est);
+    estudiantesFiltrados.forEach(est => {
+        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente);
+        const clave = instrumentoCoincidente || est.musical?.instrumentoPrincipal || 'Sin instrumento';
+        if (!grupos[clave]) grupos[clave] = [];
+        grupos[clave].push(est);
     });
     
     let html = '';
@@ -12818,17 +12940,28 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
                     <i class="fas fa-guitar"></i> ${instr} (${estudiantes.length} estudiantes)
                 </summary>
                 <div style="margin-top:10px;padding:0 8px;">
-                    ${estudiantes.map(est => `
-                        <div style="border-bottom:1px solid #eee;padding:8px 0;display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <strong>${est.estudiante?.nombre || 'Sin nombre'}</strong>
-                                <br><small>Nivel: ${est.estudiante?.nivel || 'N/A'} | Edad: ${est.estudiante?.edad || 'N/A'}</small>
+                    ${estudiantes.map(est => {
+                        const principal = est.musical?.instrumentoPrincipal || 'N/A';
+                        const secundario = est.musical?.instrumentoSecundario ? ` (Secundario: ${est.musical.instrumentoSecundario})` : '';
+                        const coincidePor = (estudianteCoincideConDocente(est, [instr]) && est.musical?.instrumentoPrincipal === instr) ? '✅ Principal' : '🔄 Secundario';
+                        return `
+                            <div style="border-bottom:1px solid #eee;padding:8px 0;display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <strong>${est.estudiante?.nombre || 'Sin nombre'}</strong>
+                                    <br><small>
+                                        Principal: ${principal} ${secundario}
+                                        | Nivel: ${est.estudiante?.nivel || 'N/A'}
+                                        | Edad: ${est.estudiante?.edad || 'N/A'}
+                                        | <span style="color:#E63946;">${coincidePor}</span>
+                                    </small>
+                                </div>
+                                <button class="btn-small" onclick="verProgresoEstudiante('${est.id}')" 
+                                    style="padding:6px 12px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.75rem;">
+                                    Ver Progreso
+                                </button>
                             </div>
-                            <button class="btn-small" onclick="verProgresoEstudiante('${est.id}')" style="padding:6px 12px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.75rem;">
-                                Ver Progreso
-                            </button>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </details>
         `;
@@ -12837,10 +12970,12 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
     container.innerHTML = html;
 }
 
+// =====================================================
+// 🔥 VER PROGRESO ESTUDIANTE (Modal corregido)
+// =====================================================
 function verProgresoEstudiante(estudianteId) {
     console.log('📊 Ver progreso:', estudianteId);
     
-    // Buscar al estudiante
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => String(ins.id) === String(estudianteId));
     
@@ -12849,11 +12984,9 @@ function verProgresoEstudiante(estudianteId) {
         return;
     }
 
-    // Obtener sus tareas
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     const tareasEstudiante = tareas.filter(t => String(t.estudianteId) === String(estudianteId));
     
-    // Calcular estadísticas
     const calificadas = tareasEstudiante.filter(t => t.calificada === true);
     const pendientes = tareasEstudiante.filter(t => t.calificada !== true);
     
@@ -12863,41 +12996,43 @@ function verProgresoEstudiante(estudianteId) {
         promedio = (total / calificadas.length).toFixed(1);
     }
 
-    // Crear modal
-    const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+    // Crear overlay y modal
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = 'background:white;border-radius:12px;padding:25px;max-width:600px;width:90%;max-height:90vh;overflow-y:auto;position:relative;';
     
     let html = `
-        <div style="background:white;border-radius:12px;padding:25px;max-width:600px;width:90%;max-height:90vh;overflow-y:auto;">
-            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:15px;">
-                <h4 style="margin:0;color:#E63946;">📊 Progreso de ${estudiante.estudiante.nombre}</h4>
-                <span onclick="this.closest('div[style]').parentElement.remove()" style="cursor:pointer;font-size:28px;color:#999;">&times;</span>
-            </div>
-            <div style="padding:20px 0;">
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;">
-                    <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
-                        <div style="font-size:24px;font-weight:bold;color:#E63946;">${promedio}</div>
-                        <div style="font-size:12px;color:#666;">Promedio</div>
-                    </div>
-                    <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
-                        <div style="font-size:24px;font-weight:bold;color:#4CAF50;">${calificadas.length}</div>
-                        <div style="font-size:12px;color:#666;">Calificadas</div>
-                    </div>
-                    <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
-                        <div style="font-size:24px;font-weight:bold;color:#FF9800;">${pendientes.length}</div>
-                        <div style="font-size:12px;color:#666;">Pendientes</div>
-                    </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:15px;">
+            <h4 style="margin:0;color:#E63946;">📊 Progreso de ${estudiante.estudiante.nombre}</h4>
+            <button onclick="this.closest('div[style]').parentElement.remove()" style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 5px;">&times;</button>
+        </div>
+        <div style="padding:20px 0;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;">
+                <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#E63946;">${promedio}</div>
+                    <div style="font-size:12px;color:#666;">Promedio</div>
                 </div>
-                <table style="width:100%;border-collapse:collapse;border:1px solid #eee;">
-                    <thead>
-                        <tr style="background:#E63946;color:white;">
-                            <th style="padding:10px;text-align:left;">Semana</th>
-                            <th style="padding:10px;text-align:left;">Tema</th>
-                            <th style="padding:10px;text-align:center;">Nota</th>
-                            <th style="padding:10px;text-align:center;">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+                <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#4CAF50;">${calificadas.length}</div>
+                    <div style="font-size:12px;color:#666;">Calificadas</div>
+                </div>
+                <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#FF9800;">${pendientes.length}</div>
+                    <div style="font-size:12px;color:#666;">Pendientes</div>
+                </div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;border:1px solid #eee;">
+                <thead>
+                    <tr style="background:#E63946;color:white;">
+                        <th style="padding:10px;text-align:left;">Semana</th>
+                        <th style="padding:10px;text-align:left;">Tema</th>
+                        <th style="padding:10px;text-align:center;">Nota</th>
+                        <th style="padding:10px;text-align:center;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>`;
 
     if (tareasEstudiante.length === 0) {
         html += `<tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">No hay tareas subidas</td></tr>`;
@@ -12918,17 +13053,35 @@ function verProgresoEstudiante(estudianteId) {
     }
 
     html += `
-                    </tbody>
-                </table>
-            </div>
-            <div style="display:flex;justify-content:flex-end;border-top:1px solid #eee;padding-top:15px;">
-                <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:8px 20px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;">Cerrar</button>
-            </div>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;border-top:1px solid #eee;padding-top:15px;">
+            <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:8px 20px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;">Cerrar</button>
         </div>
     `;
-
-    modal.innerHTML = html;
-    document.body.appendChild(modal);
+    
+    modalContent.innerHTML = html;
+    overlay.appendChild(modalContent);
+    document.body.appendChild(overlay);
+    
+    // Cerrar al hacer clic fuera del modal (en el overlay)
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+    
+    // Cerrar con tecla Escape
+    function handleKeyDown(e) {
+        if (e.key === 'Escape') {
+            if (overlay && overlay.parentNode) {
+                overlay.remove();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        }
+    }
+    document.addEventListener('keydown', handleKeyDown);
 }
 
 // =====================================================
@@ -12944,28 +13097,17 @@ function iniciarTareasDocenteTiempoReal() {
         docenteListeners.tareas = null;
     }
     
-    let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentosDocente = currentUser.instrumentos || [];
     
-    if (window.db) {
-        window.db.collection('inscripciones').onSnapshot((snapshot) => {
-            const firestoreData = [];
-            snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
-            if (firestoreData.length > 0) {
-                localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
-                window.inscriptions = firestoreData;
-                inscriptions = firestoreData;
-            }
-        });
-    }
-    
-    if (!window.db) {
-        cargarTareasDocenteLocal(container, inscriptions);
+    if (instrumentosDocente.length === 0) {
+        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados.</p>';
         return;
     }
     
-    if (docenteListeners.tareas) {
-        docenteListeners.tareas();
-        docenteListeners.tareas = null;
+    if (!window.db) {
+        cargarTareasDocenteLocal(container, instrumentosDocente);
+        return;
     }
     
     docenteListeners.tareas = window.db.collection('tareas')
@@ -12975,49 +13117,63 @@ function iniciarTareasDocenteTiempoReal() {
             
             localStorage.setItem('tareasSubidas', JSON.stringify(tareas));
             
-            const inscriptionsLocal = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            renderTareasDocente(tareas, container, inscriptionsLocal);
+            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+            renderTareasDocente(tareas, container, inscriptions, instrumentosDocente, temarios);
         }, (error) => {
             console.error('❌ Error en listener de tareas:', error);
-            cargarTareasDocenteLocal(container, inscriptions);
+            cargarTareasDocenteLocal(container, instrumentosDocente);
         });
 }
 
-function cargarTareasDocenteLocal(container, inscriptions) {
+function cargarTareasDocenteLocal(container, instrumentosDocente) {
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
-    renderTareasDocente(tareas, container, inscriptions);
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+    renderTareasDocente(tareas, container, inscriptions, instrumentosDocente, temarios);
 }
 
-function renderTareasDocente(tareas, container, inscriptions) {
+function renderTareasDocente(tareas, container, inscriptions, instrumentosDocente, temarios) {
+    const idsEstudiantesDocente = inscriptions
+        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .map(ins => ins.id);
+    
+    let tareasFiltradas = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId));
+    
+    tareasFiltradas = tareasFiltradas.filter(t => {
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+    });
+    
     const estudiantesMap = {};
     inscriptions.forEach(ins => {
         estudiantesMap[ins.id] = ins.estudiante?.nombre || 'Sin nombre';
     });
     
-    tareas.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
+    tareasFiltradas.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
     
-    if (tareas.length === 0) {
+    if (tareasFiltradas.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>No hay tareas subidas aún</p>
+                <p>No hay tareas subidas para tus instrumentos.</p>
             </div>
         `;
         return;
     }
     
     let html = '';
-    tareas.forEach(t => {
+    tareasFiltradas.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
         const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
-        const estadoClass = t.calificada ? 'estado-calificada' : 'estado-pendiente';
         const nota = t.nota !== undefined && t.nota !== null ? t.nota : '-';
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
         
         html += `
             <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'}</div>
+                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
@@ -13025,7 +13181,7 @@ function renderTareasDocente(tareas, container, inscriptions) {
                     ${t.comentario ? `<div style="font-size:12px;color:#888;margin-top:4px;"><i class="fas fa-comment"></i> ${t.comentario}</div>` : ''}
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="${estadoClass}" style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${t.calificada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">${estado}</span>
+                    <span style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${t.calificada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">${estado}</span>
                     ${!t.calificada ? `<button class="btn-calificar" onclick="abrirModalCalificar('${t.id}')" style="padding:6px 12px;background:#FF9800;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.75rem;">Calificar</button>` : `<span style="font-weight:bold;color:#4CAF50;">Nota: ${nota}</span>`}
                 </div>
             </div>
@@ -13046,17 +13202,29 @@ function filtrarTareas() {
     const container = document.getElementById('tareasListContainer');
     if (!container) return;
     
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentosDocente = currentUser.instrumentos || [];
+    
     let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+    
+    const idsEstudiantesDocente = inscriptions
+        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .map(ins => ins.id);
+    
+    tareas = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId));
+    
+    tareas = tareas.filter(t => {
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+    });
     
     if (instrumento) {
-        const idsInstrumento = [];
-        inscriptions.forEach(ins => {
-            if (ins.musical?.instrumentoPrincipal === instrumento) {
-                idsInstrumento.push(ins.id);
-            }
+        tareas = tareas.filter(t => {
+            const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+            return instrumentoTarea === instrumento;
         });
-        tareas = tareas.filter(t => idsInstrumento.includes(t.estudianteId));
     }
     
     if (semana) {
@@ -13074,7 +13242,7 @@ function filtrarTareas() {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>No hay tareas que coincidan con los filtros</p>
+                <p>No hay tareas que coincidan con los filtros.</p>
             </div>
         `;
         return;
@@ -13084,21 +13252,21 @@ function filtrarTareas() {
     tareas.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
         const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
-        const estadoClass = t.calificada ? 'estado-calificada' : 'estado-pendiente';
         const nota = t.nota !== undefined && t.nota !== null ? t.nota : '-';
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
         
         html += `
             <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'}</div>
+                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="${estadoClass}" style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${t.calificada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">${estado}</span>
+                    <span style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${t.calificada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">${estado}</span>
                     ${!t.calificada ? `<button class="btn-calificar" onclick="abrirModalCalificar('${t.id}')" style="padding:6px 12px;background:#FF9800;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.75rem;">Calificar</button>` : `<span style="font-weight:bold;color:#4CAF50;">Nota: ${nota}</span>`}
                 </div>
             </div>
@@ -13116,10 +13284,24 @@ function cargarTareasPendientes() {
     const container = document.getElementById('calificarListContainer');
     if (!container) return;
     
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentosDocente = currentUser.instrumentos || [];
+    
     let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     
-    const pendientes = tareas.filter(t => !t.calificada);
+    const idsEstudiantesDocente = inscriptions
+        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .map(ins => ins.id);
+    
+    let pendientes = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId) && !t.calificada);
+    
+    pendientes = pendientes.filter(t => {
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+    });
+    
     pendientes.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
     
     const estudiantesMap = {};
@@ -13131,7 +13313,7 @@ function cargarTareasPendientes() {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-clipboard-list" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>No hay tareas pendientes de calificar</p>
+                <p>No hay tareas pendientes de calificar de tus estudiantes.</p>
             </div>
         `;
         return;
@@ -13140,12 +13322,13 @@ function cargarTareasPendientes() {
     let html = '';
     pendientes.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
+        const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
         
         html += `
             <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'}</div>
+                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
@@ -13180,6 +13363,13 @@ function abrirModalCalificar(tareaId) {
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == tarea.estudianteId);
     const nombreEstudiante = estudiante?.estudiante?.nombre || tarea.estudianteNombre || tarea.estudianteId;
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentosDocente = currentUser.instrumentos || [];
+    if (!estudiante || !estudianteCoincideConDocente(estudiante, instrumentosDocente)) {
+        alert('❌ No puedes calificar esta tarea porque el estudiante no te pertenece.');
+        return;
+    }
     
     const modal = document.createElement('div');
     modal.className = 'modal modal-calificar';
@@ -13264,10 +13454,12 @@ function guardarCalificacion(tareaId) {
     
     iniciarTareasDocenteTiempoReal();
     cargarTareasPendientes();
+    // Forzar actualización de calificaciones
+    mostrarCalificacionesDocente();
 }
 
 // =====================================================
-// 8. TEMARIO - TIEMPO REAL CON EDITAR Y ELIMINAR
+// 8. TEMARIO - TIEMPO REAL (SOLO DEL DOCENTE)
 // =====================================================
 
 function iniciarTemarioDocenteTiempoReal() {
@@ -13279,18 +13471,29 @@ function iniciarTemarioDocenteTiempoReal() {
         docenteListeners.temarios = null;
     }
     
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
+    if (!username) {
+        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No se encontró el usuario docente.</p>';
+        return;
+    }
+    
     if (!window.db) {
         cargarTemarioDocenteLocal(container);
         return;
     }
     
     docenteListeners.temarios = window.db.collection('temarios')
+        .where('docenteId', '==', username)
         .onSnapshot((snapshot) => {
             const temarios = [];
             snapshot.forEach(doc => temarios.push({ id: doc.id, ...doc.data() }));
             
             if (temarios.length > 0) {
                 localStorage.setItem('temarios', JSON.stringify(temarios));
+            } else {
+                localStorage.setItem('temarios', JSON.stringify([]));
             }
             
             renderTemarioDocente(temarios, container);
@@ -13301,15 +13504,19 @@ function iniciarTemarioDocenteTiempoReal() {
 }
 
 function cargarTemarioDocenteLocal(container) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    renderTemarioDocente(temarios, container);
+    const misTemarios = temarios.filter(t => t.docenteId === username);
+    renderTemarioDocente(misTemarios, container);
 }
 
 function renderTemarioDocente(temarios, container) {
     if (!container) return;
     
     if (temarios.length === 0) {
-        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay temarios guardados</p>';
+        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay temarios guardados para tu usuario.</p>';
         return;
     }
     
@@ -13343,11 +13550,14 @@ function renderTemarioDocente(temarios, container) {
 }
 
 function cargarTemarioPorId(temarioId) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const temario = temarios.find(t => t.id === temarioId);
+    const temario = temarios.find(t => t.id === temarioId && t.docenteId === username);
     
     if (!temario) {
-        alert('⚠️ Temario no encontrado');
+        alert('⚠️ Temario no encontrado o no pertenece a tu usuario');
         return;
     }
     
@@ -13357,10 +13567,8 @@ function cargarTemarioPorId(temarioId) {
     
     document.getElementById('temarioInstrumento').value = temario.instrumento;
     document.getElementById('temarioNivel').value = temario.nivel;
-    
-    // Deshabilitar el campo de instrumento y nivel para que no se modifiquen
     document.getElementById('temarioInstrumento').disabled = true;
-    document.getElementById('temarioNivel').disabled = false;  // ✅ DESBLOQUEADO
+    document.getElementById('temarioNivel').disabled = true;
     
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
@@ -13382,27 +13590,15 @@ function eliminarTemarioCompleto(temarioId) {
         return;
     }
     
-    // Eliminar de localStorage
     temarios = temarios.filter(t => t.id !== temarioId);
     localStorage.setItem('temarios', JSON.stringify(temarios));
     
-    // Eliminar de Firebase
     if (window.db) {
         window.db.collection('temarios').doc(temarioId).delete()
-            .then(() => {
-                console.log('☁️ Temario eliminado de Firebase');
-                // Actualizar la vista del encargado también
-                if (typeof iniciarTemarioTiempoReal === 'function') {
-                    const select = document.getElementById('selectorEstudianteEnc');
-                    if (select && select.value) {
-                        iniciarTemarioTiempoReal(parseInt(select.value));
-                    }
-                }
-            })
+            .then(() => console.log('☁️ Temario eliminado de Firebase'))
             .catch(e => console.error('❌ Error eliminando temario:', e));
     }
     
-    // Si el temario actual es el que se eliminó, limpiar
     if (temarioActual && temarioActual.id === temarioId) {
         temarioActual = null;
         temarioTemporal.semanas = [];
@@ -13414,13 +13610,11 @@ function eliminarTemarioCompleto(temarioId) {
     }
     
     alert('✅ Temario eliminado correctamente');
-    
-    // Recargar lista
     iniciarTemarioDocenteTiempoReal();
 }
 
 // =====================================================
-// 8.2 MOSTRAR VISTA PREVIA CON BOTONES EDITAR Y ELIMINAR
+// 8.2 MOSTRAR VISTA PREVIA
 // =====================================================
 
 function mostrarVistaPreviaTemario() {
@@ -13461,117 +13655,81 @@ function mostrarVistaPreviaTemario() {
 }
 
 // =====================================================
-// 8.3 EDITAR SEMANA DEL TEMARIO
+// 8.3 EDITAR SEMANA
 // =====================================================
 
 function editarSemanaTemario(numeroSemana) {
     const semana = temarioTemporal.semanas.find(s => s.numero === numeroSemana);
-    
     if (!semana) {
         alert('❌ Semana no encontrada');
         return;
     }
     
-    // Cargar datos en el formulario
     document.getElementById('temarioSemana').value = semana.numero;
     document.getElementById('temarioTema').value = semana.tema || '';
     document.getElementById('temarioDescripcion').value = semana.descripcion || '';
     document.getElementById('temarioMaterial').value = semana.material || '';
     document.getElementById('temarioPonderacion').value = semana.ponderacion || 2.5;
     
-    // Guardar referencia de la semana en edición
     semanaEnEdicion = numeroSemana;
-    
-    // Cambiar el texto del botón de guardar
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Actualizar Semana';
         btnGuardar.style.background = '#FF9800';
     }
-    
-    // Scroll al formulario
     document.getElementById('temarioTema').focus();
     document.querySelector('.form-temario').scrollIntoView({ behavior: 'smooth' });
 }
 
 // =====================================================
-// 8.4 ELIMINAR SEMANA DEL TEMARIO
+// 8.4 ELIMINAR SEMANA
 // =====================================================
+
 function eliminarSemanaTemario(numeroSemana) {
     console.log(`🗑️ Eliminando Semana ${numeroSemana}...`);
+    if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) return;
     
-    if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) {
-        return;
-    }
-
-    // 🔥 1. ELIMINAR DE LA MEMORIA LOCAL (temarioTemporal)
     temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== numeroSemana);
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-    
-    // 🔥 2. ACTUALIZAR LA VISTA PREVIA
     mostrarVistaPreviaTemario();
-
-    // 🔥 3. SI EL TEMARIO YA ESTÁ GUARDADO (temarioActual existe)
+    
     if (temarioActual) {
-        console.log('📦 Temario ya guardado, eliminando de Firebase y localStorage...');
-        
-        // Eliminar del temarioActual
         temarioActual.semanas = temarioActual.semanas.filter(s => s.numero !== numeroSemana);
         temarioActual.semanas.sort((a, b) => a.numero - b.numero);
         temarioActual.fechaActualizacion = new Date().toISOString();
         
-        // 🔥 3a. ACTUALIZAR EN LOCALSTORAGE
         let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const index = temarios.findIndex(t => t.id === temarioActual.id);
         if (index !== -1) {
             temarios[index] = temarioActual;
             localStorage.setItem('temarios', JSON.stringify(temarios));
-            console.log('✅ Eliminado de localStorage');
         }
-        
-        // 🔥 3b. ACTUALIZAR EN FIREBASE
         if (window.db) {
             window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
-                .then(() => {
-                    console.log('☁️ Semana eliminada de Firebase');
-                    // 🔥 Notificar a todos los usuarios
-                    if (typeof actualizarVistaTemarios === 'function') {
-                        actualizarVistaTemarios();
-                    }
-                    // 🔥 Recargar la lista de temarios
-                    iniciarTemarioDocenteTiempoReal();
-                })
+                .then(() => console.log('☁️ Semana eliminada de Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
-        
         alert(`✅ Semana ${numeroSemana} eliminada de ${temarioActual.instrumento} - ${temarioActual.nivel}`);
-        
     } else {
-        // 🔥 4. SI EL TEMARIO NO ESTÁ GUARDADO (solo en memoria)
-        console.log('📝 Temario no guardado, eliminando solo de memoria local');
         alert(`✅ Semana ${numeroSemana} eliminada (aún no guardada en Firebase)`);
     }
 }
 
 // =====================================================
-// 8.5 GUARDAR SEMANA (MODIFICADO PARA EDITAR)
+// 8.5 GUARDAR SEMANA
 // =====================================================
 
 function guardarSemanaTemario() {
     console.log('🟢 Guardando semana en Firebase...');
     
-    // 🔥 1. OBTENER DATOS DEL FILTRO
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
-    
-    // 🔥 2. OBTENER DATOS DE LA SEMANA
     const semana = parseInt(document.getElementById('temarioSemana')?.value);
     const tema = document.getElementById('temarioTema')?.value?.trim();
     const descripcion = document.getElementById('temarioDescripcion')?.value?.trim();
     const material = document.getElementById('temarioMaterial')?.value?.trim();
     const ponderacion = parseFloat(document.getElementById('temarioPonderacion')?.value);
-
-    // ============ VALIDACIONES ============
+    
     if (!instrumento || !nivel) {
         alert('⚠️ Selecciona un Instrumento y Nivel primero');
         return;
@@ -13588,75 +13746,60 @@ function guardarSemanaTemario() {
         alert('⚠️ La ponderación debe ser un número válido');
         return;
     }
-
-    // ============ 🔥 BUSCAR EN LOCALSTORAGE ============
-    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     
-    // 🔥 BUSCAR TEMARIO QUE COINCIDE CON INSTRUMENTO + NIVEL
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes crear temario para él.`);
+        return;
+    }
+    
+    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     let temarioExistente = temarios.find(t => 
-        t.instrumento === instrumento && t.nivel === nivel
+        t.instrumento === instrumento && t.nivel === nivel && t.docenteId === docenteUserName
     );
-
-    // ============ 🔥 VERIFICAR DUPLICADO EN ESE TEMARIO ============
+    
     if (temarioExistente) {
         const semanaDuplicada = temarioExistente.semanas.some(s => s.numero === semana);
-        
         if (semanaDuplicada) {
             alert(`❌ La Semana ${semana} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
             return;
         }
     }
-
-    // ============ AGREGAR LA SEMANA ============
+    
     temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== semana);
-    
-    temarioTemporal.semanas.push({ 
-        numero: semana, 
-        tema, 
-        descripcion, 
-        material, 
-        ponderacion 
-    });
+    temarioTemporal.semanas.push({ numero: semana, tema, descripcion, material, ponderacion });
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-
-    // ============ LIMPIAR ESTADO ============
-    semanaEnEdicion = null;
     
+    semanaEnEdicion = null;
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
-
     mostrarVistaPreviaTemario();
-
-    // Limpiar campos
     document.getElementById('temarioTema').value = '';
     document.getElementById('temarioDescripcion').value = '';
     document.getElementById('temarioMaterial').value = '';
     document.getElementById('temarioSemana').value = semana + 1;
     document.getElementById('temarioPonderacion').value = 2.5;
-
     alert(`✅ Semana ${semana} guardada en ${instrumento} - ${nivel}`);
 }
 
 // =====================================================
-// 8.6 GUARDAR TEMARIO COMPLETO (ACTUALIZAR O CREAR)
+// 8.6 GUARDAR TEMARIO COMPLETO
 // =====================================================
 
 function guardarTemarioCompleto() {
     console.log('🟢 Guardando temario COMPLETO en Firebase...');
-    
     if (temarioTemporal.semanas.length === 0) {
         alert('⚠️ Debes agregar al menos una semana al temario');
         return;
     }
-
-    // 🔥 LEER DIRECTAMENTE DE LOS SELECTS DEL FILTRO
+    
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-
+    
     if (!currentUser.username) {
         alert('⚠️ No se encontró el usuario docente');
         return;
@@ -13669,20 +13812,17 @@ function guardarTemarioCompleto() {
         alert('⚠️ Selecciona un nivel');
         return;
     }
-
-    // 🔥 LEER TODOS LOS TEMARIOS DESDE LOCALSTORAGE
+    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes guardar temario para él.`);
+        return;
+    }
+    
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-
-    // 🔥 BUSCAR TEMARIO CON EL MISMO INSTRUMENTO + NIVEL
     let temarioExistente = temarios.find(t => 
-        t.instrumento === instrumento && t.nivel === nivel
+        t.instrumento === instrumento && t.nivel === nivel && t.docenteId === currentUser.username
     );
-
-    // =============================================
-    // 🔥 FUNCIÓN PARA NOTIFICAR A TODOS LOS USUARIOS
-    // =============================================
+    
     function notificarCambio(temario) {
-        // Guardar en localStorage para que otros usuarios lo vean
         let todosTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const index = todosTemarios.findIndex(t => t.id === temario.id);
         if (index !== -1) {
@@ -13691,57 +13831,32 @@ function guardarTemarioCompleto() {
             todosTemarios.push(temario);
         }
         localStorage.setItem('temarios', JSON.stringify(todosTemarios));
-        
-        // 🔥 GUARDAR EN FIREBASE (esto notifica a TODOS los usuarios conectados)
         if (window.db) {
             window.db.collection('temarios').doc(temario.id).set(temario)
-                .then(() => {
-                    console.log('☁️ Temario guardado en Firebase');
-                    // 🔥 Actualizar la vista de TODOS los usuarios conectados
-                    if (typeof actualizarVistaTemarios === 'function') {
-                        actualizarVistaTemarios();
-                    }
-                })
+                .then(() => console.log('☁️ Temario guardado en Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
     }
-
+    
     if (temarioExistente) {
-        // =============================================
-        // ✅ CASO 1: YA EXISTE → AGREGAR SEMANAS NUEVAS
-        // =============================================
-
         let semanaDuplicada = null;
         for (const semanaNueva of temarioTemporal.semanas) {
-            const existe = temarioExistente.semanas.some(s => s.numero === semanaNueva.numero);
-            if (existe) {
+            if (temarioExistente.semanas.some(s => s.numero === semanaNueva.numero)) {
                 semanaDuplicada = semanaNueva.numero;
                 break;
             }
         }
-
         if (semanaDuplicada) {
             alert(`❌ La Semana ${semanaDuplicada} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
             return;
         }
-
-        // AGREGAR semanas
         temarioExistente.semanas = [...temarioExistente.semanas, ...temarioTemporal.semanas];
         temarioExistente.semanas.sort((a, b) => a.numero - b.numero);
         temarioExistente.fechaActualizacion = new Date().toISOString();
-
-        // 🔥 NOTIFICAR A TODOS
         notificarCambio(temarioExistente);
-
         alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}\n📌 Total semanas: ${temarioExistente.semanas.length}`);
-
     } else {
-        // =============================================
-        // ✅ CASO 2: NO EXISTE → CREAR NUEVO TEMARIO
-        // =============================================
-
         const temarioId = `temario_${instrumento}_${nivel}_${Date.now()}`;
-
         const temario = {
             id: temarioId,
             instrumento: instrumento,
@@ -13752,82 +13867,63 @@ function guardarTemarioCompleto() {
             fechaActualizacion: new Date().toISOString(),
             semanas: temarioTemporal.semanas
         };
-
-        // 🔥 NOTIFICAR A TODOS
         notificarCambio(temario);
-
         alert(`✅ Temario "${instrumento} - ${nivel}" CREADO\n📌 Semanas: ${temario.semanas.length}`);
     }
-
-    // =============================================
-    // 🔥 REINICIAR FORMULARIO
-    // =============================================
+    
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
     semanaEnEdicion = null;
-
     temarioTemporal = { semanas: [] };
     document.getElementById('temarioTema').value = '';
     document.getElementById('temarioDescripcion').value = '';
     document.getElementById('temarioMaterial').value = '';
     document.getElementById('temarioSemana').value = 1;
     document.getElementById('temarioPonderacion').value = 2.5;
-    
     document.getElementById('temarioInstrumento').disabled = false;
     document.getElementById('temarioNivel').disabled = false;
-    
     mostrarVistaPreviaTemario();
-
-    // 🔥 RECARGAR LISTA DE TEMARIOS (desde Firebase)
     iniciarTemarioDocenteTiempoReal();
 }
+
 // =====================================================
-// 8.7 CARGAR TEMARIO EXISTENTE (MODIFICADO)
+// 8.7 CARGAR TEMARIO EXISTENTE
 // =====================================================
 
 function cargarTemarioExistente() {
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
     if (temarios.length === 0) {
-        alert('⚠️ No hay temarios guardados');
+        alert('⚠️ No hay temarios guardados para tu usuario');
         return;
     }
-    
     let lista = 'Selecciona un temario para cargar:\n\n';
     temarios.forEach((t, i) => {
         lista += `${i+1}. ${t.instrumento} - ${t.nivel} (${t.semanas?.length || 0} semanas)\n`;
     });
-    
     const seleccion = prompt(lista + '\n\nIngresa el número del temario:');
     if (!seleccion) return;
-    
     const idx = parseInt(seleccion) - 1;
     if (isNaN(idx) || idx < 0 || idx >= temarios.length) {
         alert('❌ Selección inválida');
         return;
     }
-    
     const temario = temarios[idx];
     temarioActual = temario;
     temarioTemporal.semanas = [...temario.semanas];
     mostrarVistaPreviaTemario();
-    
     document.getElementById('temarioInstrumento').value = temario.instrumento;
     document.getElementById('temarioNivel').value = temario.nivel;
     document.getElementById('temarioInstrumento').disabled = true;
     document.getElementById('temarioNivel').disabled = true;
-    
-    // Resetear estado de edición
     semanaEnEdicion = null;
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
-    
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
 
@@ -13837,13 +13933,11 @@ function cargarTemarioExistente() {
 
 function guardarClaseVirtualDocente() {
     console.log('🟢 Intentando crear clase...');
-    
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser || !currentUser.username) {
         alert('❌ No se encontró el usuario docente. Por favor, cierra sesión y vuelve a entrar.');
         return;
     }
-    
     const titulo = document.getElementById('docTituloClase');
     const instrumento = document.getElementById('docInstrumentoClase');
     const nivel = document.getElementById('docNivelClase');
@@ -13856,12 +13950,15 @@ function guardarClaseVirtualDocente() {
         alert('❌ Error: No se encontraron los campos del formulario. Recarga la página.');
         return;
     }
-    
     const tituloVal = titulo.value.trim();
     const fechaHoraVal = fechaHora.value;
-    
     if (!tituloVal || !fechaHoraVal) {
         alert('❌ Completa el título y la fecha/hora de la clase.');
+        return;
+    }
+    
+    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento.value)) {
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento.value}". No puedes crear clase para él.`);
         return;
     }
     
@@ -13880,36 +13977,26 @@ function guardarClaseVirtualDocente() {
     
     function finalizarCreacionClase(id, claseData) {
         claseData.id = id;
-        
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        const exists = clases.some(c => c.id === id);
-        if (!exists) {
+        if (!clases.some(c => c.id === id)) {
             clases.push(claseData);
             localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
         }
-        
         alert('✅ Clase virtual creada correctamente.');
-        console.log('Clase guardada:', claseData);
-        
         titulo.value = '';
         if (meetLink) meetLink.value = '';
         if (descripcion) descripcion.value = '';
         if (fechaHora) fechaHora.value = '';
-        
         iniciarClasesDocenteTiempoReal(currentUser.username);
-        
         const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') || 
                           document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-        if (menuClases) {
-            menuClases.click();
-        }
+        if (menuClases) menuClases.click();
     }
     
     if (window.db) {
         const btnCrear = document.getElementById('btnCrearClaseVirtual');
         const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
         if (btnCrear) btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-        
         window.db.collection('clasesVirtuales').add(nuevaClase)
             .then((docRef) => {
                 console.log('✅ Clase guardada en Firebase con ID:', docRef.id);
@@ -13930,19 +14017,6 @@ function guardarClaseVirtualDocente() {
         finalizarCreacionClase(idLocal, nuevaClase);
         alert('⚠️ Firebase no disponible. La clase se guardó solo localmente.');
     }
-   // =====================================================
-    // 🔥 CÓDIGO AGREGADO AL FINAL
-    // =====================================================
-    const btnCrear = document.getElementById('btnCrearClaseVirtual');
-    if (btnCrear) {
-        btnCrear.textContent = '✅ Crear Clase';
-        btnCrear.style.background = '';
-        btnCrear.removeAttribute('data-edit-id');
-        btnCrear.onclick = function(e) {
-            e.preventDefault();
-            guardarClaseVirtualDocente();
-        };
-    }
 }
 
 // =====================================================
@@ -13954,18 +14028,14 @@ function agregarGrabacionClase(claseId) {
     if (url && url.trim()) {
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
         const index = clases.findIndex(c => String(c.id) === String(claseId));
-        
         if (index !== -1) {
             clases[index].grabacionUrl = url.trim();
             localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
-            
             if (window.db) {
                 window.db.collection('clasesVirtuales').doc(String(claseId)).set(clases[index], { merge: true })
                     .catch(console.error);
             }
-            
             alert('✅ Grabación agregada correctamente.');
-            
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             if (currentUser.username) {
                 iniciarClasesDocenteTiempoReal(currentUser.username);
@@ -13982,8 +14052,7 @@ function agregarGrabacionClase(claseId) {
 function cargarInstrumentosDocenteEnSelects() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentos = currentUser.instrumentos || [];
-    
-    console.log('🎸 Instrumentos del docente:', instrumentos);
+    console.log('🎸 Instrumentos del docente para selects:', instrumentos);
     
     const selectTemario = document.getElementById('temarioInstrumento');
     if (selectTemario) {
@@ -13998,7 +14067,6 @@ function cargarInstrumentosDocenteEnSelects() {
                 selectTemario.appendChild(option);
             });
         }
-        // Habilitar si estaba deshabilitado
         selectTemario.disabled = false;
     }
     
@@ -14019,12 +14087,34 @@ function cargarInstrumentosDocenteEnSelects() {
 }
 
 // =====================================================
-// NAVEGACIÓN DEL DOCENTE (IGUAL QUE ENCARGADO)
+// 🔥 Cargar filtro de instrumentos solo con los del docente
+// =====================================================
+function cargarFiltroInstrumentosDocente() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentos = currentUser.instrumentos || [];
+    const selectFiltro = document.getElementById('filtroTareaInstrumento');
+    if (!selectFiltro) return;
+    
+    const valorActual = selectFiltro.value;
+    selectFiltro.innerHTML = '<option value="">Todos los instrumentos</option>';
+    instrumentos.forEach(instr => {
+        const option = document.createElement('option');
+        option.value = instr;
+        option.textContent = instr;
+        selectFiltro.appendChild(option);
+    });
+    if (valorActual && instrumentos.includes(valorActual)) {
+        selectFiltro.value = valorActual;
+    }
+    console.log('🔧 Filtro de instrumentos cargado con:', instrumentos);
+}
+
+// =====================================================
+// NAVEGACIÓN DEL DOCENTE
 // =====================================================
 
 function iniciarNavegacionDocenteEncargado() {
-    console.log('🔄 Iniciando navegación del docente (estilo encargado)...');
-    
+    console.log('🔄 Iniciando navegación del docente...');
     const menuItems = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
     const pantallas = {
         clases: document.getElementById('docPantallaClases'),
@@ -14039,91 +14129,47 @@ function iniciarNavegacionDocenteEncargado() {
     
     function mostrarPantalla(pantallaId) {
         console.log('📱 Mostrando pantalla docente:', pantallaId);
-        
-        // Ocultar todas
-        Object.values(pantallas).forEach(p => {
-            if (p) p.classList.remove('active');
-        });
-        
-        // Mostrar la seleccionada
-        if (pantallas[pantallaId]) {
-            pantallas[pantallaId].classList.add('active');
-        }
-        
-        // Actualizar menú inferior
+        Object.values(pantallas).forEach(p => { if (p) p.classList.remove('active'); });
+        if (pantallas[pantallaId]) pantallas[pantallaId].classList.add('active');
         menuItems.forEach(item => {
             item.classList.remove('active');
-            if (item.getAttribute('data-pantalla-docente') === pantallaId) {
-                item.classList.add('active');
-            }
+            if (item.getAttribute('data-pantalla-docente') === pantallaId) item.classList.add('active');
         });
-        
-        // Cargar datos según la pantalla
         if (pantallaId === 'clases') {
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            if (currentUser.username) {
-                iniciarClasesDocenteTiempoReal(currentUser.username);
-            }
+            if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
         }
-        if (pantallaId === 'estudiantes') {
-            iniciarEstudiantesDocenteTiempoReal();
-        }
-        if (pantallaId === 'calificaciones') {
-            setTimeout(mostrarCalificacionesDocente, 200);
-        }
-        if (pantallaId === 'tareas') {
-            iniciarTareasDocenteTiempoReal();
-        }
-        if (pantallaId === 'calificarTareas') {
-            cargarTareasPendientes();
-        }
-        if (pantallaId === 'temario') {
-            iniciarTemarioDocenteTiempoReal();
-            setTimeout(cargarInstrumentosDocenteEnSelects, 200);
-        }
-        if (pantallaId === 'nuevaClase') {
-            setTimeout(cargarInstrumentosDocenteEnSelects, 200);
-        }
+        if (pantallaId === 'estudiantes') iniciarEstudiantesDocenteTiempoReal();
+        if (pantallaId === 'calificaciones') setTimeout(mostrarCalificacionesDocente, 200);
+        if (pantallaId === 'tareas') iniciarTareasDocenteTiempoReal();
+        if (pantallaId === 'calificarTareas') cargarTareasPendientes();
+        if (pantallaId === 'temario') { iniciarTemarioDocenteTiempoReal(); setTimeout(cargarInstrumentosDocenteEnSelects, 200); }
+        if (pantallaId === 'nuevaClase') setTimeout(cargarInstrumentosDocenteEnSelects, 200);
     }
     
-    // Eventos de menú inferior
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
             const pantalla = this.getAttribute('data-pantalla-docente');
-            if (pantalla) {
-                mostrarPantalla(pantalla);
-            }
+            if (pantalla) mostrarPantalla(pantalla);
         });
     });
     
-    // Eventos del menú hamburguesa
     document.querySelectorAll('#menuHamburguesaDocentePanel .menu-hamburguesa-item').forEach(item => {
         item.addEventListener('click', function() {
             const pantalla = this.getAttribute('data-pantalla-docente');
             cerrarMenuHamburguesaDocente();
-            setTimeout(() => {
-                if (pantalla) {
-                    mostrarPantalla(pantalla);
-                }
-            }, 200);
+            setTimeout(() => { if (pantalla) mostrarPantalla(pantalla); }, 200);
         });
     });
     
-    // Abrir/cerrar menú hamburguesa
     document.getElementById('btnMenuHamburguesaDocente')?.addEventListener('click', function(e) {
         e.stopPropagation();
         abrirMenuHamburguesaDocente();
     });
-    
-    document.getElementById('cerrarMenuHamburguesaDocente')?.addEventListener('click', function() {
-        cerrarMenuHamburguesaDocente();
-    });
-    
+    document.getElementById('cerrarMenuHamburguesaDocente')?.addEventListener('click', cerrarMenuHamburguesaDocente);
     document.getElementById('menuHamburguesaDocenteOverlay')?.addEventListener('click', function(e) {
         if (e.target === this) cerrarMenuHamburguesaDocente();
     });
-    
-    // Mostrar pantalla inicial
     mostrarPantalla('clases');
 }
 
@@ -14148,79 +14194,53 @@ function cerrarMenuHamburguesaDocente() {
 }
 
 // =====================================================
-// SWIPE PARA DOCENTE (IGUAL QUE ENCARGADO)
+// SWIPE PARA DOCENTE
 // =====================================================
 
 function iniciarSwipeDocenteEncargado() {
-    console.log('🔄 Iniciando swipe en panel docente (estilo encargado)...');
+    console.log('🔄 Iniciando swipe en panel docente...');
     const panel = document.getElementById('docentePanelVirtual');
     if (!panel) return;
-    
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchEndX = 0;
-    let touchEndY = 0;
-    
+    let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
     const pantallasConSwipe = ['clases', 'nuevaClase', 'grabaciones', 'estudiantes', 'calificaciones'];
-    
     function getIndiceActual() {
         const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
         let activo = 'clases';
-        items.forEach(item => {
-            if (item.classList.contains('active')) {
-                activo = item.getAttribute('data-pantalla-docente') || 'clases';
-            }
-        });
+        items.forEach(item => { if (item.classList.contains('active')) activo = item.getAttribute('data-pantalla-docente') || 'clases'; });
         const index = pantallasConSwipe.indexOf(activo);
         return index !== -1 ? index : 0;
     }
-    
     function cambiarPantalla(direccion) {
         const idx = getIndiceActual();
         let nuevoIdx = idx + direccion;
         if (nuevoIdx < 0) nuevoIdx = 0;
         if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
-        
         if (nuevoIdx !== idx) {
             const nuevaPantalla = pantallasConSwipe[nuevoIdx];
             console.log('👆 Swipe a:', nuevaPantalla);
             const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
-            items.forEach(item => {
-                if (item.getAttribute('data-pantalla-docente') === nuevaPantalla) {
-                    item.click();
-                }
-            });
+            items.forEach(item => { if (item.getAttribute('data-pantalla-docente') === nuevaPantalla) item.click(); });
         }
     }
-    
     panel.removeEventListener('touchstart', window._swipeDocenteStartHandler);
     panel.removeEventListener('touchend', window._swipeDocenteEndHandler);
-    
     window._swipeDocenteStartHandler = function(e) {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
     };
-    
     window._swipeDocenteEndHandler = function(e) {
         touchEndX = e.changedTouches[0].screenX;
         touchEndY = e.changedTouches[0].screenY;
-        
         const diffX = touchStartX - touchEndX;
         const diffY = touchStartY - touchEndY;
-        
         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-            if (diffX > 0) {
-                cambiarPantalla(1);
-            } else {
-                cambiarPantalla(-1);
-            }
+            if (diffX > 0) cambiarPantalla(1);
+            else cambiarPantalla(-1);
         }
     };
-    
     panel.addEventListener('touchstart', window._swipeDocenteStartHandler, { passive: true });
     panel.addEventListener('touchend', window._swipeDocenteEndHandler, { passive: true });
-    
-    console.log('✅ Swipe activado en panel docente (estilo encargado)');
+    console.log('✅ Swipe activado en panel docente');
 }
 
 // =====================================================
@@ -14229,7 +14249,6 @@ function iniciarSwipeDocenteEncargado() {
 
 function mostrarModalNuevaClase() {
     cargarInstrumentosDocenteEnSelects();
-    
     const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') || 
                     document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
     if (menuItem) menuItem.click();
@@ -14238,9 +14257,7 @@ function mostrarModalNuevaClase() {
 function cerrarModal(btn) {
     if (btn && typeof btn.closest === 'function') {
         const modal = btn.closest('.modal');
-        if (modal && modal.parentNode) {
-            modal.remove();
-        }
+        if (modal && modal.parentNode) modal.remove();
     } else {
         const modal = document.querySelector('.modal:not([style*="display: none"])');
         if (modal) modal.remove();
@@ -14248,246 +14265,154 @@ function cerrarModal(btn) {
 }
 
 // =====================================================
-// 14. SWIPE PARA DOCENTE
+// 🔥 14. MOSTRAR CALIFICACIONES DEL DOCENTE (AGRUPADO POR INSTRUMENTO Y ORDENADO POR PROMEDIO)
 // =====================================================
 
-function iniciarSwipeDocente() {
-    console.log('🔄 Iniciando swipe en panel docente...');
-    const panel = document.getElementById('docentePanelVirtual');
-    if (!panel) return;
-    
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    const secciones = ['clases', 'nuevaClase', 'grabaciones', 'estudiantes', 'calificaciones', 'temario', 'tareas', 'calificarTareas'];
-    
-    function getIndiceActual() {
-        let items = document.querySelectorAll('#docentePanelVirtual .docente-menu-item-mobile');
-        if (items.length === 0) {
-            items = document.querySelectorAll('#docentePanelVirtual .docente-menu-item');
-        }
-        
-        let activo = 'clases';
-        items.forEach(item => {
-            if (item.classList.contains('active')) {
-                const seccion = item.getAttribute('data-seccion');
-                if (seccion) activo = seccion;
-            }
-        });
-        
-        const index = secciones.indexOf(activo);
-        return index !== -1 ? index : 0;
-    }
-    
-    function cambiarSeccion(direccion) {
-        const idx = getIndiceActual();
-        let nuevoIdx = idx + direccion;
-        if (nuevoIdx < 0) nuevoIdx = 0;
-        if (nuevoIdx >= secciones.length) nuevoIdx = secciones.length - 1;
-        
-        if (nuevoIdx !== idx) {
-            const nuevaSeccion = secciones[nuevoIdx];
-            console.log('👆 Swipe a:', nuevaSeccion);
-            
-            let items = document.querySelectorAll('#docentePanelVirtual .docente-menu-item-mobile');
-            if (items.length === 0) {
-                items = document.querySelectorAll('#docentePanelVirtual .docente-menu-item');
-            }
-            
-            items.forEach(item => {
-                if (item.getAttribute('data-seccion') === nuevaSeccion) {
-                    item.click();
-                }
-            });
-        }
-    }
-    
-    panel.removeEventListener('touchstart', window._swipeDocenteStart);
-    panel.removeEventListener('touchend', window._swipeDocenteEnd);
-    
-    window._swipeDocenteStart = function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-    };
-    
-    window._swipeDocenteEnd = function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        const diffX = touchStartX - touchEndX;
-        if (Math.abs(diffX) > 40) {
-            if (diffX > 0) {
-                cambiarSeccion(1);
-            } else {
-                cambiarSeccion(-1);
-            }
-        }
-    };
-    
-    panel.addEventListener('touchstart', window._swipeDocenteStart, { passive: true });
-    panel.addEventListener('touchend', window._swipeDocenteEnd, { passive: true });
-    
-    console.log('✅ Swipe activado en panel docente');
-}
-
-// =====================================================
-// 15. INICIALIZACIÓN
-// =====================================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    const userType = localStorage.getItem('userType');
-    if (userType === 'docente') {
-        setTimeout(function() {
-            mostrarPanelDocenteVirtual();
-            iniciarSwipeDocente();
-        }, 500);
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const btnCrear = document.getElementById('btnCrearClaseVirtual');
-    if (btnCrear) {
-        btnCrear.addEventListener('click', function(e) {
-            e.preventDefault();
-            guardarClaseVirtualDocente();
-        });
-    }
-});
-
-if (window.db) {
-    window.db.collection('clasesVirtuales').onSnapshot((snapshot) => {
-        const clasesFirestore = [];
-        snapshot.forEach(doc => clasesFirestore.push({ id: doc.id, ...doc.data() }));
-        
-        if (clasesFirestore.length > 0) {
-            localStorage.setItem('clasesVirtuales', JSON.stringify(clasesFirestore));
-            console.log('🔄 Clases virtuales actualizadas desde Firebase:', clasesFirestore.length);
-        }
-        
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (currentUser.username && document.getElementById('docentePanelVirtual')?.style.display !== 'none') {
-            iniciarClasesDocenteTiempoReal(currentUser.username);
-            iniciarGrabacionesDocenteTiempoReal(currentUser.username);
-        }
-    }, (error) => {
-        console.error('❌ Error en listener de clasesVirtuales:', error);
-    });
-}
-
-  
-  // =====================================================
-// 16. MOSTRAR CALIFICACIONES DEL DOCENTE (CON TIEMPO REAL)
-// =====================================================
 function mostrarCalificacionesDocente() {
     const container = document.getElementById('tablaCalificacionesDocente');
     if (!container) return;
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
-    
-    // Obtener datos
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const misEstudiantes = inscriptions.filter(ins => 
-        instrumentosDocente.includes(ins.musical?.instrumentoPrincipal)
-    );
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
-
-    if (misEstudiantes.length === 0) {
+    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+    
+    // 1. Filtrar estudiantes que coinciden con los instrumentos del docente
+    const estudiantesFiltrados = inscriptions.filter(ins => {
+        if ((ins.estado || 'activo') !== 'activo') return false;
+        return estudianteCoincideConDocente(ins, instrumentosDocente);
+    });
+    
+    if (estudiantesFiltrados.length === 0) {
         container.innerHTML = `<p style="text-align:center; padding:20px;">No tienes estudiantes asignados</p>`;
         return;
     }
-
-    let html = `
-        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-            <thead>
-                <tr style="background:#E63946; color:white;">
-                    <th style="padding:10px; text-align:left;">Estudiante</th>
-                    <th style="padding:10px; text-align:left;">Instrumento</th>
-                    <th style="padding:10px; text-align:center;">Promedio</th>
-                    <th style="padding:10px; text-align:center;">Tareas</th>
-                    <th style="padding:10px; text-align:center;">Calificadas</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    misEstudiantes.forEach(est => {
-        const tareasEstudiante = tareas.filter(t => t.estudianteId == est.id);
-        const calificadas = tareasEstudiante.filter(t => t.calificada);
-        const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
-        const promedio = calificadas.length > 0 ? (total / calificadas.length).toFixed(1) : 'Sin calif.';
-        const colorPromedio = (promedio !== 'Sin calif.' && promedio >= 7) ? '#4CAF50' : '#E63946';
-
+    
+    // 2. Agrupar por instrumento coincidente (igual que en la lista de estudiantes)
+    const grupos = {};
+    estudiantesFiltrados.forEach(est => {
+        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente) || est.musical?.instrumentoPrincipal || 'Sin instrumento';
+        if (!grupos[instrumentoCoincidente]) grupos[instrumentoCoincidente] = [];
+        grupos[instrumentoCoincidente].push(est);
+    });
+    
+    // 3. Construir HTML con acordeones
+    let html = '';
+    Object.keys(grupos).sort().forEach(instr => {
+        const estudiantes = grupos[instr];
+        
+        // Calcular promedio de cada estudiante para este instrumento
+        const estudiantesConPromedio = estudiantes.map(est => {
+            // Filtrar tareas del estudiante que correspondan a este instrumento
+            const tareasEstudiante = tareas.filter(t => {
+                if (t.estudianteId != est.id) return false;
+                const instrTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+                return instrTarea === instr;
+            });
+            const calificadas = tareasEstudiante.filter(t => t.calificada);
+            const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
+            const promedio = calificadas.length > 0 ? (total / calificadas.length) : 0;
+            return {
+                ...est,
+                promedio: promedio,
+                tareasCount: tareasEstudiante.length,
+                calificadasCount: calificadas.length
+            };
+        });
+        
+        // Ordenar por promedio descendente (mayor a menor)
+        estudiantesConPromedio.sort((a, b) => b.promedio - a.promedio);
+        
         html += `
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px;"><strong>${est.estudiante.nombre}</strong></td>
-                <td style="padding:10px;">${est.musical?.instrumentoPrincipal || '-'}</td>
-                <td style="padding:10px; text-align:center; font-weight:bold; color:${colorPromedio};">${promedio}</td>
-                <td style="padding:10px; text-align:center;">${tareasEstudiante.length}</td>
-                <td style="padding:10px; text-align:center;">${calificadas.length}</td>
-            </tr>
+            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;">
+                <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
+                    <i class="fas fa-guitar"></i> ${instr} (${estudiantesConPromedio.length} estudiantes)
+                </summary>
+                <div style="margin-top:10px;padding:0 8px;">
+                    <table style="width:100%; border-collapse:collapse; margin-top:5px;">
+                        <thead>
+                            <tr style="background:#f8f9fa; border-bottom:1px solid #ddd;">
+                                <th style="padding:6px; text-align:left; font-size:0.8rem;">Estudiante</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Promedio</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Tareas</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Calificadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${estudiantesConPromedio.map(est => {
+                                const promedioStr = est.promedio > 0 ? est.promedio.toFixed(1) : 'Sin calif.';
+                                const colorPromedio = (est.promedio > 0 && est.promedio >= 7) ? '#4CAF50' : '#E63946';
+                                return `
+                                    <tr style="border-bottom:1px solid #eee;">
+                                        <td style="padding:6px; font-weight:600;">${est.estudiante.nombre}</td>
+                                        <td style="padding:6px; text-align:center; font-weight:bold; color:${colorPromedio};">${promedioStr}</td>
+                                        <td style="padding:6px; text-align:center;">${est.tareasCount}</td>
+                                        <td style="padding:6px; text-align:center;">${est.calificadasCount}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         `;
     });
-
+    
     html += `
-            </tbody>
-        </table>
         <div style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:5px; font-size:12px; color:#888;">
             <i class="fas fa-info-circle"></i> 
-            <strong>Nota:</strong> Las calificaciones se basan en las tareas subidas por los estudiantes.
+            <strong>Nota:</strong> Los promedios se calculan sobre las tareas calificadas para este instrumento.
             <br>✅ Actualizado en tiempo real
         </div>
     `;
-
+    
     container.innerHTML = html;
 }
-  // =====================================================
-// ESCUCHAR CAMBIOS EN TAREAS (TIEMPO REAL)
+
 // =====================================================
+// 15. LISTENER DE TAREAS EN TIEMPO REAL
+// =====================================================
+
 function iniciarListenerTareasTiempoReal() {
     if (!window.db) {
         console.log('⚠️ Firebase no disponible, solo actualización manual');
         return;
     }
-
     window.db.collection('tareas')
         .onSnapshot((snapshot) => {
             let tareasFirestore = [];
             snapshot.forEach(doc => tareasFirestore.push({ id: doc.id, ...doc.data() }));
-            
             if (tareasFirestore.length > 0) {
                 localStorage.setItem('tareasSubidas', JSON.stringify(tareasFirestore));
                 console.log('🔄 Tareas actualizadas en tiempo real:', tareasFirestore.length);
-                
-                // Si la página de calificaciones está visible, actualizarla
-                const calificacionesPage = document.getElementById('docPageCalificaciones');
+                const calificacionesPage = document.getElementById('docPantallaCalificaciones');
                 if (calificacionesPage && calificacionesPage.classList.contains('active')) {
                     mostrarCalificacionesDocente();
+                }
+                // También actualizar la lista de estudiantes si está visible
+                const estudiantesPage = document.getElementById('docPantallaEstudiantes');
+                if (estudiantesPage && estudiantesPage.classList.contains('active')) {
+                    iniciarEstudiantesDocenteTiempoReal();
                 }
             }
         }, (error) => {
             console.error('❌ Error en listener de tareas:', error);
         });
 }
+
 // =====================================================
-// 17. EDITAR CLASE VIRTUAL
+// 16. EDITAR CLASE VIRTUAL
 // =====================================================
 
 function editarClaseVirtual(claseId) {
     console.log('✏️ Editando clase:', claseId);
-    
-    // Obtener la clase de localStorage
     let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const clase = clases.find(c => String(c.id) === String(claseId));
-    
-    if (!clase) {
-        alert('❌ Clase no encontrada');
-        return;
-    }
-    
-    // Cargar datos en el formulario de nueva clase (reutilizamos)
+    if (!clase) { alert('❌ Clase no encontrada'); return; }
     document.getElementById('docTituloClase').value = clase.titulo || '';
     document.getElementById('docInstrumentoClase').value = clase.instrumento || '';
     document.getElementById('docNivelClase').value = clase.nivel || 'Principiante';
-    
-    // Formatear fecha para input datetime-local
     if (clase.fechaHora) {
         const fecha = new Date(clase.fechaHora);
         const año = fecha.getFullYear();
@@ -14497,49 +14422,28 @@ function editarClaseVirtual(claseId) {
         const minutos = String(fecha.getMinutes()).padStart(2, '0');
         document.getElementById('docFechaHoraClase').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
-    
     document.getElementById('docMeetLink').value = clase.meetLink || '';
     document.getElementById('docDuracion').value = clase.duracion || 60;
     document.getElementById('docDescripcionClase').value = clase.descripcion || '';
-    
-    // Cambiar el texto del botón para que diga "Actualizar Clase"
     const btnCrear = document.getElementById('btnCrearClaseVirtual');
     btnCrear.textContent = '💾 Actualizar Clase';
     btnCrear.style.background = '#FF9800';
-    
-    // Guardar el ID de la clase que estamos editando
     btnCrear.setAttribute('data-edit-id', claseId);
-    
-    // Ir a la página de nueva clase
     const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') || 
                     document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
     if (menuItem) menuItem.click();
-    
-    // Cambiar el comportamiento del botón
     btnCrear.onclick = function(e) {
         e.preventDefault();
         const editId = this.getAttribute('data-edit-id');
-        if (editId) {
-            actualizarClaseVirtual(editId);
-        } else {
-            guardarClaseVirtualDocente();
-        }
+        if (editId) actualizarClaseVirtual(editId);
+        else guardarClaseVirtualDocente();
     };
 }
 
-// =====================================================
-// ACTUALIZAR CLASE VIRTUAL
-// =====================================================
-
 function actualizarClaseVirtual(claseId) {
     console.log('💾 Actualizando clase:', claseId);
-    
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser || !currentUser.username) {
-        alert('❌ No se encontró el usuario docente');
-        return;
-    }
-    
+    if (!currentUser || !currentUser.username) { alert('❌ No se encontró el usuario docente'); return; }
     const titulo = document.getElementById('docTituloClase');
     const instrumento = document.getElementById('docInstrumentoClase');
     const nivel = document.getElementById('docNivelClase');
@@ -14547,21 +14451,10 @@ function actualizarClaseVirtual(claseId) {
     const meetLink = document.getElementById('docMeetLink');
     const duracion = document.getElementById('docDuracion');
     const descripcion = document.getElementById('docDescripcionClase');
-    
-    if (!titulo || !fechaHora) {
-        alert('❌ Error: Campos del formulario no encontrados');
-        return;
-    }
-    
+    if (!titulo || !fechaHora) { alert('❌ Error: Campos del formulario no encontrados'); return; }
     const tituloVal = titulo.value.trim();
     const fechaHoraVal = fechaHora.value;
-    
-    if (!tituloVal || !fechaHoraVal) {
-        alert('❌ Completa el título y la fecha/hora de la clase.');
-        return;
-    }
-    
-    // Obtener la clase actualizada
+    if (!tituloVal || !fechaHoraVal) { alert('❌ Completa el título y la fecha/hora de la clase.'); return; }
     const claseActualizada = {
         id: claseId,
         titulo: tituloVal,
@@ -14571,17 +14464,13 @@ function actualizarClaseVirtual(claseId) {
         meetLink: meetLink ? meetLink.value.trim() : '',
         duracion: duracion ? parseInt(duracion.value) || 60 : 60,
         descripcion: descripcion ? descripcion.value : '',
-        grabacionUrl: null, // Se mantiene el valor anterior
+        grabacionUrl: null,
         creadaPor: currentUser.username,
         fechaCreacion: new Date().toISOString()
     };
-    
-    // Actualizar en localStorage
     let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const index = clases.findIndex(c => String(c.id) === String(claseId));
-    
     if (index !== -1) {
-        // Mantener la grabación existente
         claseActualizada.grabacionUrl = clases[index].grabacionUrl || null;
         clases[index] = claseActualizada;
         localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
@@ -14589,96 +14478,56 @@ function actualizarClaseVirtual(claseId) {
         alert('❌ Clase no encontrada en localStorage');
         return;
     }
-    
-    // Actualizar en Firebase
     if (window.db) {
         window.db.collection('clasesVirtuales').doc(String(claseId)).set(claseActualizada, { merge: true })
-            .then(() => {
-                console.log('☁️ Clase actualizada en Firebase');
-            })
-            .catch(e => {
-                console.error('❌ Error actualizando en Firebase:', e);
-                alert('⚠️ Error al actualizar en Firebase. Los cambios se guardaron localmente.');
-            });
+            .then(() => console.log('☁️ Clase actualizada en Firebase'))
+            .catch(e => console.error('❌ Error actualizando en Firebase:', e));
     }
-    
     alert('✅ Clase virtual actualizada correctamente');
-    
-    // Restaurar el botón a su estado original
     const btnCrear = document.getElementById('btnCrearClaseVirtual');
     btnCrear.textContent = '✅ Crear Clase';
     btnCrear.style.background = '';
     btnCrear.removeAttribute('data-edit-id');
-    btnCrear.onclick = function(e) {
-        e.preventDefault();
-        guardarClaseVirtualDocente();
-    };
-    
-    // Limpiar formulario
+    btnCrear.onclick = function(e) { e.preventDefault(); guardarClaseVirtualDocente(); };
     document.getElementById('docTituloClase').value = '';
     document.getElementById('docMeetLink').value = '';
     document.getElementById('docDescripcionClase').value = '';
     document.getElementById('docFechaHoraClase').value = '';
-    
-    // Recargar lista de clases
     iniciarClasesDocenteTiempoReal(currentUser.username);
-    
-    // Volver a la página de clases
     const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') || 
                        document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-    if (menuClases) {
-        menuClases.click();
-    }
+    if (menuClases) menuClases.click();
 }
-
-// =====================================================
-// ELIMINAR CLASE VIRTUAL
-// =====================================================
 
 function eliminarClaseVirtual(claseId) {
     console.log('🗑️ Eliminando clase:', claseId);
-    
-    if (!confirm('⚠️ ¿Estás seguro de eliminar esta clase virtual? Esta acción no se puede deshacer.')) {
-        return;
-    }
-    
-    // Eliminar de localStorage
+    if (!confirm('⚠️ ¿Estás seguro de eliminar esta clase virtual? Esta acción no se puede deshacer.')) return;
     let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const nuevaLista = clases.filter(c => String(c.id) !== String(claseId));
     localStorage.setItem('clasesVirtuales', JSON.stringify(nuevaLista));
-    
-    // Eliminar de Firebase
     if (window.db) {
         window.db.collection('clasesVirtuales').doc(String(claseId)).delete()
-            .then(() => {
-                console.log('☁️ Clase eliminada de Firebase');
-            })
-            .catch(e => {
-                console.error('❌ Error eliminando de Firebase:', e);
-                alert('⚠️ Error al eliminar de Firebase. Se eliminó localmente.');
-            });
+            .then(() => console.log('☁️ Clase eliminada de Firebase'))
+            .catch(e => console.error('❌ Error eliminando de Firebase:', e));
     }
-    
     alert('✅ Clase virtual eliminada correctamente');
-    
-    // Recargar lista
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser.username) {
-        iniciarClasesDocenteTiempoReal(currentUser.username);
-    }
+    if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
 }
-console.log("✅ Bloque 5 cargado: Panel de Docente - TIEMPO REAL COMPLETO");
+
+console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente con filtros por instrumentos (Principal y Secundario) y temarios por docente");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 6: PANEL DE ENCARGADO - TIEMPO REAL + YOUTUBE -->
+<!-- BLOQUE 6: SISTEMA DE ENCARGADOS -->
 <!-- ============================================ -->
-
 <script>
 // =====================================================
 // VARIABLES GLOBALES
 // =====================================================
 
 let encargadoEstudianteActual = null;
+let encargadoInstrumentoSeleccionado = null;
+let encargadoInstrumentosLista = [];
 let encargadoListeners = {
     selector: null,
     pagos: null,
@@ -14688,9 +14537,267 @@ let encargadoListeners = {
     temario: null,
     tareas: null,
     notas: null,
-    inscripciones: null
+    inscripciones: null,
+    temarioHistorial: null
 };
 let encargadoUserName = null;
+let encargadoTemaActual = 'principal';
+
+// =====================================================
+// FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA (ENCARGADO)
+// =====================================================
+
+function abrirMenuHamburguesa() {
+    const overlay = document.getElementById('menuHamburguesaOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function cerrarMenuHamburguesa() {
+    const overlay = document.getElementById('menuHamburguesaOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// =====================================================
+// 🔥 FUNCIÓN PARA APLICAR TEMA DE COLOR
+// =====================================================
+function aplicarTemaEncargado(color, esPrincipal) {
+    const colorPrimario = esPrincipal ? '#E63946' : '#1976D2';
+    
+    const titulo = document.querySelector('#encargadoPanel .encabezado-encargado h2');
+    if (titulo) titulo.style.color = colorPrimario;
+    
+    document.querySelectorAll('.docente-card, .clase-card, .historial-semana').forEach(el => {
+        el.style.borderLeft = `4px solid ${colorPrimario}`;
+    });
+    
+    document.querySelectorAll('.deuda-badge, .profile-level, .semana-numero').forEach(el => {
+        if (el.classList.contains('deuda-badge') || el.classList.contains('semana-numero')) {
+            el.style.backgroundColor = colorPrimario;
+            el.style.color = 'white';
+        } else if (el.classList.contains('profile-level')) {
+            el.style.backgroundColor = colorPrimario + '22';
+            el.style.color = colorPrimario;
+            el.style.border = `1px solid ${colorPrimario}`;
+        }
+    });
+    
+    document.querySelectorAll('.docente-card h3, .clase-card h4, .historial-semana .tema-titulo').forEach(el => {
+        el.style.color = colorPrimario;
+    });
+    
+    document.querySelectorAll('.detail-item .fas.fa-guitar, .detail-item .fas.fa-music').forEach(el => {
+        el.style.color = colorPrimario;
+    });
+    
+    // Menú inferior
+    const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
+    menuItems.forEach(item => {
+        if (item.classList.contains('active')) {
+            item.style.color = colorPrimario;
+            item.style.background = colorPrimario + '22';
+        } else {
+            item.style.color = '#777';
+            item.style.background = 'transparent';
+        }
+    });
+    
+    // Menú hamburguesa
+    document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item.active').forEach(el => {
+        el.style.color = colorPrimario;
+        el.style.background = colorPrimario + '22';
+    });
+    document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item').forEach(el => {
+        if (!el.classList.contains('active')) {
+            el.style.color = '#333';
+            el.style.background = 'transparent';
+        }
+    });
+    
+    document.querySelectorAll('.btn-meet, .btn-grabacion, .btn-primary-docente, .btn-temario, .btn-calificar').forEach(el => {
+        el.style.background = colorPrimario;
+    });
+    
+    let indicador = document.getElementById('indicadorInstrumento');
+    if (!indicador) {
+        indicador = document.createElement('div');
+        indicador.id = 'indicadorInstrumento';
+        indicador.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:3px; z-index:9999; transition: background 0.5s ease;';
+        document.body.prepend(indicador);
+    }
+    indicador.style.background = `linear-gradient(90deg, ${colorPrimario}, ${colorPrimario}88)`;
+    
+    encargadoTemaActual = esPrincipal ? 'principal' : 'secundario';
+}
+
+// =====================================================
+// 🔥 MODAL CAMBIAR INSTRUMENTO (sin botón "Cerrar")
+// =====================================================
+function mostrarModalCambioInstrumento() {
+    if (!encargadoInstrumentosLista || encargadoInstrumentosLista.length < 2) {
+        alert('Este estudiante solo tiene un instrumento.');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:25px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <h4 style="margin-top:0;color:#E63946;">🎸 Cambiar Instrumento</h4>
+            <p style="color:#666;font-size:0.9rem;">Selecciona el instrumento que deseas visualizar:</p>
+            <div style="display:flex;flex-direction:column;gap:10px;margin:20px 0;">
+                ${encargadoInstrumentosLista.map(instr => {
+                    const esPrincipal = instr === encargadoInstrumentosLista[0];
+                    const color = esPrincipal ? '#E63946' : '#1976D2';
+                    const selected = (instr === encargadoInstrumentoSeleccionado) ? 'border:3px solid #4CAF50; background:#f0fff0;' : '';
+                    return `
+                        <button onclick="seleccionarInstrumentoEncargado('${instr}')" 
+                            style="padding:14px;border-radius:10px;border:2px solid #ddd;background:white;cursor:pointer;font-weight:bold;color:${color};${selected}transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;">
+                            <span>${instr} ${esPrincipal ? '(Principal)' : '(Secundario)'}</span>
+                            ${instr === encargadoInstrumentoSeleccionado ? ' ✅' : ''}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) this.remove();
+    });
+}
+
+function seleccionarInstrumentoEncargado(instrumento) {
+    console.log('🔄 Instrumento seleccionado:', instrumento);
+    encargadoInstrumentoSeleccionado = instrumento;
+    
+    const modal = document.querySelector('.modal');
+    if (modal) modal.remove();
+    
+    const esPrincipal = instrumento === encargadoInstrumentosLista[0];
+    aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+    
+    if (encargadoEstudianteActual) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const estudiante = inscriptions.find(ins => ins.id == encargadoEstudianteActual);
+        if (estudiante) {
+            const estudianteModificado = {
+                ...estudiante,
+                musical: {
+                    ...estudiante.musical,
+                    instrumentoPrincipal: instrumento
+                }
+            };
+            iniciarClasesTiempoReal(estudianteModificado);
+            iniciarGrabacionesTiempoReal(estudianteModificado);
+            iniciarTemarioTiempoReal(encargadoEstudianteActual, instrumento);
+            iniciarTareasTiempoReal(encargadoEstudianteActual);
+            const pantallaActiva = document.querySelector('.pantalla.active');
+            if (pantallaActiva && pantallaActiva.id === 'pantalla-historial') {
+                cargarHistorialCompleto(encargadoEstudianteActual);
+            }
+            if (pantallaActiva && pantallaActiva.id === 'pantalla-tarea') {
+                iniciarInfoTareaTiempoReal(encargadoEstudianteActual);
+            }
+        }
+    }
+}
+
+// =====================================================
+// 🔥 EDITAR PERFIL (solo foto)
+// =====================================================
+function mostrarModalEditarPerfil() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const fotoActual = currentUser.foto || '';
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:25px;max-width:400px;width:90%;">
+            <h4 style="margin-top:0;color:#E63946;">📸 Editar Perfil</h4>
+            <div style="text-align:center;margin:15px 0;">
+                <div style="width:120px;height:120px;border-radius:50%;overflow:hidden;border:3px solid #E63946;margin:0 auto;background:#f0f0f0;display:flex;align-items:center;justify-content:center;">
+                    ${fotoActual ? `<img src="${fotoActual}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user-circle" style="font-size:80px;color:#ccc;"></i>`}
+                </div>
+                <input type="file" id="fotoPerfilInput" accept="image/*" style="display:none;">
+                <button onclick="document.getElementById('fotoPerfilInput').click()" style="margin-top:10px;padding:8px 16px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;">
+                    <i class="fas fa-camera"></i> Cambiar Foto
+                </button>
+            </div>
+            <button onclick="guardarFotoPerfil()" style="padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;width:100%;margin-top:10px;">
+                <i class="fas fa-save"></i> Guardar Foto
+            </button>
+            <button onclick="this.closest('.modal').remove()" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;width:100%;margin-top:10px;">Cerrar</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) this.remove();
+    });
+    
+    document.getElementById('fotoPerfilInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const preview = modal.querySelector('img');
+                if (preview) {
+                    preview.src = event.target.result;
+                } else {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    const container = modal.querySelector('div[style*="border-radius:50%"]');
+                    if (container) {
+                        container.innerHTML = '';
+                        container.appendChild(img);
+                    }
+                }
+                window.fotoTemporalEncargado = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function guardarFotoPerfil() {
+    const fotoData = window.fotoTemporalEncargado;
+    if (!fotoData) {
+        alert('No se ha seleccionado ninguna foto.');
+        return;
+    }
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    currentUser.foto = fotoData;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    if (window.db) {
+        window.db.collection('usuarios').doc(currentUser.username).set({ foto: fotoData }, { merge: true })
+            .then(() => {
+                alert('✅ Foto actualizada correctamente');
+                const modal = document.querySelector('.modal');
+                if (modal) modal.remove();
+                const avatar = document.querySelector('.profile-avatar img');
+                if (avatar) avatar.src = fotoData;
+            })
+            .catch(err => {
+                console.error('❌ Error al guardar foto:', err);
+                alert('❌ Error al guardar la foto');
+            });
+    } else {
+        alert('⚠️ Firebase no disponible, la foto se guardó localmente.');
+        const modal = document.querySelector('.modal');
+        if (modal) modal.remove();
+    }
+    window.fotoTemporalEncargado = null;
+}
 
 // =====================================================
 // FUNCIONES AUXILIARES
@@ -14808,7 +14915,6 @@ function renderizarMaterial(material) {
         return 'No especificado';
     }
     
-    // Si es YouTube, mostrar reproductor
     if (esVideoYouTube(material)) {
         const videoId = extraerIdYouTube(material);
         if (videoId) {
@@ -14829,7 +14935,6 @@ function renderizarMaterial(material) {
         }
     }
     
-    // Si no es YouTube, convertir enlaces normales
     return convertirTextoAEnlaces(material);
 }
 
@@ -14962,6 +15067,8 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
         const id = parseInt(this.value);
         if (id) {
             encargadoEstudianteActual = id;
+            encargadoInstrumentoSeleccionado = null;
+            encargadoInstrumentosLista = [];
             window.actualizarInfoEstudiante(id);
         }
     };
@@ -14975,7 +15082,7 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
 }
 
 // =====================================================
-// 2. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE
+// 2. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (SIN SELECTOR DE INSTRUMENTOS)
 // =====================================================
 
 window.actualizarInfoEstudiante = function(estudianteId) {
@@ -14990,12 +15097,21 @@ window.actualizarInfoEstudiante = function(estudianteId) {
                 if (doc.exists) {
                     const estudiante = { id: doc.id, ...doc.data() };
                     mostrarInfoEstudiante(estudiante);
-                    iniciarPagosTiempoReal(estudianteId);
-                    iniciarAsistenciaTiempoReal(estudianteId);
-                    iniciarClasesTiempoReal(estudiante);
-                    iniciarGrabacionesTiempoReal(estudiante);
-                    iniciarTemarioTiempoReal(estudianteId);
-                    iniciarTareasTiempoReal(estudianteId);
+                    // Guardar lista de instrumentos (para el modal)
+                    const principal = estudiante.musical?.instrumentoPrincipal || '';
+                    const secundario = estudiante.musical?.instrumentoSecundario || '';
+                    encargadoInstrumentosLista = [principal];
+                    if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+                        encargadoInstrumentosLista.push(secundario);
+                    }
+                    if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+                        encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
+                    }
+                    if (encargadoInstrumentoSeleccionado) {
+                        const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+                        aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+                    }
+                    cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
                 }
             })
             .catch(() => {
@@ -15003,12 +15119,20 @@ window.actualizarInfoEstudiante = function(estudianteId) {
                 const estudiante = inscriptions.find(ins => ins.id == estudianteId);
                 if (estudiante) {
                     mostrarInfoEstudiante(estudiante);
-                    iniciarPagosTiempoReal(estudianteId);
-                    iniciarAsistenciaTiempoReal(estudianteId);
-                    iniciarClasesTiempoReal(estudiante);
-                    iniciarGrabacionesTiempoReal(estudiante);
-                    iniciarTemarioTiempoReal(estudianteId);
-                    iniciarTareasTiempoReal(estudianteId);
+                    const principal = estudiante.musical?.instrumentoPrincipal || '';
+                    const secundario = estudiante.musical?.instrumentoSecundario || '';
+                    encargadoInstrumentosLista = [principal];
+                    if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+                        encargadoInstrumentosLista.push(secundario);
+                    }
+                    if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+                        encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
+                    }
+                    if (encargadoInstrumentoSeleccionado) {
+                        const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+                        aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+                    }
+                    cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
                 }
             });
     } else {
@@ -15016,15 +15140,49 @@ window.actualizarInfoEstudiante = function(estudianteId) {
         const estudiante = inscriptions.find(ins => ins.id == estudianteId);
         if (estudiante) {
             mostrarInfoEstudiante(estudiante);
-            iniciarPagosTiempoReal(estudianteId);
-            iniciarAsistenciaTiempoReal(estudianteId);
-            iniciarClasesTiempoReal(estudiante);
-            iniciarGrabacionesTiempoReal(estudiante);
-            iniciarTemarioTiempoReal(estudianteId);
-            iniciarTareasTiempoReal(estudianteId);
+            const principal = estudiante.musical?.instrumentoPrincipal || '';
+            const secundario = estudiante.musical?.instrumentoSecundario || '';
+            encargadoInstrumentosLista = [principal];
+            if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+                encargadoInstrumentosLista.push(secundario);
+            }
+            if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+                encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
+            }
+            if (encargadoInstrumentoSeleccionado) {
+                const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+                aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+            }
+            cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
         }
     }
 };
+
+// =====================================================
+// CARGAR DATOS DEL ENCARGADO
+// =====================================================
+function cargarDatosEncargado(estudianteId, instrumento) {
+    if (!estudianteId || !instrumento) return;
+    
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+    if (!estudiante) return;
+    
+    const estudianteModificado = {
+        ...estudiante,
+        musical: {
+            ...estudiante.musical,
+            instrumentoPrincipal: instrumento
+        }
+    };
+    
+    iniciarPagosTiempoReal(estudianteId);
+    iniciarAsistenciaTiempoReal(estudianteId);
+    iniciarClasesTiempoReal(estudianteModificado);
+    iniciarGrabacionesTiempoReal(estudianteModificado);
+    iniciarTemarioTiempoReal(estudianteId, instrumento);
+    iniciarTareasTiempoReal(estudianteId);
+}
 
 // =====================================================
 // 3. MOSTRAR INFO DEL ESTUDIANTE
@@ -15037,6 +15195,7 @@ function mostrarInfoEstudiante(estudiante) {
     const nombre = estudiante.estudiante?.nombre || 'Sin nombre';
     const nivel = estudiante.estudiante?.nivel || 'Sin nivel';
     const instrumento = estudiante.musical?.instrumentoPrincipal || 'No especificado';
+    const secundario = estudiante.musical?.instrumentoSecundario || '';
     const horario = estudiante.academico?.horario || 'No especificado';
     const dias = (estudiante.academico?.dias?.length) ? estudiante.academico.dias.join(', ') : 'No especificado';
     const encargadoNombre = estudiante.encargado?.nombre || 'No especificado';
@@ -15052,6 +15211,8 @@ function mostrarInfoEstudiante(estudiante) {
     } else {
         deudaHtml = `<div class="deuda-badge" style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin-left: 8px;">✅ Al día</div>`;
     }
+    
+    const instrSecundario = secundario && secundario !== 'Ninguno' ? `<br><small style="color:#888;">Secundario: ${secundario}</small>` : '';
     
     infoDiv.innerHTML = `
         <div class="docente-card" style="position:relative;overflow:hidden;">
@@ -15070,7 +15231,7 @@ function mostrarInfoEstudiante(estudiante) {
                 <div class="details-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
                     <div class="detail-item" style="display:flex;align-items:center;gap:10px;padding:8px;background:#f8f9fa;border-radius:8px;">
                         <i class="fas fa-guitar" style="color:#E63946;width:20px;"></i>
-                        <div><div class="label" style="font-size:0.7rem;color:#888;">Instrumento</div><div class="value" style="font-weight:600;">${instrumento}</div></div>
+                        <div><div class="label" style="font-size:0.7rem;color:#888;">Instrumento</div><div class="value" style="font-weight:600;">${instrumento}${instrSecundario}</div></div>
                     </div>
                     <div class="detail-item" style="display:flex;align-items:center;gap:10px;padding:8px;background:#f8f9fa;border-radius:8px;">
                         <i class="fas fa-clock" style="color:#E63946;width:20px;"></i>
@@ -15099,7 +15260,7 @@ function mostrarInfoEstudiante(estudiante) {
 // =====================================================
 
 function limpiarListenersEncargado() {
-    const keys = ['pagos', 'asistencia', 'clases', 'grabaciones', 'temario', 'tareas', 'notas', 'inscripciones'];
+    const keys = ['pagos', 'asistencia', 'clases', 'grabaciones', 'temario', 'tareas', 'notas', 'inscripciones', 'temarioHistorial'];
     keys.forEach(key => {
         if (encargadoListeners[key]) {
             try {
@@ -15254,7 +15415,7 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 7. CLASES VIRTUALES - TIEMPO REAL
+// 7. CLASES VIRTUALES - FILTRO POR INSTRUMENTO SELECCIONADO
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
@@ -15266,7 +15427,7 @@ function iniciarClasesTiempoReal(estudiante) {
         encargadoListeners.clases = null;
     }
     
-    const instrumento = estudiante.musical?.instrumentoPrincipal;
+    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
     
     if (!instrumento || !nivel) {
@@ -15280,11 +15441,15 @@ function iniciarClasesTiempoReal(estudiante) {
     }
     
     encargadoListeners.clases = window.db.collection('clasesVirtuales')
-        .where('instrumento', '==', instrumento)
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
             const clases = [];
-            snapshot.forEach(doc => clases.push({ id: doc.id, ...doc.data() }));
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    clases.push({ id: doc.id, ...data });
+                }
+            });
             
             let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
             clases.forEach(c => {
@@ -15303,9 +15468,7 @@ function iniciarClasesTiempoReal(estudiante) {
 
 function actualizarClasesLocal(instrumento, nivel, container) {
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const clases = todas.filter(c => 
-        c.instrumento === instrumento && c.nivel === nivel
-    );
+    const clases = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel);
     renderClases(clases, container);
 }
 
@@ -15344,7 +15507,7 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 8. GRABACIONES - TIEMPO REAL
+// 8. GRABACIONES - CON FILTRO EN CLIENTE (evita índice)
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
@@ -15356,7 +15519,7 @@ function iniciarGrabacionesTiempoReal(estudiante) {
         encargadoListeners.grabaciones = null;
     }
     
-    const instrumento = estudiante.musical?.instrumentoPrincipal;
+    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
     
     if (!instrumento || !nivel) {
@@ -15370,12 +15533,15 @@ function iniciarGrabacionesTiempoReal(estudiante) {
     }
     
     encargadoListeners.grabaciones = window.db.collection('clasesVirtuales')
-        .where('instrumento', '==', instrumento)
         .where('nivel', '==', nivel)
-        .where('grabacionUrl', '!=', null)
         .onSnapshot((snapshot) => {
             const grabaciones = [];
-            snapshot.forEach(doc => grabaciones.push({ id: doc.id, ...doc.data() }));
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento && data.grabacionUrl) {
+                    grabaciones.push({ id: doc.id, ...data });
+                }
+            });
             
             let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
             grabaciones.forEach(c => {
@@ -15394,9 +15560,7 @@ function iniciarGrabacionesTiempoReal(estudiante) {
 
 function actualizarGrabacionesLocal(instrumento, nivel, container) {
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const grabaciones = todas.filter(c => 
-        c.instrumento === instrumento && c.nivel === nivel && c.grabacionUrl
-    );
+    const grabaciones = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel && c.grabacionUrl);
     renderGrabaciones(grabaciones, container);
 }
 
@@ -15425,10 +15589,10 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 9. TEMARIO / CLASE ACTUAL - CON REPRODUCTOR YOUTUBE
+// 9. TEMARIO / CLASE ACTUAL
 // =====================================================
 
-function iniciarTemarioTiempoReal(estudianteId) {
+function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     if (!estudiante) return;
@@ -15438,7 +15602,7 @@ function iniciarTemarioTiempoReal(estudianteId) {
         encargadoListeners.temario = null;
     }
     
-    const instrumento = estudiante.musical?.instrumentoPrincipal;
+    const instrumento = instrumentoForzado || encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
     
     if (!instrumento || !nivel) {
@@ -15452,11 +15616,15 @@ function iniciarTemarioTiempoReal(estudianteId) {
     }
     
     encargadoListeners.temario = window.db.collection('temarios')
-        .where('instrumento', '==', instrumento)
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
             let temario = null;
-            snapshot.forEach(doc => temario = { id: doc.id, ...doc.data() });
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    temario = { id: doc.id, ...data };
+                }
+            });
             
             if (temario) {
                 localStorage.setItem('temarios', JSON.stringify([temario]));
@@ -15471,10 +15639,8 @@ function iniciarTemarioTiempoReal(estudianteId) {
 
 function actualizarTemarioLocal(estudianteId, instrumento, nivel) {
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const temario = temarios.find(t => 
-        t.instrumento === instrumento && t.nivel === nivel
-    );
-    renderTemario(estudianteId, temario);
+    const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
+    renderTemario(estudianteId, temario || null);
 }
 
 function renderTemario(estudianteId, temario) {
@@ -15501,7 +15667,6 @@ function renderTemario(estudianteId, temario) {
             document.getElementById('claseTema').textContent = semanaData.tema || 'Sin tema';
             document.getElementById('claseDescripcion').textContent = semanaData.descripcion || 'Sin descripción';
             
-            // 🔥 MATERIAL CON REPRODUCTOR DE YOUTUBE
             const material = semanaData.material || 'No especificado';
             const materialHtml = renderizarMaterial(material);
             document.getElementById('claseMaterial').innerHTML = materialHtml;
@@ -15518,11 +15683,11 @@ function renderTemario(estudianteId, temario) {
 }
 
 // =====================================================
-// 10. INFO TAREA - CON REPRODUCTOR YOUTUBE
+// 10. INFO TAREA
 // =====================================================
 
 function iniciarInfoTareaTiempoReal(estudianteId) {
-    iniciarTemarioTiempoReal(estudianteId);
+    iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
     
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
@@ -15540,18 +15705,14 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
     document.getElementById('tareaSemanaActual').textContent = `Semana ${semana}`;
     
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const temario = temarios.find(t => 
-        t.instrumento === estudiante.musical?.instrumentoPrincipal &&
-        t.nivel === estudiante.estudiante?.nivel
-    );
+    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
+    const nivel = estudiante.estudiante?.nivel;
+    
+    const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
     
     if (temario) {
         const semanaData = temario.semanas.find(s => s.numero === semana);
-        if (semanaData && semanaData.material) {
-          document.getElementById('tareaTemaActual').textContent = semanaData ? semanaData.tema : 'Sin tema';
-        } else {
-            document.getElementById('tareaTemaActual').textContent = semanaData ? semanaData.tema : 'Sin tema';
-        }
+        document.getElementById('tareaTemaActual').textContent = semanaData ? semanaData.tema : 'Sin tema';
     } else {
         document.getElementById('tareaTemaActual').textContent = '⚠️ Temario no disponible';
     }
@@ -15601,10 +15762,10 @@ function enviarTarea() {
         let ponderacion = 0;
         
         const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-        const temario = temarios.find(t => 
-            t.instrumento === estudiante.musical?.instrumentoPrincipal &&
-            t.nivel === estudiante.estudiante?.nivel
-        );
+        const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
+        const nivel = estudiante.estudiante?.nivel;
+        
+        const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
         if (temario) {
             const semanaData = temario.semanas.find(s => s.numero === semana);
             if (semanaData) {
@@ -15746,7 +15907,7 @@ function renderNotas(tareasEstudiante, cuerpo) {
 }
 
 // =====================================================
-// 13. NAVEGACIÓN DEL PANEL ENCARGADO
+// 13. NAVEGACIÓN DEL PANEL ENCARGADO (con eventos directos)
 // =====================================================
 
 function iniciarNavegacionEncargado() {
@@ -15754,6 +15915,11 @@ function iniciarNavegacionEncargado() {
     
     setTimeout(function() {
         const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
+        const hamburguesaItems = document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item');
+        const btnMenu = document.getElementById('btnMenuHamburguesa');
+        const cerrarMenu = document.getElementById('cerrarMenuHamburguesa');
+        const overlay = document.getElementById('menuHamburguesaOverlay');
+        
         const pantallas = {
             info: document.getElementById('pantalla-info'),
             pagos: document.getElementById('pantalla-pagos'),
@@ -15769,18 +15935,43 @@ function iniciarNavegacionEncargado() {
         function mostrarPantalla(pantallaId) {
             console.log('📱 Mostrando pantalla:', pantallaId);
             
+            // Ocultar todas las pantallas
             Object.values(pantallas).forEach(p => {
                 if (p) p.classList.remove('active');
             });
             
+            // Mostrar la seleccionada
             if (pantallas[pantallaId]) {
                 pantallas[pantallaId].classList.add('active');
             }
             
+            // Actualizar menú inferior
             menuItems.forEach(item => {
                 item.classList.remove('active');
                 if (item.getAttribute('data-pantalla') === pantallaId) {
                     item.classList.add('active');
+                    const esPrincipal = encargadoTemaActual === 'principal';
+                    const color = esPrincipal ? '#E63946' : '#1976D2';
+                    item.style.color = color;
+                    item.style.background = color + '22';
+                } else {
+                    item.style.color = '#777';
+                    item.style.background = 'transparent';
+                }
+            });
+            
+            // Actualizar menú hamburguesa
+            hamburguesaItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-pantalla') === pantallaId) {
+                    item.classList.add('active');
+                    const esPrincipal = encargadoTemaActual === 'principal';
+                    const color = esPrincipal ? '#E63946' : '#1976D2';
+                    item.style.color = color;
+                    item.style.background = color + '22';
+                } else {
+                    item.style.color = '#333';
+                    item.style.background = 'transparent';
                 }
             });
             
@@ -15788,9 +15979,8 @@ function iniciarNavegacionEncargado() {
             const select = document.getElementById('selectorEstudianteEnc');
             if (select && select.value) {
                 const estudianteId = parseInt(select.value);
-                
                 if (pantallaId === 'claseactual') {
-                    iniciarTemarioTiempoReal(estudianteId);
+                    iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
                 }
                 if (pantallaId === 'tarea') {
                     iniciarInfoTareaTiempoReal(estudianteId);
@@ -15804,68 +15994,73 @@ function iniciarNavegacionEncargado() {
             }
         }
         
-        // 🔥 REEMPLAZAR TODOS LOS BOTONES PARA EVITAR EVENTOS DUPLICADOS
-        // Botones del menú inferior
+        // Eventos del menú inferior
         menuItems.forEach(item => {
-            const newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
-            
-            newItem.addEventListener('click', function(e) {
+            item.removeEventListener('click', window._menuItemHandler);
+            window._menuItemHandler = function(e) {
                 e.preventDefault();
                 const pantalla = this.getAttribute('data-pantalla');
                 if (pantalla) {
-                    console.log('🔘 Click en menú:', pantalla);
+                    console.log('🔘 Click en menú inferior:', pantalla);
                     mostrarPantalla(pantalla);
                 }
-            });
+            };
+            item.addEventListener('click', window._menuItemHandler);
         });
         
-        // 🔥 Botones del menú hamburguesa
-        document.querySelectorAll('.menu-hamburguesa-item').forEach(item => {
-            const newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
-            
-            newItem.addEventListener('click', function() {
+        // Eventos del menú hamburguesa
+        hamburguesaItems.forEach(item => {
+            item.removeEventListener('click', window._hamburguesaHandler);
+            window._hamburguesaHandler = function(e) {
+                e.preventDefault();
                 const pantalla = this.getAttribute('data-pantalla');
-                cerrarMenuHamburguesa();
-                setTimeout(() => {
-                    if (pantalla) {
-                        console.log('🔘 Click en hamburguesa:', pantalla);
-                        mostrarPantalla(pantalla);
-                    }
-                }, 200);
-            });
+                if (pantalla === 'cambiarInstrumento') {
+                    cerrarMenuHamburguesa();
+                    setTimeout(mostrarModalCambioInstrumento, 200);
+                } else if (pantalla === 'editarPerfil') {
+                    cerrarMenuHamburguesa();
+                    setTimeout(mostrarModalEditarPerfil, 200);
+                } else {
+                    cerrarMenuHamburguesa();
+                    setTimeout(() => {
+                        if (pantalla) mostrarPantalla(pantalla);
+                    }, 200);
+                }
+            };
+            item.addEventListener('click', window._hamburguesaHandler);
         });
         
-        // 🔥 Botón de abrir menú hamburguesa
-        const btnMenu = document.getElementById('btnMenuHamburguesa');
+        // Abrir menú hamburguesa
         if (btnMenu) {
-            const newBtn = btnMenu.cloneNode(true);
-            btnMenu.parentNode.replaceChild(newBtn, btnMenu);
-            newBtn.addEventListener('click', function(e) {
+            btnMenu.removeEventListener('click', window._abrirMenu);
+            window._abrirMenu = function(e) {
                 e.stopPropagation();
-                abrirMenuHamburguesa();
-            });
+                if (overlay) overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            };
+            btnMenu.addEventListener('click', window._abrirMenu);
         }
         
-        // 🔥 Botón de cerrar menú hamburguesa
-        const cerrarMenu = document.getElementById('cerrarMenuHamburguesa');
+        // Cerrar menú hamburguesa
         if (cerrarMenu) {
-            const newBtn = cerrarMenu.cloneNode(true);
-            cerrarMenu.parentNode.replaceChild(newBtn, cerrarMenu);
-            newBtn.addEventListener('click', function() {
-                cerrarMenuHamburguesa();
-            });
+            cerrarMenu.removeEventListener('click', window._cerrarMenu);
+            window._cerrarMenu = function() {
+                if (overlay) overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            };
+            cerrarMenu.addEventListener('click', window._cerrarMenu);
         }
         
-        // 🔥 Overlay del menú hamburguesa
-        const overlay = document.getElementById('menuHamburguesaOverlay');
+        // Cerrar overlay al hacer clic fuera
         if (overlay) {
-            const newOverlay = overlay.cloneNode(true);
-            overlay.parentNode.replaceChild(newOverlay, overlay);
-            newOverlay.addEventListener('click', function(e) {
-                if (e.target === this) cerrarMenuHamburguesa();
-            });
+            overlay.removeEventListener('click', window._cerrarOverlay);
+            window._cerrarOverlay = function(e) {
+                if (e.target === this) {
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            };
+            overlay.addEventListener('click', window._cerrarOverlay);
         }
         
         // Mostrar pantalla inicial
@@ -15876,20 +16071,16 @@ function iniciarNavegacionEncargado() {
 }
 
 // =====================================================
-// 14. SWIPE PARA ENCARGADO - SOLO 5 PANTALLAS PRINCIPALES
+// 14. SWIPE PARA ENCARGADO
 // =====================================================
 
 function iniciarSwipeEncargado() {
-    console.log('🔄 Iniciando swipe en panel encargado (solo 5 principales)...');
+    console.log('🔄 Iniciando swipe en panel encargado...');
     const panel = document.getElementById('encargadoPanel');
     if (!panel) return;
     
-    let touchStartX = 0;
-    let touchEndX = 0;
-    let touchStartY = 0;
-    let touchEndY = 0;
-    
-    const pantallasConSwipe = ['info', 'pagos', 'asistencia', 'clases', 'grabaciones'];
+    let touchStartX = 0, touchEndX = 0;
+    const pantallasConSwipe = ['info', 'claseactual', 'tarea', 'notas', 'historial'];
     
     function getIndiceActual() {
         const items = document.querySelectorAll('#encargadoPanel .menu-item');
@@ -15899,21 +16090,17 @@ function iniciarSwipeEncargado() {
                 activo = item.getAttribute('data-pantalla') || 'info';
             }
         });
-        const index = pantallasConSwipe.indexOf(activo);
-        return index !== -1 ? index : -1;
+        return pantallasConSwipe.indexOf(activo) !== -1 ? pantallasConSwipe.indexOf(activo) : -1;
     }
     
     function cambiarPantalla(direccion) {
         const idx = getIndiceActual();
         if (idx === -1) return;
-        
         let nuevoIdx = idx + direccion;
         if (nuevoIdx < 0) nuevoIdx = 0;
         if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
-        
         if (nuevoIdx !== idx) {
             const nuevaPantalla = pantallasConSwipe[nuevoIdx];
-            console.log('👆 Swipe a:', nuevaPantalla);
             const items = document.querySelectorAll('#encargadoPanel .menu-item');
             items.forEach(item => {
                 if (item.getAttribute('data-pantalla') === nuevaPantalla) {
@@ -15923,85 +16110,32 @@ function iniciarSwipeEncargado() {
         }
     }
     
-    panel.removeEventListener('touchstart', window._swipeStartHandler);
-    panel.removeEventListener('touchend', window._swipeEndHandler);
+    panel.removeEventListener('touchstart', window._swipeStart);
+    panel.removeEventListener('touchend', window._swipeEnd);
     
-    window._swipeStartHandler = function(e) {
+    window._swipeStart = function(e) {
         touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
     };
-    
-    window._swipeEndHandler = function(e) {
+    window._swipeEnd = function(e) {
         touchEndX = e.changedTouches[0].screenX;
-        touchEndY = e.changedTouches[0].screenY;
-        
         const diffX = touchStartX - touchEndX;
-        const diffY = touchStartY - touchEndY;
-        
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-            if (diffX > 0) {
-                cambiarPantalla(1);
-            } else {
-                cambiarPantalla(-1);
-            }
+        if (Math.abs(diffX) > 40) {
+            if (diffX > 0) cambiarPantalla(1);
+            else cambiarPantalla(-1);
         }
     };
     
-    panel.addEventListener('touchstart', window._swipeStartHandler, { passive: true });
-    panel.addEventListener('touchend', window._swipeEndHandler, { passive: true });
-    
-    console.log('✅ Swipe activado (5 pantallas principales)');
+    panel.addEventListener('touchstart', window._swipeStart, { passive: true });
+    panel.addEventListener('touchend', window._swipeEnd, { passive: true });
+    console.log('✅ Swipe activado');
 }
+
 // =====================================================
-// 15. INICIALIZACIÓN
-// =====================================================
-
-// Nombre del archivo seleccionado
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('archivoTarea');
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            const span = document.getElementById('nombreArchivoSeleccionado');
-            if (span && this.files && this.files.length > 0) {
-                span.textContent = `📎 ${this.files[0].name}`;
-            }
-        });
-    }
-});
-
-// Inicializar cuando se carga la página
-document.addEventListener('DOMContentLoaded', function() {
-    const userType = localStorage.getItem('userType');
-    if (userType === 'encargado') {
-        setTimeout(function() {
-            iniciarNavegacionEncargado();
-            iniciarSelectorTiempoReal();
-            iniciarSwipeEncargado();
-        }, 500);
-    }
-});
-
-// Forzar inicialización cuando el panel se vuelve visible
-setInterval(function() {
-    const encargadoPanel = document.getElementById('encargadoPanel');
-    if (encargadoPanel && encargadoPanel.style.display !== 'none') {
-        const userType = localStorage.getItem('userType');
-        if (userType === 'encargado') {
-            const select = document.getElementById('selectorEstudianteEnc');
-            if (select && (select.options.length <= 1 || select.options[0]?.text?.includes('⚠️'))) {
-                iniciarSelectorTiempoReal();
-            }
-        }
-    }
-}, 5000);
-
-  // =====================================================
-// HISTORIAL COMPLETO
+// 15. HISTORIAL COMPLETO
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
     console.log('📜 Cargando historial completo para:', estudianteId);
-    
     const container = document.getElementById('historialCompletoContainer');
     if (!container) return;
     
@@ -16012,7 +16146,7 @@ function cargarHistorialCompleto(estudianteId) {
         return;
     }
     
-    const instrumento = estudiante.musical?.instrumentoPrincipal;
+    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
     
     if (!instrumento || !nivel) {
@@ -16031,16 +16165,16 @@ function cargarHistorialCompleto(estudianteId) {
     }
     
     encargadoListeners.temarioHistorial = window.db.collection('temarios')
-        .where('instrumento', '==', instrumento)
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
             let temario = null;
-            snapshot.forEach(doc => temario = { id: doc.id, ...doc.data() });
-            
-            if (temario) {
-                localStorage.setItem('temarios', JSON.stringify([temario]));
-            }
-            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    temario = { id: doc.id, ...data };
+                }
+            });
+            if (temario) localStorage.setItem('temarios', JSON.stringify([temario]));
             renderHistorialCompleto(container, temario);
         }, (error) => {
             console.error('❌ Error en listener de historial:', error);
@@ -16050,25 +16184,17 @@ function cargarHistorialCompleto(estudianteId) {
 
 function actualizarHistorialLocal(container, instrumento, nivel) {
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const temario = temarios.find(t => 
-        t.instrumento === instrumento && t.nivel === nivel
-    );
-    renderHistorialCompleto(container, temario);
+    const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
+    renderHistorialCompleto(container, temario || null);
 }
 
 function renderHistorialCompleto(container, temario) {
     if (!temario || !temario.semanas || temario.semanas.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center;padding:40px;color:#888;">
-                <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>No hay semanas disponibles en el temario.</p>
-            </div>
-        `;
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:#888;"><i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i><p>No hay semanas disponibles en el temario.</p></div>`;
         return;
     }
     
     const semanas = [...temario.semanas].sort((a, b) => a.numero - b.numero);
-    
     let html = `
         <div style="margin-bottom:15px;padding:12px;background:#f8f9fa;border-radius:8px;">
             <h4 style="margin:0;color:#E63946;">📚 ${temario.instrumento} - Nivel ${temario.nivel}</h4>
@@ -16076,10 +16202,8 @@ function renderHistorialCompleto(container, temario) {
         </div>
         <div style="max-height:500px;overflow-y:auto;padding-right:5px;">
     `;
-    
     semanas.forEach(s => {
         const materialHtml = renderizarMaterial(s.material || 'No especificado');
-        
         html += `
             <div class="historial-semana">
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
@@ -16095,59 +16219,51 @@ function renderHistorialCompleto(container, temario) {
             </div>
         `;
     });
-    
     html += `</div>`;
     container.innerHTML = html;
 }
 
 // =====================================================
-// FUNCIONES MENÚ HAMBURGUESA
+// 16. INICIALIZACIÓN
 // =====================================================
 
-function abrirMenuHamburguesa() {
-    const overlay = document.getElementById('menuHamburguesaOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function cerrarMenuHamburguesa() {
-    const overlay = document.getElementById('menuHamburguesaOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-}
-
-// Eventos del menú hamburguesa
 document.addEventListener('DOMContentLoaded', function() {
-    const overlay = document.getElementById('menuHamburguesaOverlay');
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === this) cerrarMenuHamburguesa();
+    const fileInput = document.getElementById('archivoTarea');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const span = document.getElementById('nombreArchivoSeleccionado');
+            if (span && this.files && this.files.length > 0) {
+                span.textContent = `📎 ${this.files[0].name}`;
+            }
         });
     }
-    
-    document.getElementById('cerrarMenuHamburguesa')?.addEventListener('click', cerrarMenuHamburguesa);
-    document.getElementById('btnMenuHamburguesa')?.addEventListener('click', function(e) {
-        e.stopPropagation();
-        abrirMenuHamburguesa();
-    });
-    
-    document.querySelectorAll('.menu-hamburguesa-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const pantalla = this.getAttribute('data-pantalla');
-            cerrarMenuHamburguesa();
-            setTimeout(() => {
-                const menuItem = document.querySelector(`.menu-item[data-pantalla="${pantalla}"]`);
-                if (menuItem) menuItem.click();
-            }, 200);
-        });
-    });
 });
-  
-console.log("✅ Bloque 6 cargado: Panel de Encargado - TIEMPO REAL + YOUTUBE");
+
+document.addEventListener('DOMContentLoaded', function() {
+    const userType = localStorage.getItem('userType');
+    if (userType === 'encargado') {
+        setTimeout(function() {
+            iniciarNavegacionEncargado();
+            iniciarSelectorTiempoReal();
+            iniciarSwipeEncargado();
+        }, 500);
+    }
+});
+
+setInterval(function() {
+    const encargadoPanel = document.getElementById('encargadoPanel');
+    if (encargadoPanel && encargadoPanel.style.display !== 'none') {
+        const userType = localStorage.getItem('userType');
+        if (userType === 'encargado') {
+            const select = document.getElementById('selectorEstudianteEnc');
+            if (select && (select.options.length <= 1 || select.options[0]?.text?.includes('⚠️'))) {
+                iniciarSelectorTiempoReal();
+            }
+        }
+    }
+}, 5000);
+
+console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 7: SISTEMA DE RECIBOS -->
