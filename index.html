@@ -8049,28 +8049,35 @@ body.dark-mode .acciones .btn:hover {
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
 <!-- ============================================ -->
-<!-- BLOQUE 1: SISTEMA DE USUARIOS Y LOGIN -->
+<!-- BLOQUE 1: SISTEMA DE USUARIOS Y LOGIN       -->
 <!-- ============================================ -->
+
 <script>
 // =====================================================
-// VARIABLES Y FUNCIONES DE USUARIOS
+// VARIABLES GLOBALES
 // =====================================================
-
 let systemUsers = {};
+let usuarioEditando = null;
+let modalAbierto = false;
 
+// =====================================================
+// 1. CARGAR USUARIOS
+// =====================================================
 async function cargarUsuariosYAdmin() {
     if (!window.db) return;
     try {
         const snapshot = await window.db.collection('usuarios').get();
         const usuariosFirestore = {};
-        snapshot.forEach(doc => { usuariosFirestore[doc.data().username] = doc.data(); });
-        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            usuariosFirestore[data.username] = data;
+        });
+
         if (!usuariosFirestore['admin']) {
             const adminData = {
-                id: 1,
-                tipo: 'administrador',
                 username: 'admin',
                 password: 'admin123',
+                tipo: 'administrador',
                 nombre: 'Administrador',
                 apellido: 'Principal',
                 email: 'admin@expresionmusical.com',
@@ -8081,29 +8088,47 @@ async function cargarUsuariosYAdmin() {
             };
             await window.db.collection('usuarios').doc('admin').set(adminData);
             usuariosFirestore['admin'] = adminData;
-            console.log("✅ Usuario administrador creado en Firestore");
         }
-        
+
         let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
         let unidos = { ...locales, ...usuariosFirestore };
         localStorage.setItem('systemUsers', JSON.stringify(unidos));
         window.systemUsers = unidos;
+        
+        console.log('📋 USUARIOS CARGADOS:', Object.keys(window.systemUsers));
+        Object.values(window.systemUsers).forEach(u => {
+            console.log(`  - ${u.username} (${u.tipo})`);
+        });
     } catch(e) {
         console.error("Error cargando usuarios:", e);
         const stored = localStorage.getItem('systemUsers');
-        if (stored) window.systemUsers = JSON.parse(stored);
+        window.systemUsers = stored ? JSON.parse(stored) : {
+            'admin': {
+                username: 'admin',
+                password: 'admin123',
+                tipo: 'administrador',
+                nombre: 'Administrador',
+                apellido: 'Principal',
+                email: 'admin@expresionmusical.com',
+                telefono: '',
+                estado: 'activo',
+                fechaCreacion: new Date().toISOString(),
+                notas: 'Usuario administrador por defecto'
+            }
+        };
+        localStorage.setItem('systemUsers', JSON.stringify(window.systemUsers));
     }
 }
 
-function guardarUsuarios() {
-    localStorage.setItem('systemUsers', JSON.stringify(window.systemUsers));
-}
-
+// =====================================================
+// 2. LOGIN
+// =====================================================
 function showLogin() {
     const loginScreen = document.getElementById('loginScreen');
     const secretariaScreen = document.getElementById('secretariaScreen');
     const encargadoPanel = document.getElementById('encargadoPanel');
     const docentePanel = document.getElementById('docentePanelVirtual');
+
     if (loginScreen) loginScreen.style.display = 'flex';
     if (secretariaScreen) secretariaScreen.style.display = 'none';
     if (encargadoPanel) encargadoPanel.style.display = 'none';
@@ -8113,17 +8138,17 @@ function showLogin() {
 async function hideLogin() {
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) loginScreen.style.display = 'none';
-    
-    // Ocultar todos los paneles
+
     const secretariaScreen = document.getElementById('secretariaScreen');
     const docentePanel = document.getElementById('docentePanelVirtual');
     const encargadoPanel = document.getElementById('encargadoPanel');
+
     if (secretariaScreen) secretariaScreen.style.display = 'none';
     if (docentePanel) docentePanel.style.display = 'none';
     if (encargadoPanel) encargadoPanel.style.display = 'none';
-    
+
     const userType = localStorage.getItem('userType');
-    
+
     if (userType === 'administrador' || userType === 'secretaria') {
         if (secretariaScreen) secretariaScreen.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
@@ -8134,8 +8159,7 @@ async function hideLogin() {
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = (userType === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría';
         if (typeof loadAllData === 'function') await loadAllData();
-    }
-    else if (userType === 'docente') {
+    } else if (userType === 'docente') {
         if (docentePanel) docentePanel.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
@@ -8147,8 +8171,7 @@ async function hideLogin() {
         if (typeof window.mostrarPanelDocenteVirtual === 'function') {
             window.mostrarPanelDocenteVirtual();
         }
-    }
-    else if (userType === 'encargado') {
+    } else if (userType === 'encargado') {
         if (encargadoPanel) encargadoPanel.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
         const container = document.querySelector('.secretaria-container');
@@ -8161,17 +8184,13 @@ async function hideLogin() {
             cargarSelector();
         }
     }
-      // ==========================================================
-    // Iniciar panel de tablet después del login si es secretaria
-    // ==========================================================
+
     const userTypeFinal = localStorage.getItem('userType');
     if (userTypeFinal === 'secretaria') {
         setTimeout(function() {
             if (typeof iniciarPeerPC === 'function') {
                 iniciarPeerPC();
                 console.log('✅ Panel de tablet iniciado desde login');
-            } else {
-                console.warn('⚠️ iniciarPeerPC no está definida en hideLogin');
             }
         }, 500);
     }
@@ -8189,24 +8208,26 @@ function checkLoginStatus() {
 
 async function handleLoginSubmit(e) {
     e.preventDefault();
+
     const userType = document.getElementById('userType').value;
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorElem = document.getElementById('loginError');
-    
+
     if (!userType) {
         errorElem.textContent = "Seleccione un tipo de usuario";
         errorElem.style.display = 'block';
         return;
     }
-    
+
     let espera = 0;
     while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 50) {
         await new Promise(r => setTimeout(r, 100));
         espera++;
     }
-    
+
     const usuario = (window.systemUsers || {})[username];
+
     if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
         errorElem.style.display = 'none';
         localStorage.setItem('currentUser', JSON.stringify(usuario));
@@ -8234,103 +8255,45 @@ function cerrarSesion() {
     document.getElementById('loginError').style.display = 'none';
 }
 
-// Asignar eventos
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLoginSubmit);
+// =====================================================
+// 3. CERRAR MODAL DE USUARIO
+// =====================================================
+function cerrarModalUsuario() {
+    console.log('🔴 Cerrando modal de usuario');
+    const modal = document.getElementById('usuarioModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    modalAbierto = false;
+    usuarioEditando = null;
+    
+    document.getElementById('usuarioId').value = '';
+    document.getElementById('usuarioUsername').value = '';
+    document.getElementById('usuarioUsername').disabled = false;
+    document.getElementById('usuarioPassword').value = '';
+    document.getElementById('usuarioConfirmarPassword').value = '';
+    document.getElementById('usuarioNombre').value = '';
+    document.getElementById('usuarioApellido').value = '';
+    document.getElementById('usuarioEmail').value = '';
+    document.getElementById('usuarioTelefono').value = '';
+    document.getElementById('usuarioNotas').value = '';
+    document.getElementById('usuarioEstado').value = 'activo';
+    
+    const instrumentosSelect = document.getElementById('usuarioInstrumentos');
+    if (instrumentosSelect) {
+        Array.from(instrumentosSelect.options).forEach(opt => opt.selected = false);
     }
     
-    ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', cerrarSesion);
-        }
-    });
-    
-    cargarUsuariosYAdmin().then(() => {
-        checkLoginStatus();
-    });
-});
-
-// Función para cargar tabla de usuarios (desde el panel de secretaría)
-function cargarTablaUsuarios() {
-    console.log('🔄 Cargando tabla de usuarios...');
-    
-    const tbody = document.querySelector('#usuariosTable tbody');
-    if (!tbody) {
-        console.warn('⚠️ Tbody no encontrado');
-        return;
-    }
-    
-    // Obtener tipo de usuario actual
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const userType = currentUser.tipo || localStorage.getItem('userType') || '';
-    console.log('👤 Usuario actual:', userType);
-    
-    // Asegurar que tenemos los usuarios
-    if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
-        const stored = localStorage.getItem('systemUsers');
-        window.systemUsers = stored ? JSON.parse(stored) : {};
-    }
-    
-    const usuarios = window.systemUsers || {};
-    console.log('👥 Usuarios totales:', Object.keys(usuarios).length);
-    
-    // 🔥 FILTRAR según el tipo de usuario
-    let usuariosFiltrados = Object.values(usuarios);
-    
-    if (userType === 'secretaria') {
-        // Secretaria SOLO ve encargados
-        usuariosFiltrados = usuariosFiltrados.filter(u => u.tipo === 'encargado');
-        console.log('👥 Secretaria - Solo encargados:', usuariosFiltrados.length);
-    } else if (userType === 'administrador') {
-        // Administrador ve todos (administradores, docentes, encargados)
-        usuariosFiltrados = usuariosFiltrados.filter(u => u.tipo !== 'administrador' || u.username === 'admin');
-        console.log('👥 Administrador - Todos:', usuariosFiltrados.length);
-    }
-    
-    tbody.innerHTML = '';
-    
-    if (usuariosFiltrados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay usuarios disponibles</td></tr>';
-        return;
-    }
-    
-    usuariosFiltrados.forEach(usuario => {
-        if (!usuario || !usuario.username) return;
-        
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-            <td>${usuario.id || '-'}</td>
-            <td>${usuario.tipo || '-'}</td>
-            <td>${usuario.username || '-'}</td>
-            <td>${usuario.nombre || ''} ${usuario.apellido || ''}</td>
-            <td>${usuario.email || '-'}</td>
-            <td><span class="user-status status-${usuario.estado || 'inactivo'}">${usuario.estado || 'inactivo'}</span></td>
-            <td>
-                <button class="action-btn edit-btn" onclick="abrirModalEditarUsuario('${usuario.username}')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn delete-btn" onclick="eliminarUsuario('${usuario.username}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(fila);
-    });
-    
-    console.log('✅ Tabla de usuarios cargada');
+    document.getElementById('instrumentos-group').style.display = 'none';
+    document.getElementById('estudiantes-vinculacion').style.display = 'none';
 }
 
- // =====================================================
-// 🔥 GUARDAR USUARIO (NUEVO O EDICIÓN)
 // =====================================================
-
+// 4. GUARDAR USUARIO
+// =====================================================
 function guardarUsuario() {
     console.log('💾 Guardando usuario...');
-    
-    // Obtener valores con validación
+
     const username = document.getElementById('usuarioUsername')?.value?.trim() || '';
     const password = document.getElementById('usuarioPassword')?.value || '';
     const confirmPassword = document.getElementById('usuarioConfirmarPassword')?.value || '';
@@ -8341,31 +8304,24 @@ function guardarUsuario() {
     const email = document.getElementById('usuarioEmail')?.value?.trim() || '';
     const telefono = document.getElementById('usuarioTelefono')?.value?.trim() || '';
     const notas = document.getElementById('usuarioNotas')?.value?.trim() || '';
+    
     const esEdicion = document.getElementById('usuarioId')?.value !== '';
-    
-    // 🔥 VALIDACIONES CORREGIDAS
-    if (!username) {
-        alert('⚠️ El nombre de usuario es obligatorio');
-        return;
+    const usernameOriginal = document.getElementById('usuarioId')?.value || '';
+
+    if (!username) { alert('⚠️ El nombre de usuario es obligatorio'); return; }
+    if (!password) { alert('⚠️ La contraseña es obligatoria'); return; }
+    if (!tipo) { alert('⚠️ El tipo de usuario es obligatorio'); return; }
+    if (!nombre) { alert('⚠️ El nombre es obligatorio'); return; }
+    if (password !== confirmPassword) { alert('⚠️ Las contraseñas no coinciden'); return; }
+
+    if (!esEdicion) {
+        const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+        if (usuarios[username]) {
+            alert('⚠️ El nombre de usuario ya existe. Por favor elige otro.');
+            return;
+        }
     }
-    if (!password) {
-        alert('⚠️ La contraseña es obligatoria');
-        return;
-    }
-    if (!tipo) {
-        alert('⚠️ El tipo de usuario es obligatorio');
-        return;
-    }
-    if (!nombre) {
-        alert('⚠️ El nombre es obligatorio');
-        return;
-    }
-    if (password !== confirmPassword) {
-        alert('⚠️ Las contraseñas no coinciden');
-        return;
-    }
-    
-    // 🔥 Obtener instrumentos (solo para docentes)
+
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     let instrumentos = [];
     if (instrumentosSelect && tipo === 'docente') {
@@ -8375,8 +8331,7 @@ function guardarUsuario() {
             return;
         }
     }
-    
-    // 🔥 Obtener estudiantes vinculados (solo para encargados)
+
     const estudiantesIds = [];
     if (tipo === 'encargado') {
         const checkboxes = document.querySelectorAll('#listaEstudiantesParaEncargado input[type="checkbox"]:checked');
@@ -8388,9 +8343,8 @@ function guardarUsuario() {
             return;
         }
     }
-    
+
     const usuarioData = {
-        id: esEdicion ? document.getElementById('usuarioId').value : Date.now(),
         username: username,
         password: password,
         tipo: tipo,
@@ -8402,77 +8356,68 @@ function guardarUsuario() {
         notas: notas || '',
         instrumentos: instrumentos,
         estudiantesIds: estudiantesIds,
-        fechaCreacion: esEdicion ? null : new Date().toISOString(),
         fechaActualizacion: new Date().toISOString()
     };
-    
-    // Guardar en localStorage
+
+    if (!esEdicion) {
+        usuarioData.fechaCreacion = new Date().toISOString();
+    }
+
     let usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+    
+    if (esEdicion && usernameOriginal !== username) {
+        delete usuarios[usernameOriginal];
+    }
+    
     usuarios[username] = usuarioData;
     localStorage.setItem('systemUsers', JSON.stringify(usuarios));
     window.systemUsers = usuarios;
-    
-    // Guardar en Firebase
+
     if (window.db) {
         window.db.collection('usuarios').doc(username).set(usuarioData)
-            .then(() => console.log('☁️ Usuario guardado en Firebase'))
-            .catch(e => console.error('❌ Error:', e));
+            .catch(e => console.error('❌ Error en Firebase:', e));
     }
-    
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.username === username) {
+        localStorage.setItem('currentUser', JSON.stringify(usuarioData));
+    }
+
     alert(esEdicion ? '✅ Usuario actualizado correctamente' : '✅ Usuario creado correctamente');
-    
-    // Cerrar modal
-    document.getElementById('usuarioModal').style.display = 'none';
-    
-    // Recargar tabla
+
+    cerrarModalUsuario();
     cargarTablaUsuarios();
 }
-// =====================================================
-// 🔥 GENERAR CONTRASEÑA PARA USUARIO
-// =====================================================
 
-function generarPasswordUsuario() {
-    const pass = generateRandomPassword(10);
-    document.getElementById('usuarioPassword').value = pass;
-    document.getElementById('usuarioConfirmarPassword').value = pass;
-}
-
-function generateRandomPassword(length = 10) {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let password = "";
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * charset.length);
-        password += charset[randomIndex];
-    }
-    return password;
-}
-  // =====================================================
-// 🔥 ABRIR MODAL PARA EDITAR USUARIO
+// =====================================================
+// 5. ABRIR MODAL PARA EDITAR USUARIO
 // =====================================================
 function abrirModalEditarUsuario(username) {
-    console.log('✏️ Editando usuario:', username);
+    console.log('✏️ ABRIENDO EDICIÓN para:', username);
     
-    // Obtener usuario
+    if (modalAbierto) {
+        cerrarModalUsuario();
+        setTimeout(() => {
+            abrirModalEditarUsuario(username);
+        }, 200);
+        return;
+    }
+    
     const usuarios = window.systemUsers || JSON.parse(localStorage.getItem('systemUsers') || '{}');
     const usuario = usuarios[username];
-    
+
     if (!usuario) {
         alert('❌ Usuario no encontrado');
         return;
     }
-    
-    console.log('📝 Datos del usuario:', usuario);
-    
-    // 🔥 1. CARGAR TIPOS DE USUARIO
+
     cargarTiposUsuario();
-    
-    // 🔥 2. LLENAR EL FORMULARIO
-    document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+
+    document.getElementById('usuarioModalTitle').textContent = '✏️ Editar Usuario';
     document.getElementById('usuarioId').value = usuario.username;
     document.getElementById('usuarioUsername').value = usuario.username;
     document.getElementById('usuarioUsername').disabled = true;
-    
-    // 🔥 3. SELECCIONAR EL TIPO DE USUARIO CORRECTO
+
     const tipoSelect = document.getElementById('usuarioTipo');
     if (tipoSelect) {
         let encontrado = false;
@@ -8484,7 +8429,6 @@ function abrirModalEditarUsuario(username) {
             }
         }
         if (!encontrado) {
-            // Si el tipo no existe, agregarlo temporalmente
             const option = document.createElement('option');
             option.value = usuario.tipo;
             option.textContent = usuario.tipo.charAt(0).toUpperCase() + usuario.tipo.slice(1);
@@ -8492,8 +8436,7 @@ function abrirModalEditarUsuario(username) {
             tipoSelect.value = usuario.tipo;
         }
     }
-    
-    // 🔥 4. CARGAR EL RESTO DE LOS CAMPOS
+
     document.getElementById('usuarioEstado').value = usuario.estado || 'activo';
     document.getElementById('usuarioPassword').value = usuario.password || '';
     document.getElementById('usuarioConfirmarPassword').value = usuario.password || '';
@@ -8502,112 +8445,85 @@ function abrirModalEditarUsuario(username) {
     document.getElementById('usuarioEmail').value = usuario.email || '';
     document.getElementById('usuarioTelefono').value = usuario.telefono || '';
     document.getElementById('usuarioNotas').value = usuario.notas || '';
-    
-    // 🔥 5. INSTRUMENTOS (si es docente)
+
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect && usuario.instrumentos) {
         Array.from(instrumentosSelect.options).forEach(opt => {
             opt.selected = usuario.instrumentos.includes(opt.value);
         });
     }
-    
-    // 🔥 6. ESTUDIANTES VINCULADOS (si es encargado)
+
     const estudiantesDiv = document.getElementById('estudiantes-vinculacion');
     if (estudiantesDiv && usuario.tipo === 'encargado') {
         estudiantesDiv.style.display = 'block';
-        if (typeof cargarEstudiantesParaEncargado === 'function') {
-            cargarEstudiantesParaEncargado(usuario.estudiantesIds || []);
-        }
+        cargarEstudiantesParaEncargado(usuario.estudiantesIds || []);
     } else if (estudiantesDiv) {
         estudiantesDiv.style.display = 'none';
     }
-    
-    // 🔥 7. MOSTRAR/OCULTAR INSTRUMENTOS
+
     const instrumentosGroup = document.getElementById('instrumentos-group');
     if (instrumentosGroup) {
         instrumentosGroup.style.display = usuario.tipo === 'docente' ? 'block' : 'none';
     }
-    
-    // 🔥 8. HABILITAR SELECT DE TIPO SEGÚN ROL
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (tipoSelect) {
         if (currentUser.tipo === 'administrador') {
-            tipoSelect.disabled = false;  // Admin puede cambiar el tipo
+            tipoSelect.disabled = false;
         } else {
-            tipoSelect.disabled = true;   // Secretaria NO puede cambiar el tipo
+            tipoSelect.disabled = true;
         }
     }
-    
-    // Mostrar el modal
+
     document.getElementById('usuarioModal').style.display = 'block';
+    modalAbierto = true;
+    usuarioEditando = username;
     console.log('✅ Modal de edición abierto para:', username);
 }
 
 // =====================================================
-// 🔥 CARGAR ESTUDIANTES PARA ENCARGADO
+// 6. ELIMINAR USUARIO
 // =====================================================
+function eliminarUsuario(username) {
+    if (!confirm(`¿Eliminar usuario "${username}"?`)) return;
 
-function cargarEstudiantesParaEncargado(estudiantesSeleccionados = []) {
-    const container = document.getElementById('listaEstudiantesParaEncargado');
-    if (!container) return;
-    
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    
-    if (inscriptions.length === 0) {
-        container.innerHTML = '<p style="color:#666;">No hay estudiantes registrados</p>';
+    if (username === 'admin') {
+        alert('❌ No se puede eliminar el usuario administrador principal');
         return;
     }
-    
-    let html = '';
-    inscriptions.forEach(ins => {
-        const checked = estudiantesSeleccionados.includes(String(ins.id)) ? 'checked' : '';
-        html += `
-            <div style="display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #eee;">
-                <input type="checkbox" id="est_${ins.id}" value="${ins.id}" ${checked}>
-                <label for="est_${ins.id}">${ins.estudiante.nombre} (${ins.musical.instrumentoPrincipal})</label>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-  
-function eliminarUsuario(username) {
-    if (!confirm(`¿Eliminar usuario ${username}?`)) return;
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.username === username) {
+        alert('❌ No puedes eliminar tu propio usuario');
+        return;
+    }
+
     delete window.systemUsers[username];
     localStorage.setItem('systemUsers', JSON.stringify(window.systemUsers));
+
     if (window.db) {
-        window.db.collection('usuarios').doc(username).delete().catch(console.error);
+        window.db.collection('usuarios').doc(username).delete()
+            .catch(e => console.error('❌ Error eliminando de Firebase:', e));
     }
+
     cargarTablaUsuarios();
-    showToast('Usuario eliminado', 'success');
+    showToast('Usuario eliminado correctamente', 'success');
 }
 
-  // =====================================================
-// 🔥 CARGAR TIPOS DE USUARIO SEGÚN ROL
 // =====================================================
-
+// 7. CARGAR TIPOS DE USUARIO - CORREGIDO
+// =====================================================
 function cargarTiposUsuario() {
     const select = document.getElementById('usuarioTipo');
     if (!select) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userType = currentUser.tipo || localStorage.getItem('userType') || '';
-    
-    // Limpiar select
+
     select.innerHTML = '';
-    
-    if (userType === 'secretaria') {
-        // 🔥 SECRETARIA: ENCARGADO FIJO
-        const option = document.createElement('option');
-        option.value = 'encargado';
-        option.textContent = 'Encargado';
-        option.selected = true;
-        select.appendChild(option);
-        select.disabled = true;
-        console.log('✅ Secretaria - Encargado (fijo)');
-        
-    } else if (userType === 'administrador') {
-        // 🔥 ADMINISTRADOR: TODOS LOS TIPOS (excepto administrador)
+
+    if (userType === 'administrador') {
+        // ADMIN: Puede crear TODOS los tipos
         const opciones = [
             { value: 'secretaria', text: 'Secretaría' },
             { value: 'docente', text: 'Docente' },
@@ -8620,10 +8536,22 @@ function cargarTiposUsuario() {
             select.appendChild(option);
         });
         select.disabled = false;
-        console.log('✅ Administrador - Todos los tipos');
-        
+        console.log('🔓 Administrador - Puede crear TODOS los tipos');
+    } else if (userType === 'secretaria') {
+        // 🔥 SECRETARIA: Puede crear DOCENTES y ENCARGADOS
+        const opciones = [
+            { value: 'docente', text: 'Docente' },
+            { value: 'encargado', text: 'Encargado' }
+        ];
+        opciones.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            select.appendChild(option);
+        });
+        select.disabled = false;
+        console.log('🔓 Secretaria - Puede crear DOCENTES y ENCARGADOS');
     } else {
-        // Sin permisos
         const option = document.createElement('option');
         option.value = '';
         option.textContent = 'Sin permisos';
@@ -8633,110 +8561,259 @@ function cargarTiposUsuario() {
 }
 
 // =====================================================
-// 🔥 MOSTRAR MODAL DE USUARIO
+// 8. CARGAR ESTUDIANTES PARA ENCARGADO
 // =====================================================
+function cargarEstudiantesParaEncargado(estudiantesSeleccionados = []) {
+    const container = document.getElementById('listaEstudiantesParaEncargado');
+    if (!container) return;
 
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    if (inscriptions.length === 0) {
+        container.innerHTML = '<p style="color:#666;">No hay estudiantes registrados</p>';
+        return;
+    }
+
+    let html = '';
+    inscriptions.forEach(ins => {
+        const idStr = String(ins.id);
+        const checked = estudiantesSeleccionados.some(id => String(id) === idStr) ? 'checked' : '';
+        html += `
+            <div style="display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #eee;">
+                <input type="checkbox" id="est_${idStr}" value="${idStr}" ${checked}>
+                <label for="est_${idStr}">${ins.estudiante?.nombre || 'Sin nombre'} (${ins.musical?.instrumentoPrincipal || 'Sin instrumento'})</label>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// =====================================================
+// 9. MOSTRAR MODAL DE USUARIO
+// =====================================================
 function mostrarModalUsuario() {
     console.log('➕ Nuevo usuario');
     
-    // Limpiar formulario
-    document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+    if (modalAbierto) {
+        cerrarModalUsuario();
+        setTimeout(() => {
+            mostrarModalUsuario();
+        }, 200);
+        return;
+    }
+
+    document.getElementById('usuarioModalTitle').textContent = '➕ Nuevo Usuario';
     document.getElementById('usuarioId').value = '';
     document.getElementById('usuarioUsername').value = '';
     document.getElementById('usuarioUsername').disabled = false;
     document.getElementById('usuarioPassword').value = '';
     document.getElementById('usuarioConfirmarPassword').value = '';
-    document.getElementById('usuarioTipo').value = '';
     document.getElementById('usuarioEstado').value = 'activo';
     document.getElementById('usuarioNombre').value = '';
     document.getElementById('usuarioApellido').value = '';
     document.getElementById('usuarioEmail').value = '';
     document.getElementById('usuarioTelefono').value = '';
     document.getElementById('usuarioNotas').value = '';
-    
-    // Limpiar instrumentos
+
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect) {
         Array.from(instrumentosSelect.options).forEach(opt => opt.selected = false);
     }
-    
-    // Ocultar secciones
+
     document.getElementById('instrumentos-group').style.display = 'none';
     document.getElementById('estudiantes-vinculacion').style.display = 'none';
-    
-    // Generar contraseña
+
     const pass = generateRandomPassword(10);
     document.getElementById('usuarioPassword').value = pass;
     document.getElementById('usuarioConfirmarPassword').value = pass;
-    
-    // 🔥 CARGAR TIPOS DE USUARIO
+
     cargarTiposUsuario();
-    
-    // Mostrar modal
     document.getElementById('usuarioModal').style.display = 'block';
+    modalAbierto = true;
 }
 
 // =====================================================
-// 🔥 CARGAR TABLA DE USUARIOS (FILTRADA POR ROL)
+// 10. GENERAR CONTRASEÑA
 // =====================================================
+function generateRandomPassword(length = 10) {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * charset.length);
+        password += charset[randomIndex];
+    }
+    return password;
+}
 
+function generarPasswordUsuario() {
+    const pass = generateRandomPassword(10);
+    document.getElementById('usuarioPassword').value = pass;
+    document.getElementById('usuarioConfirmarPassword').value = pass;
+}
+
+// =====================================================
+// 11. CARGAR TABLA DE USUARIOS - CORREGIDO
+// =====================================================
 function cargarTablaUsuarios() {
     console.log('🔄 Cargando tabla de usuarios...');
-    
+
     const tbody = document.querySelector('#usuariosTable tbody');
-    if (!tbody) return;
-    
+    if (!tbody) {
+        console.warn('⚠️ Tbody no encontrado');
+        return;
+    }
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userType = currentUser.tipo || localStorage.getItem('userType') || '';
+
+    if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
+        const stored = localStorage.getItem('systemUsers');
+        window.systemUsers = stored ? JSON.parse(stored) : {};
+    }
+
+    const usuarios = window.systemUsers || {};
     
-    const usuarios = window.systemUsers || JSON.parse(localStorage.getItem('systemUsers') || '{}');
-    let usuariosLista = Object.values(usuarios);
+    let usuariosFiltrados = Object.values(usuarios);
     
-    // 🔥 FILTRAR SEGÚN ROL
+    // 🔥 FILTROS CORREGIDOS
     if (userType === 'secretaria') {
-        // Secretaria SOLO ve encargados
-        usuariosLista = usuariosLista.filter(u => u.tipo === 'encargado');
-        console.log('🔍 Secretaria - Mostrando solo encargados');
+        // 🔥 SECRETARIA: Ve DOCENTES + ENCARGADOS (NO ve secretarias ni administradores)
+        usuariosFiltrados = usuariosFiltrados.filter(u => 
+            u.tipo === 'docente' || u.tipo === 'encargado'
+        );
+        console.log('🔍 Secretaria - Mostrando DOCENTES y ENCARGADOS');
     } else if (userType === 'administrador') {
-        // Administrador ve todos EXCEPTO administradores
-        usuariosLista = usuariosLista.filter(u => u.tipo !== 'administrador');
-        console.log('🔍 Administrador - Mostrando todos excepto admins');
+        // 🔥 ADMIN: Ve TODOS los usuarios (SIN NINGÚN FILTRO)
+        usuariosFiltrados = usuariosFiltrados;
+        console.log('🔍 Administrador - Mostrando TODOS los usuarios');
+    } else {
+        usuariosFiltrados = [];
+        console.log('🔍 Otro rol - Sin acceso a gestión de usuarios');
+    }
+
+    // 🔥 ORDEN
+    let ordenTipos = [];
+    if (userType === 'secretaria') {
+        ordenTipos = ['docente', 'encargado'];
+    } else {
+        ordenTipos = ['administrador', 'secretaria', 'docente', 'encargado'];
     }
     
+    usuariosFiltrados.sort((a, b) => {
+        const indexA = ordenTipos.indexOf(a.tipo);
+        const indexB = ordenTipos.indexOf(b.tipo);
+        return indexA - indexB;
+    });
+
     tbody.innerHTML = '';
-    
-    if (usuariosLista.length === 0) {
+
+    if (usuariosFiltrados.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay usuarios disponibles</td></tr>';
         return;
     }
-    
-    usuariosLista.forEach(usuario => {
+
+    let contador = 1;
+    usuariosFiltrados.forEach(usuario => {
         if (!usuario || !usuario.username) return;
-        
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-            <td>${usuario.id || '-'}</td>
-            <td>${usuario.tipo || '-'}</td>
-            <td>${usuario.username || '-'}</td>
-            <td>${usuario.nombre || ''} ${usuario.apellido || ''}</td>
-            <td>${usuario.email || '-'}</td>
-            <td><span class="user-status status-${usuario.estado || 'inactivo'}">${usuario.estado || 'inactivo'}</span></td>
-            <td>
-                <button class="action-btn edit-btn" onclick="abrirModalEditarUsuario('${usuario.username}')">
+
+        const esAdminActual = usuario.username === currentUser.username && usuario.tipo === 'administrador';
+        const badgeAdmin = esAdminActual ? ' 👑 (Tú)' : '';
+
+        let colorTipo = '';
+        switch(usuario.tipo) {
+            case 'administrador': colorTipo = '#E63946'; break;
+            case 'secretaria': colorTipo = '#1976D2'; break;
+            case 'docente': colorTipo = '#2E7D32'; break;
+            case 'encargado': colorTipo = '#FF9800'; break;
+            default: colorTipo = '#666';
+        }
+
+        // 🔥 BOTONES SEGÚN ROL
+        let botonesHTML = '';
+        if (usuario.username === 'admin') {
+            botonesHTML = '<span style="color:#999;font-size:0.7rem;">🔒 Protegido</span>';
+        } else if (userType === 'administrador') {
+            // ADMIN: puede editar y eliminar TODOS
+            botonesHTML = `
+                <button class="action-btn edit-btn" data-username="${usuario.username}">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="action-btn delete-btn" onclick="eliminarUsuario('${usuario.username}')">
+                <button class="action-btn delete-btn" data-username="${usuario.username}">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
+            `;
+        } else if (userType === 'secretaria') {
+            // SECRETARIA: puede editar y eliminar DOCENTES y ENCARGADOS
+            if (usuario.tipo === 'docente' || usuario.tipo === 'encargado') {
+                botonesHTML = `
+                    <button class="action-btn edit-btn" data-username="${usuario.username}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn delete-btn" data-username="${usuario.username}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            } else {
+                botonesHTML = '<span style="color:#999;font-size:0.7rem;">🔒 Sin permisos</span>';
+            }
+        } else {
+            botonesHTML = '<span style="color:#999;font-size:0.7rem;">🔒 Sin permisos</span>';
+        }
+
+        const fila = document.createElement('tr');
+        fila.setAttribute('data-username', usuario.username);
+        fila.innerHTML = `
+            <td>${contador}</td>
+            <td><span style="font-weight:600; color:${colorTipo};">${usuario.tipo || '-'}</span></td>
+            <td>${usuario.username || '-'}</td>
+            <td>${usuario.nombre || ''} ${usuario.apellido || ''}${badgeAdmin}</td>
+            <td>${usuario.email || '-'}</td>
+            <td><span class="user-status status-${usuario.estado || 'inactivo'}">${usuario.estado || 'inactivo'}</span></td>
+            <td>${botonesHTML}</td>
         `;
         tbody.appendChild(fila);
+        contador++;
     });
-}
-  // =====================================================
-// CONEXIÓN CON TABLET (PEERJS) - VERSIÓN COMPLETA CORREGIDA
-// =====================================================
 
+    // Delegación de eventos para botones
+    if (window._usuarioTableHandler) {
+        tbody.removeEventListener('click', window._usuarioTableHandler);
+        window._usuarioTableHandler = null;
+    }
+
+    window._usuarioTableHandler = function(e) {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        if (target.classList.contains('edit-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const username = target.getAttribute('data-username');
+            if (username) {
+                console.log('✏️ Editando usuario:', username);
+                abrirModalEditarUsuario(username);
+            }
+        }
+
+        if (target.classList.contains('delete-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const username = target.getAttribute('data-username');
+            if (username) {
+                console.log('🗑️ Eliminando usuario:', username);
+                eliminarUsuario(username);
+            }
+        }
+    };
+
+    tbody.addEventListener('click', window._usuarioTableHandler);
+    console.log('✅ Tabla de usuarios cargada - Total:', usuariosFiltrados.length);
+}
+
+// =====================================================
+// 12. CONEXIÓN CON TABLET (PEERJS)
+// =====================================================
 let peerPC = null;
 let connTablet = null;
 let peerIdGenerado = null;
@@ -8757,23 +8834,26 @@ function iniciarPeerPC() {
 
     try {
         peerPC = new Peer(peerIdGenerado);
+        
         peerPC.on('open', function(id) {
             console.log('✅ PC conectada con ID:', id);
             actualizarEstadoPanel('ready', 'Esperando tablet...');
         });
+
         peerPC.on('connection', function(connection) {
             connTablet = connection;
             tabletConectada = true;
             console.log('📱 Tablet conectada');
             actualizarEstadoPanel('connected', 'Tablet conectada');
             if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
-
+            
             connTablet.on('data', function(data) {
                 console.log('📦 Datos recibidos:', data);
                 if (typeof procesarAsistenciaDesdeTablet === 'function') {
                     procesarAsistenciaDesdeTablet(data);
                 }
             });
+            
             connTablet.on('close', function() {
                 console.log('📱 Tablet desconectada');
                 tabletConectada = false;
@@ -8781,11 +8861,13 @@ function iniciarPeerPC() {
                 if (typeof showToast === 'function') showToast('📱 Tablet desconectada', 'warning');
                 connTablet = null;
             });
+            
             connTablet.on('error', function(err) {
                 console.error('Error en conexión:', err);
                 if (connTablet) connTablet.close();
             });
         });
+
         peerPC.on('error', function(error) {
             console.error('❌ Error PeerJS:', error);
             actualizarEstadoPanel('error', 'Error de conexión');
@@ -8809,9 +8891,11 @@ function limpiarConexionTablet() {
 
 function crearPanelConexion() {
     if (document.getElementById('tabletConnectionPanel')) return;
+
     const panel = document.createElement('div');
     panel.id = 'tabletConnectionPanel';
     panel.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999;';
+
     panel.innerHTML = `
         <div id="panelExpanded" style="background: #333; color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-family: monospace; width: 280px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -8835,12 +8919,14 @@ function crearPanelConexion() {
             <span style="font-size: 14px;">Tablet conectada</span>
         </div>
     `;
+
     document.body.appendChild(panel);
 
     document.getElementById('minimizeBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         minimizarPanel();
     });
+
     document.getElementById('panelMinimized').addEventListener('click', function() {
         expandirPanel();
     });
@@ -8852,6 +8938,7 @@ function actualizarEstadoPanel(estado, mensaje) {
     const text = document.getElementById('statusText');
     const panelExpanded = document.getElementById('panelExpanded');
     const panelMinimized = document.getElementById('panelMinimized');
+
     if (!dot || !text || !panelExpanded || !panelMinimized) return;
 
     switch(estado) {
@@ -8914,13 +9001,11 @@ function procesarAsistenciaDesdeTablet(datos) {
         let nombre = datos.nombre || datos.estudiante;
         let estudiante = null;
 
-        // Buscar por ID
         if (id) {
             const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             estudiante = inscriptions.find(ins => ins.id == id);
         }
 
-        // Buscar por nombre
         if (!estudiante && nombre) {
             const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             estudiante = inscriptions.find(ins => ins.estudiante.nombre.toLowerCase().includes(nombre.toLowerCase()));
@@ -8946,6 +9031,7 @@ function procesarAsistenciaDesdeTablet(datos) {
         }
 
         let estado = 'presente';
+
         if (estudiante.academico) {
             const diasEstudio = estudiante.academico.dias || [];
             const horarioEstudio = estudiante.academico.horario || '';
@@ -8983,6 +9069,7 @@ function procesarAsistenciaDesdeTablet(datos) {
             observaciones: estado === 'reposicion' ? 'Registrado fuera de horario' : '',
             timestamp: new Date().toISOString()
         };
+
         historial.push(nuevoRegistro);
         localStorage.setItem('historialAsistencia', JSON.stringify(historial));
 
@@ -8995,12 +9082,126 @@ function procesarAsistenciaDesdeTablet(datos) {
         }
 
         if (typeof showToast === 'function') showToast(`✅ ${estudiante.estudiante.nombre} (${estado})`, 'success');
-
     } catch (error) {
         console.error('❌ Error:', error);
         if (typeof showToast === 'function') showToast('❌ Error al procesar', 'error');
     }
 }
+
+// =====================================================
+// 13. MODIFICAR EL HTML DEL MODAL - QUITAR BOTÓN CANCELAR
+// =====================================================
+function modificarModalUsuario() {
+    console.log('🔧 Modificando modal de usuario...');
+    const modal = document.getElementById('usuarioModal');
+    if (!modal) return;
+    
+    const footer = modal.querySelector('.modal-footer');
+    if (!footer) return;
+    
+    // Buscar y eliminar TODOS los botones de Cancelar
+    const botones = footer.querySelectorAll('button');
+    botones.forEach(btn => {
+        const texto = btn.textContent.toLowerCase().trim();
+        if (texto.includes('cancelar') || texto === 'cancelar' || texto.includes('cancel')) {
+            btn.remove();
+            console.log('✅ Botón Cancelar eliminado');
+        }
+    });
+    
+    // Asegurar que solo quede el botón Guardar
+    const btnGuardar = footer.querySelector('.btn-primary, button:not(.btn-secondary)');
+    if (btnGuardar) {
+        btnGuardar.style.background = '#E63946';
+        btnGuardar.style.color = 'white';
+        btnGuardar.style.padding = '8px 20px';
+        btnGuardar.style.border = 'none';
+        btnGuardar.style.borderRadius = '5px';
+        btnGuardar.style.cursor = 'pointer';
+        btnGuardar.textContent = '💾 Guardar';
+        console.log('✅ Botón Guardar estilizado');
+    } else {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.textContent = '💾 Guardar';
+        btn.style.background = '#E63946';
+        btn.style.color = 'white';
+        btn.style.padding = '8px 20px';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '5px';
+        btn.style.cursor = 'pointer';
+        btn.onclick = guardarUsuario;
+        footer.appendChild(btn);
+        console.log('✅ Botón Guardar creado');
+    }
+}
+
+// =====================================================
+// 14. INICIALIZACIÓN
+// =====================================================
+
+// Funciones globales
+window.abrirModalEditarUsuario = abrirModalEditarUsuario;
+window.eliminarUsuario = eliminarUsuario;
+window.mostrarModalUsuario = mostrarModalUsuario;
+window.guardarUsuario = guardarUsuario;
+window.cerrarModalUsuario = cerrarModalUsuario;
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM cargado - Inicializando sistema de usuarios');
+
+    setTimeout(modificarModalUsuario, 500);
+
+    const closeBtn = document.querySelector('#usuarioModal .close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', cerrarModalUsuario);
+    }
+
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('usuarioModal');
+        if (e.target === modal) {
+            cerrarModalUsuario();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModalUsuario();
+        }
+    });
+
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLoginSubmit);
+    }
+
+    ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', cerrarSesion);
+        }
+    });
+
+    cargarUsuariosYAdmin().then(() => {
+        checkLoginStatus();
+    });
+
+    const btnGestion = document.getElementById('btnGestionUsuarios');
+    if (btnGestion) {
+        btnGestion.addEventListener('click', function() {
+            console.log('🔄 Cargando gestión de usuarios...');
+            setTimeout(cargarTablaUsuarios, 300);
+        });
+    }
+
+    const btnNuevo = document.getElementById('nuevoUsuarioBtn');
+    if (btnNuevo) {
+        btnNuevo.addEventListener('click', function(e) {
+            e.preventDefault();
+            mostrarModalUsuario();
+        });
+    }
+});
 
 // Iniciar peer PC automáticamente para secretaria
 (function() {
@@ -9009,15 +9210,17 @@ function procesarAsistenciaDesdeTablet(datos) {
         setTimeout(function() {
             if (typeof iniciarPeerPC === 'function') {
                 iniciarPeerPC();
-                console.log('✅ Panel de tablet iniciado correctamente');
-            } else {
-                console.warn('⚠️ iniciarPeerPC no está definida');
+                console.log('✅ Panel de tablet iniciado');
             }
         }, 1500);
     }
 })();
+
 console.log("✅ Bloque 1 cargado: Sistema de usuarios y login");
 </script>
+<!-- ============================================ -->
+<!-- FIN BLOQUE 1                                -->
+<!-- ============================================ -->
 
   <!-- ============================================ -->
 <!-- BLOQUE 2: PANEL DE SECRETARÍA (Inscripciones y CRUD) -->
@@ -16423,7 +16626,7 @@ function mostrarBienvenidaConFrase(usuarioNombre) {
 }
 
 // =====================================================
-// FUNCIONES DE CARNET Y CONTRATO (COMPLETAS)
+// FUNCIONES DE CARNET - VERSIÓN VERTICAL 8.4x5.4cm
 // =====================================================
 
 function calcularFechaVencimiento(fechaInicio) {
@@ -16436,9 +16639,17 @@ function calcularFechaVencimiento(fechaInicio) {
             day: '2-digit'
         });
     } catch (e) {
-        return "01/01/2025";
+        return "15/11/2026";
     }
 }
+
+// =====================================================
+// GENERAR CARNET - VERTICAL 8.4cm x 5.4cm
+// =====================================================
+
+// =====================================================
+// GENERAR CARNET - FRANJA SUPERIOR EN DOS LÍNEAS Y SOMBRAS MEJORADAS
+// =====================================================
 
 function generarCarnetEstudiante(id) {
     console.log("🎫 GENERANDO CARNET PARA ID:", id);
@@ -16503,148 +16714,328 @@ function generarCarnetEstudiante(id) {
     const { nombres, apellidos } = dividirNombre(inscripcion.estudiante.nombre);
     const previewContainer = document.getElementById('carnetPreviewContainer');
 
+    // ==================== DISEÑO CON FRANJA EN DOS LÍNEAS ====================
     previewContainer.innerHTML = `
-        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
-            <!-- CARNET FRONTAL -->
-            <div class="carnet-frontal" style="width: 220px; height: 340px; background: white; border-radius: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); border: 1px solid #E63946; overflow: hidden; display: flex; flex-direction: column; font-family: Arial, sans-serif;">
-                <!-- ENCABEZADO ROJO -->
-                <div style="background: #C1121F; color: white; padding: 2px 4px; text-align: center; border-bottom: 1px solid #000; flex-shrink: 0; min-height: 20px; display: flex; flex-direction: column; justify-content: center;">
-                    <div style="font-size: 3.5px; font-weight: bold; letter-spacing: 0.3px;">ACADEMIA DE MÚSICA</div>
-                    <div style="font-size: 3px; font-weight: 500;">EXPRESIÓN MUSICAL</div>
-                    <div style="font-size: 2px; background: rgba(0,0,0,0.2); padding: 0px 4px; border-radius: 2px; display: inline-block; margin: 0.5px auto 0;">CARNET</div>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+
+            <!-- ============ CARNET FRONTAL ============ -->
+            <div class="carnet-frontal" style="
+                width: 205px;
+                height: 320px;
+                background: #f8f9fa;
+                border-radius: 16px;
+                box-shadow: 0 12px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                font-family: 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+                transition: transform 0.2s;
+            ">
+                <!-- Franja superior con degradado rojo oscuro y texto en dos líneas -->
+                <div style="
+                    background: linear-gradient(135deg, #C1121F, #8B0000);
+                    padding: 4px 10px 3px 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+                    gap: 8px;
+                    border-bottom: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+                ">
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 34px; height: 34px; object-fit: contain; filter: brightness(0) invert(1); flex-shrink: 0;">
+                    <div style="text-align: left; display: flex; flex-direction: column; justify-content: center; line-height: 1.1;">
+                        <div style="font-size: 7px; font-weight: 800; color: white; letter-spacing: 0.5px; text-transform: uppercase;">Expresión Musical</div>
+                        <div style="font-size: 5px; color: #ffcccc; letter-spacing: 0.8px; font-weight: 600; text-transform: uppercase;">Academia de Música</div>
+                    </div>
                 </div>
-                <!-- CUERPO -->
-                <div style="padding: 2px 4px; display: flex; gap: 2px; align-items: flex-start; flex-grow: 1;">
-                    <!-- FOTO -->
-                    <div style="text-align: center; flex-shrink: 0; margin-top: 1px;">
-                        <div style="width: 32px; height: 38px; background: #2B2D42; border-radius: 2px; border: 1px solid #E63946; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+
+                <!-- NOMBRE (con fondo blanco y sombra) -->
+                <div style="
+                    background: white;
+                    margin: 6px 10px 4px 10px;
+                    padding: 4px 0;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+                    text-align: center;
+                    border-bottom: 1px solid #f0f0f0;
+                    flex-shrink: 0;
+                ">
+                    <div style="
+                        font-size: 15px !important;
+                        font-weight: 800 !important;
+                        color: #1a1a1a !important;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        line-height: 1.1;
+                    ">${nombres}</div>
+                    ${apellidos ? `<div style="
+                        font-size: 9px !important;
+                        font-weight: 600 !important;
+                        color: #666 !important;
+                        text-transform: capitalize;
+                        letter-spacing: 0.2px;
+                        line-height: 1.2;
+                    ">${apellidos}</div>` : ''}
+                </div>
+
+                <!-- CUERPO: Foto circular + datos en tarjetas -->
+                <div style="
+                    flex: 1;
+                    padding: 4px 10px 6px 10px;
+                    display: flex;
+                    gap: 12px;
+                    background: #f8f9fa;
+                    align-items: center;
+                ">
+                    <!-- Columna izquierda: foto circular -->
+                    <div style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        flex-shrink: 0;
+                        gap: 5px;
+                        width: 72px;
+                    ">
+                        <!-- Foto circular con borde rojo y sombra -->
+                        <div style="
+                            width: 70px;
+                            height: 70px;
+                            border-radius: 50%;
+                            border: 3px solid #E63946;
+                            overflow: hidden;
+                            background: #f0f0f0;
+                            box-shadow: 0 6px 24px rgba(230, 57, 70, 0.40), 0 0 0 4px rgba(230,57,70,0.10);
+                        ">
                             ${inscripcion.estudiante.foto ?
                                 `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                                `<i class="fas fa-user" style="font-size: 6px; color: #FFFFFF;"></i>`
+                                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                                    <i class="fas fa-user" style="font-size: 28px; color: #ccc;"></i>
+                                </div>`
                             }
                         </div>
-                        <div style="background: #E63946; color: white; padding: 0px 2px; border-radius: 1px; font-size: 1.8px; font-weight: bold; margin-top: 1px; display: inline-block;">ID</div>
+                        <!-- ID (etiqueta roja con sombra) -->
+                        <div style="
+                            background: #E63946;
+                            color: white;
+                            padding: 1px 10px;
+                            border-radius: 20px;
+                            font-size: 7px !important;
+                            font-weight: 700 !important;
+                            letter-spacing: 0.5px;
+                            text-align: center;
+                            white-space: nowrap;
+                            box-shadow: 0 3px 12px rgba(230, 57, 70, 0.5);
+                        ">
+                            ID: ${String(inscripcion.id).slice(-6)}
+                        </div>
                     </div>
-                    <!-- DATOS -->
-                    <div style="flex: 1; font-size: 2.5px; line-height: 0.9; min-height: 0; overflow: hidden; margin-top: 0px;">
-                        <div style="margin-bottom: 0.5px;">
-                            <div style="color: #E63946; font-size: 1.8px; font-weight: bold;">NOMBRE</div>
-                            <div style="font-weight: 600; font-size: 3px; word-wrap: break-word; line-height: 0.9;">${nombres}</div>
-                            ${apellidos ? `<div style="font-weight: 600; font-size: 3px; word-wrap: break-word; line-height: 0.9;">${apellidos}</div>` : ''}
+
+                    <!-- Columna derecha: datos en tarjetas -->
+                    <div style="
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        justify-content: center;
+                    ">
+                        <!-- Cada dato en una fila con fondo blanco y sombra -->
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Edad</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.edad}</span>
                         </div>
-                        <div style="display: flex; gap: 1px; flex-wrap: wrap;">
-                            <div style="font-size: 2.5px;"><span style="color: #E63946; font-weight: bold; font-size: 1.8px;">ED:</span> ${inscripcion.estudiante.edad}</div>
-                            <div style="font-size: 2.5px;"><span style="color: #E63946; font-weight: bold; font-size: 1.8px;">GEN:</span> ${inscripcion.estudiante.genero || 'N/E'}</div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Género</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.genero || 'N/E'}</span>
                         </div>
-                        <div style="margin-bottom: 0.5px;">
-                            <div style="color: #E63946; font-size: 1.8px; font-weight: bold;">INSTRUMENTO</div>
-                            <div style="font-weight: 600; font-size: 2.5px;">${inscripcion.musical.instrumentoPrincipal}</div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Nivel</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.nivel}</span>
                         </div>
-                        <div style="display: flex; gap: 1px; flex-wrap: wrap;">
-                            <div style="font-size: 2.5px;"><span style="color: #E63946; font-weight: bold; font-size: 1.8px;">NIV:</span> ${inscripcion.estudiante.nivel}</div>
-                            <div style="font-size: 2.5px;"><span style="color: #E63946; font-weight: bold; font-size: 1.8px;">PLAN:</span> ${inscripcion.academico.plan}</div>
-                        </div>
-                        <div>
-                            <div style="color: #E63946; font-size: 1.8px; font-weight: bold;">HORARIO</div>
-                            <div style="font-size: 2px;">${inscripcion.academico.horario}</div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Plan</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.academico.plan}</span>
                         </div>
                     </div>
                 </div>
-                <!-- FRANJA NEGRA -->
-                <div style="background: #000 !important; color: white !important; padding: 2px 4px !important; border-top: 1.5px solid #E63946 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-shrink: 0; margin-top: auto; min-height: 16px;">
+
+                <!-- INSTRUMENTO (franja roja con sombra) -->
+                <div style="
+                    background: #E63946;
+                    margin: 0 10px 4px 10px;
+                    padding: 3px 0;
+                    border-radius: 8px;
+                    text-align: center;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 16px rgba(230, 57, 70, 0.35);
+                ">
+                    <span style="font-size: 7px !important; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;">Instrumento</span>
+                    <div style="font-size: 10px !important; font-weight: 700; color: white;">${inscripcion.musical.instrumentoPrincipal}</div>
+                </div>
+
+                <!-- Franja inferior negra (validez) -->
+                <div style="
+                    background: #1a1a1a;
+                    padding: 4px 12px 3px 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-top: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 -4px 14px rgba(0,0,0,0.15);
+                ">
                     <div>
-                        <div style="font-size: 1.5px; color: #999; font-weight: bold;">VÁLIDO</div>
-                        <div style="font-size: 3px; font-weight: bold; color: #FFD700;">${calcularFechaVencimiento(inscripcion.academico.fechaInicio)}</div>
+                        <div style="font-size: 6px !important; color: #aaa; font-weight: 600; letter-spacing: 0.5px;">VÁLIDO HASTA</div>
+                        <div style="font-size: 9px !important; font-weight: 700; color: white;">${calcularFechaVencimiento(inscripcion.academico.fechaInicio)}</div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 2px;">
-                        <div style="width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2px; font-weight: bold; color: #fff;">✓</div>
-                        <span style="font-weight: bold; font-size: 2px; color: #4CAF50;">VÁLIDO</span>
+                    <div style="display: flex; align-items: center; gap: 3px;">
+                        <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; box-shadow: 0 0 16px rgba(76, 175, 80, 0.7);"></div>
+                        <span style="font-size: 8px !important; font-weight: 700; color: #4CAF50; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(76, 175, 80, 0.3);">VÁLIDO</span>
                     </div>
                 </div>
             </div>
 
-            <!-- CARNET DORSO -->
-            <div class="carnet-dorso" style="width: 220px; height: 340px; background: white; border-radius: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); border: 1px solid #E63946; overflow: hidden; display: flex; flex-direction: column; font-family: Arial, sans-serif;">
-                <div style="background: #1A1B2E; color: white; padding: 2px 4px; text-align: center; border-bottom: 1px solid #E63946; flex-shrink: 0; min-height: 16px; display: flex; flex-direction: column; justify-content: center;">
-                    <div style="font-size: 3px; font-weight: bold;">ACADEMIA DE MÚSICA</div>
-                    <div style="font-size: 2.5px; font-weight: 500;">EXPRESIÓN MUSICAL</div>
+            <!-- ============ CARNET DORSO ============ -->
+            <div class="carnet-dorso" style="
+                width: 205px;
+                height: 320px;
+                background: #f8f9fa;
+                border-radius: 16px;
+                box-shadow: 0 12px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                font-family: 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+            ">
+                <!-- Encabezado negro -->
+                <div style="
+                    background: #1a1a1a;
+                    padding: 6px 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    border-bottom: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+                ">
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 35px; height: 35px; object-fit: contain; filter: brightness(0) invert(1); flex-shrink: 0;">
+                    <span style="font-size: 8px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase;">Código de Verificación</span>
                 </div>
-                <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2px;">
-                    <div style="font-size: 2.5px; color: #E63946; font-weight: bold; text-align: center; margin-bottom: 1px;">CÓDIGO VERIFICACIÓN</div>
-                    <div style="font-size: 1.5px; color: #666; text-align: center; margin-bottom: 2px;">Escanear identidad</div>
-                    <div id="qr-code-container" style="width: 100px; height: 100px; background: white; border: 1px solid #2B2D42; border-radius: 2px; padding: 2px; display: flex; align-items: center; justify-content: center;"></div>
-                    <div style="margin-top: 2px; font-size: 1.8px; color: #666; text-align: center; line-height: 1;">
-                        <div style="font-weight: bold;">CONTACTO</div>
-                        <div>37418036 / 38514409</div>
+
+                <!-- Cuerpo del dorso -->
+                <div style="
+                    flex: 1;
+                    padding: 8px 12px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: space-evenly;
+                    background: #f8f9fa;
+                ">
+                    <!-- QR con sombra -->
+                    <div id="qr-code-container" style="
+                        width: 120px;
+                        height: 120px;
+                        background: white;
+                        border-radius: 12px;
+                        padding: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 2px solid #E63946;
+                        box-shadow: 0 6px 28px rgba(0,0,0,0.15), 0 0 0 3px rgba(230,57,70,0.08);
+                    ">
+                        <div style="text-align: center;">
+                            <i class="fas fa-spinner fa-spin" style="color: #C1121F; font-size: 20px;"></i>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 8px; color: #666; text-align: center; font-weight: 500;">Escanear para verificar identidad</div>
+
+                    <!-- Contacto con sombra -->
+                    <div style="
+                        background: white;
+                        padding: 6px 12px;
+                        border-radius: 8px;
+                        text-align: center;
+                        width: 100%;
+                        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+                    ">
+                        <div style="font-size: 7px; color: #C1121F; font-weight: 700; letter-spacing: 0.5px;">CONTACTO</div>
+                        <div style="font-size: 9px; color: #1a1a1a; font-weight: 600;">📞 37418036 / 38514409</div>
+                        <div style="font-size: 7px; color: #666;">08 Calle c 10-72 Zona 3 San Marcos</div>
                     </div>
                 </div>
-                <div style="background: #000 !important; color: white !important; padding: 1.5px 4px !important; border-top: 1px solid #E63946 !important; text-align: center; font-size: 1.8px !important; flex-shrink: 0;">
-                    www.expressionmusical.edu.gt
+
+                <!-- Franja inferior roja -->
+                <div style="
+                    background: #E63946;
+                    padding: 4px 12px;
+                    text-align: center;
+                    border-top: 3px solid #C1121F;
+                    flex-shrink: 0;
+                    box-shadow: 0 -4px 12px rgba(0,0,0,0.10);
+                ">
+                    <span style="font-size: 7px; color: white; font-weight: 600; letter-spacing: 0.5px;">www.expressionmusical.com</span>
                 </div>
             </div>
         </div>
-        <div style="text-align: center; margin-top: 4px;">
-            <span style="font-size: 4px; color: #999;">8.5x5.5 cm</span>
+
+        <!-- Tamaño indicador -->
+        <div style="text-align: center; margin-top: 6px;">
+            <span style="font-size: 9px; color: #999; background: #f5f5f5; padding: 2px 14px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">Tamaño: 8.4 x 5.4 cm</span>
         </div>
     `;
 
-    generarQRGrande(inscripcion);
-    document.getElementById('carnetModal').style.display = 'block';
-}
-
-function generarQRGrande(inscripcion) {
-    console.log("🔄 Generando QR GRANDE...");
+    // Generar QR
     const qrContainer = document.getElementById('qr-code-container');
-    if (!qrContainer) return;
-    qrContainer.innerHTML = '';
-
-    const textoQR = `
+    if (qrContainer) {
+        const textoQR = `
 ACADEMIA: EXPRESIÓN MUSICAL
 ID: ${inscripcion.id}
 ESTUDIANTE: ${inscripcion.estudiante.nombre}
 INSTRUMENTO: ${inscripcion.musical.instrumentoPrincipal}
 NIVEL: ${inscripcion.estudiante.nivel}
 FECHA: ${new Date().toLocaleDateString()}
-    `.trim();
+`.trim();
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=200x200&margin=5&format=png&color=000000&bgcolor=FFFFFF`;
-    qrContainer.innerHTML = `
-        <div style="width: 100%; height: 100%; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-            <div style="text-align: center;">
-                <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 14px;"></i>
-            </div>
-        </div>
-    `;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=250x250&margin=10&format=png&color=000000&bgcolor=ffffff`;
 
-    const img = new Image();
-    img.onload = function() {
-        console.log('✅ QR GRANDE cargado correctamente');
-        qrContainer.innerHTML = `<img src="${qrUrl}" style="width: 100%; height: 100%; border-radius: 4px; border: 1px solid #ddd;" alt="QR de ${inscripcion.estudiante.nombre}" title="Escanea este código QR grande">`;
-    };
-    img.onerror = function() {
-        console.warn('❌ Error con QR grande, intentando alternativa...');
-        const altQR = `https://quickchart.io/qr?text=${encodeURIComponent(textoQR)}&size=180&margin=2`;
-        const img2 = new Image();
-        img2.onload = function() {
-            qrContainer.innerHTML = `<img src="${altQR}" style="width: 100%; height: 100%; border-radius: 4px;">`;
+        const img = new Image();
+        img.onload = function() {
+            qrContainer.innerHTML = `<img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain;">`;
         };
-        img2.onerror = function() {
-            qrContainer.innerHTML = `
-                <div style="width: 100%; height: 100%; background: #fff5f5; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px dashed #E63946;">
+        img.onerror = function() {
+            const altQR = `https://quickchart.io/qr?text=${encodeURIComponent(textoQR)}&size=180&margin=4`;
+            const img2 = new Image();
+            img2.onload = function() {
+                qrContainer.innerHTML = `<img src="${altQR}" style="width: 100%; height: 100%; object-fit: contain;">`;
+            };
+            img2.onerror = function() {
+                qrContainer.innerHTML = `
                     <div style="text-align: center;">
-                        <i class="fas fa-qrcode" style="color: #E63946; font-size: 24px;"></i>
-                        <div style="font-size: 6px; color: #E63946; margin-top: 2px; font-weight: bold;">QR NO DISP.</div>
+                        <i class="fas fa-qrcode" style="color: #C1121F; font-size: 32px;"></i>
                     </div>
-                </div>
-            `;
+                `;
+            };
+            img2.src = altQR;
         };
-        img2.src = altQR;
-    };
-    img.src = qrUrl;
+        img.src = qrUrl;
+    }
+
+    document.getElementById('carnetModal').style.display = 'block';
 }
 
+// =====================================================
+// DESCARGAR CARNET - CON SOMBRAS VISIBLES EN PDF
+// =====================================================
+
 function descargarCarnetActual() {
-    console.log("📥 Descargando carnet...");
+    console.log("📥 Descargando carnet con sombras visibles...");
+
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
         alert('Error: La librería jsPDF no está cargada.');
         return;
@@ -16653,6 +17044,7 @@ function descargarCarnetActual() {
         alert('Error: La librería html2canvas no está cargada.');
         return;
     }
+
     const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
     if (!jsPDFLib) {
         alert('Error: No se pudo obtener la referencia de jsPDF');
@@ -16661,6 +17053,7 @@ function descargarCarnetActual() {
 
     const carnetFrontal = document.querySelector('.carnet-frontal');
     const carnetDorso = document.querySelector('.carnet-dorso');
+
     if (!carnetFrontal || !carnetDorso) {
         alert('Error: No se pudo encontrar el carnet para descargar');
         return;
@@ -16676,6 +17069,7 @@ function descargarCarnetActual() {
     if (inscriptions.length === 0 && window.inscriptions) {
         inscriptions = window.inscriptions;
     }
+
     const inscripcion = inscriptions.find(ins => String(ins.id) === String(window.carnetActualId));
     const nombreEstudiante = inscripcion ? inscripcion.estudiante.nombre : 'estudiante';
     const nombreArchivo = `Carnet_${nombreEstudiante.replace(/\s+/g, '_')}.pdf`;
@@ -16697,43 +17091,617 @@ function descargarCarnetActual() {
             unit: 'mm',
             format: 'a4'
         });
-        const carnetLargo = 85;
-        const carnetAncho = 55;
+
+        const carnetAncho = 54;
+        const carnetLargo = 84;
         const pageWidth = 297;
         const pageHeight = 210;
-        const yPos = (pageHeight - carnetLargo) / 2;
-        const espacioEntreCarnets = 1;
+
+        const espacioEntreCarnets = 0;
         const totalWidth = (carnetAncho * 2) + espacioEntreCarnets;
         const startX = (pageWidth - totalWidth) / 2;
+        const startY = (pageHeight - carnetLargo) / 2;
 
+        // Capturar con fondo sólido para que las sombras se vean
         Promise.all([
-            window.html2canvas(carnetFrontal, {
-                scale: 2,
+            html2canvas(carnetFrontal, {
+                scale: 4,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: 220,
-                height: 340,
-                logging: false
+                backgroundColor: '#f8f9fa',  // Fondo sólido para contrastar sombras
+                logging: false,
+                width: 205,
+                height: 320,
+                onclone: function(clonedDoc, element) {
+                    element.style.transform = 'none';
+                }
             }),
-            window.html2canvas(carnetDorso, {
-                scale: 2,
+            html2canvas(carnetDorso, {
+                scale: 4,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: 220,
-                height: 340,
-                logging: false
+                backgroundColor: '#f8f9fa',
+                logging: false,
+                width: 205,
+                height: 320,
+                onclone: function(clonedDoc, element) {
+                    element.style.transform = 'none';
+                }
             })
         ]).then(([canvasFrontal, canvasDorso]) => {
             try {
                 const imgDataFrontal = canvasFrontal.toDataURL('image/png');
                 const imgDataDorso = canvasDorso.toDataURL('image/png');
-                pdf.addImage(imgDataFrontal, 'PNG', startX, yPos, carnetAncho, carnetLargo);
-                pdf.addImage(imgDataDorso, 'PNG', startX + carnetAncho + espacioEntreCarnets, yPos, carnetAncho, carnetLargo);
+
+                pdf.addImage(imgDataFrontal, 'PNG', startX, startY, carnetAncho, carnetLargo);
+                pdf.addImage(imgDataDorso, 'PNG', startX + carnetAncho + espacioEntreCarnets, startY, carnetAncho, carnetLargo);
+
                 pdf.save(nombreArchivo);
                 document.body.removeChild(toastMsg);
-                console.log("✅ Carnet descargado correctamente");
+                console.log("✅ Carnet descargado con sombras correctamente");
+                if (typeof showToast === 'function') {
+                    showToast('Carnet descargado correctamente', 'success');
+                }
+            } catch (error) {
+                document.body.removeChild(toastMsg);
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF: ' + error.message);
+            }
+        }).catch(error => {
+            document.body.removeChild(toastMsg);
+            console.error('Error al capturar carnets:', error);
+            alert('Error al capturar los carnets: ' + error.message);
+        });
+    } catch (error) {
+        document.body.removeChild(toastMsg);
+        console.error('Error al configurar PDF:', error);
+        alert('Error al configurar el PDF: ' + error.message);
+    }
+}// =====================================================
+// GENERAR CARNET - LOGO MÁS VISIBLE EN FRANJAS SUPERIORES (OPACIDAD 0.2)
+// =====================================================
+
+function generarCarnetEstudiante(id) {
+    console.log("🎫 GENERANDO CARNET PARA ID:", id);
+
+    let inscriptions = [];
+    const localData = localStorage.getItem('inscriptions');
+    if (localData) {
+        try {
+            const parsed = JSON.parse(localData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                inscriptions = parsed;
+            }
+        } catch(e) {}
+    }
+    if (inscriptions.length === 0 && window.inscriptions && Array.isArray(window.inscriptions)) {
+        inscriptions = window.inscriptions;
+    }
+    if (inscriptions.length === 0 && window.db) {
+        window.db.collection('inscripciones').get().then((snapshot) => {
+            const firebaseData = [];
+            snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+            if (firebaseData.length > 0) {
+                localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
+                window.inscriptions = firebaseData;
+                generarCarnetEstudiante(id);
+                return;
+            }
+        }).catch(err => console.error('Error cargando desde Firebase:', err));
+        if (inscriptions.length === 0) {
+            alert('⚠️ No se encontraron inscripciones en el sistema.');
+            return;
+        }
+    }
+    if (inscriptions.length === 0) {
+        alert('⚠️ No se encontraron inscripciones. Por favor, recarga la página.');
+        return;
+    }
+    const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
+    if (!inscripcion) {
+        alert('No se encontró el estudiante con ID: ' + id);
+        return;
+    }
+    console.log('✅ Estudiante encontrado:', inscripcion.estudiante.nombre);
+    window.carnetActualId = id;
+
+    function dividirNombre(nombreCompleto) {
+        const partes = nombreCompleto.trim().split(' ');
+        if (partes.length <= 1) {
+            return { nombres: nombreCompleto, apellidos: '' };
+        }
+        if (partes.length === 2) {
+            return { nombres: partes[0], apellidos: partes[1] };
+        }
+        if (partes.length === 3) {
+            return { nombres: partes[0] + ' ' + partes[1], apellidos: partes[2] };
+        }
+        const nombres = partes.slice(0, 2).join(' ');
+        const apellidos = partes.slice(2).join(' ');
+        return { nombres, apellidos };
+    }
+
+    const { nombres, apellidos } = dividirNombre(inscripcion.estudiante.nombre);
+    const previewContainer = document.getElementById('carnetPreviewContainer');
+
+    // ==================== DISEÑO CON LOGO MÁS VISIBLE EN FRANJAS SUPERIORES ====================
+    previewContainer.innerHTML = `
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+
+            <!-- ============ CARNET FRONTAL ============ -->
+            <div class="carnet-frontal" style="
+                width: 205px;
+                height: 320px;
+                background: #f8f9fa;
+                border-radius: 16px;
+                box-shadow: 0 12px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                font-family: 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+                transition: transform 0.2s;
+                position: relative;
+            ">
+                <!-- Franja superior ROJA con logo (opacidad 0.2) -->
+                <div style="
+                    background: linear-gradient(135deg, #C1121F, #8B0000);
+                    padding: 4px 10px 3px 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+                    gap: 8px;
+                    border-bottom: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <!-- Logo grande centrado, opacidad 0.2 (más visible) -->
+                    <div style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        pointer-events: none;
+                        opacity: 0.2;
+                        z-index: 1;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="
+                            width: 80px;
+                            height: auto;
+                            max-height: 90%;
+                            object-fit: contain;
+                            filter: brightness(0) invert(1);
+                        ">
+                    </div>
+                    <!-- Contenido de la franja -->
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 34px; height: 34px; object-fit: contain; filter: brightness(0) invert(1); flex-shrink: 0; position: relative; z-index: 2;">
+                    <div style="text-align: left; display: flex; flex-direction: column; justify-content: center; line-height: 1.1; position: relative; z-index: 2;">
+                        <div style="font-size: 7px; font-weight: 800; color: white; letter-spacing: 0.5px; text-transform: uppercase;">Expresión Musical</div>
+                        <div style="font-size: 5px; color: #ffcccc; letter-spacing: 0.8px; font-weight: 600; text-transform: uppercase;">Academia de Música</div>
+                    </div>
+                </div>
+
+                <!-- NOMBRE -->
+                <div style="
+                    background: white;
+                    margin: 6px 10px 4px 10px;
+                    padding: 4px 0;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+                    text-align: center;
+                    border-bottom: 1px solid #f0f0f0;
+                    flex-shrink: 0;
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <div style="
+                        font-size: 15px !important;
+                        font-weight: 800 !important;
+                        color: #1a1a1a !important;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        line-height: 1.1;
+                    ">${nombres}</div>
+                    ${apellidos ? `<div style="
+                        font-size: 9px !important;
+                        font-weight: 600 !important;
+                        color: #666 !important;
+                        text-transform: capitalize;
+                        letter-spacing: 0.2px;
+                        line-height: 1.2;
+                    ">${apellidos}</div>` : ''}
+                </div>
+
+                <!-- CUERPO -->
+                <div style="
+                    flex: 1;
+                    padding: 4px 10px 6px 10px;
+                    display: flex;
+                    gap: 12px;
+                    background: #f8f9fa;
+                    align-items: center;
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <div style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        flex-shrink: 0;
+                        gap: 5px;
+                        width: 72px;
+                    ">
+                        <div style="
+                            width: 70px;
+                            height: 70px;
+                            border-radius: 50%;
+                            border: 3px solid #E63946;
+                            overflow: hidden;
+                            background: #f0f0f0;
+                            box-shadow: 0 6px 24px rgba(230, 57, 70, 0.40), 0 0 0 4px rgba(230,57,70,0.10);
+                        ">
+                            ${inscripcion.estudiante.foto ?
+                                `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                                    <i class="fas fa-user" style="font-size: 28px; color: #ccc;"></i>
+                                </div>`
+                            }
+                        </div>
+                        <div style="
+                            background: #E63946;
+                            color: white;
+                            padding: 1px 10px;
+                            border-radius: 20px;
+                            font-size: 7px !important;
+                            font-weight: 700 !important;
+                            letter-spacing: 0.5px;
+                            text-align: center;
+                            white-space: nowrap;
+                            box-shadow: 0 3px 12px rgba(230, 57, 70, 0.5);
+                        ">
+                            ID: ${String(inscripcion.id).slice(-6)}
+                        </div>
+                    </div>
+
+                    <div style="
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        justify-content: center;
+                    ">
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Edad</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.edad}</span>
+                        </div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Género</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.genero || 'N/E'}</span>
+                        </div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Nivel</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.estudiante.nivel}</span>
+                        </div>
+                        <div style="background: white; padding: 2px 8px; border-radius: 6px; display: flex; justify-content: space-between; box-shadow: 0 3px 10px rgba(0,0,0,0.10);">
+                            <span style="font-weight: 700; color: #C1121F; font-size: 7px !important; text-transform: uppercase;">Plan</span>
+                            <span style="font-weight: 600; color: #1a1a1a; font-size: 8px !important;">${inscripcion.academico.plan}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INSTRUMENTO -->
+                <div style="
+                    background: #E63946;
+                    margin: 0 10px 4px 10px;
+                    padding: 3px 0;
+                    border-radius: 8px;
+                    text-align: center;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 16px rgba(230, 57, 70, 0.35);
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <span style="font-size: 7px !important; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;">Instrumento</span>
+                    <div style="font-size: 10px !important; font-weight: 700; color: white;">${inscripcion.musical.instrumentoPrincipal}</div>
+                </div>
+
+                <!-- Franja inferior NEGRA (SIN LOGO) -->
+                <div style="
+                    background: #1a1a1a;
+                    padding: 4px 12px 3px 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-top: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 -4px 14px rgba(0,0,0,0.15);
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <div>
+                        <div style="font-size: 6px !important; color: #aaa; font-weight: 600; letter-spacing: 0.5px;">VÁLIDO HASTA</div>
+                        <div style="font-size: 9px !important; font-weight: 700; color: white;">${calcularFechaVencimiento(inscripcion.academico.fechaInicio)}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 3px;">
+                        <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; box-shadow: 0 0 16px rgba(76, 175, 80, 0.7);"></div>
+                        <span style="font-size: 8px !important; font-weight: 700; color: #4CAF50; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(76, 175, 80, 0.3);">VÁLIDO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ CARNET DORSO ============ -->
+            <div class="carnet-dorso" style="
+                width: 205px;
+                height: 320px;
+                background: #f8f9fa;
+                border-radius: 16px;
+                box-shadow: 0 12px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                font-family: 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+                position: relative;
+            ">
+                <!-- Encabezado NEGRO con logo (opacidad 0.2) -->
+                <div style="
+                    background: #1a1a1a;
+                    padding: 6px 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    border-bottom: 3px solid #E63946;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <!-- Logo grande centrado, opacidad 0.2 (más visible) -->
+                    <div style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        pointer-events: none;
+                        opacity: 0.2;
+                        z-index: 1;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="
+                            width: 70px;
+                            height: auto;
+                            max-height: 90%;
+                            object-fit: contain;
+                            filter: brightness(0) invert(1);
+                        ">
+                    </div>
+                    <!-- Contenido -->
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 35px; height: 35px; object-fit: contain; filter: brightness(0) invert(1); flex-shrink: 0; position: relative; z-index: 2;">
+                    <span style="font-size: 8px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; position: relative; z-index: 2;">Código de Verificación</span>
+                </div>
+
+                <!-- Cuerpo del dorso -->
+                <div style="
+                    flex: 1;
+                    padding: 8px 12px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: space-evenly;
+                    background: #f8f9fa;
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <div id="qr-code-container" style="
+                        width: 120px;
+                        height: 120px;
+                        background: white;
+                        border-radius: 12px;
+                        padding: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 2px solid #E63946;
+                        box-shadow: 0 6px 28px rgba(0,0,0,0.15), 0 0 0 3px rgba(230,57,70,0.08);
+                    ">
+                        <div style="text-align: center;">
+                            <i class="fas fa-spinner fa-spin" style="color: #C1121F; font-size: 20px;"></i>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 8px; color: #666; text-align: center; font-weight: 500;">Escanear para verificar identidad</div>
+
+                    <div style="
+                        background: white;
+                        padding: 6px 12px;
+                        border-radius: 8px;
+                        text-align: center;
+                        width: 100%;
+                        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+                    ">
+                        <div style="font-size: 7px; color: #C1121F; font-weight: 700; letter-spacing: 0.5px;">CONTACTO</div>
+                        <div style="font-size: 9px; color: #1a1a1a; font-weight: 600;">📞 37418036 / 38514409</div>
+                        <div style="font-size: 7px; color: #666;">08 Calle c 10-72 Zona 3 San Marcos</div>
+                    </div>
+                </div>
+
+                <!-- Franja inferior ROJA (SIN LOGO) -->
+                <div style="
+                    background: #E63946;
+                    padding: 4px 12px;
+                    text-align: center;
+                    border-top: 3px solid #C1121F;
+                    flex-shrink: 0;
+                    box-shadow: 0 -4px 12px rgba(0,0,0,0.10);
+                    position: relative;
+                    z-index: 2;
+                ">
+                    <span style="font-size: 7px; color: white; font-weight: 600; letter-spacing: 0.5px;">www.expressionmusical.com</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tamaño indicador -->
+        <div style="text-align: center; margin-top: 6px;">
+            <span style="font-size: 9px; color: #999; background: #f5f5f5; padding: 2px 14px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">Tamaño: 8.4 x 5.4 cm</span>
+        </div>
+    `;
+
+    // Generar QR
+    const qrContainer = document.getElementById('qr-code-container');
+    if (qrContainer) {
+        const textoQR = `
+ACADEMIA: EXPRESIÓN MUSICAL
+ID: ${inscripcion.id}
+ESTUDIANTE: ${inscripcion.estudiante.nombre}
+INSTRUMENTO: ${inscripcion.musical.instrumentoPrincipal}
+NIVEL: ${inscripcion.estudiante.nivel}
+FECHA: ${new Date().toLocaleDateString()}
+`.trim();
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=250x250&margin=10&format=png&color=000000&bgcolor=ffffff`;
+
+        const img = new Image();
+        img.onload = function() {
+            qrContainer.innerHTML = `<img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain;">`;
+        };
+        img.onerror = function() {
+            const altQR = `https://quickchart.io/qr?text=${encodeURIComponent(textoQR)}&size=180&margin=4`;
+            const img2 = new Image();
+            img2.onload = function() {
+                qrContainer.innerHTML = `<img src="${altQR}" style="width: 100%; height: 100%; object-fit: contain;">`;
+            };
+            img2.onerror = function() {
+                qrContainer.innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-qrcode" style="color: #C1121F; font-size: 32px;"></i>
+                    </div>
+                `;
+            };
+            img2.src = altQR;
+        };
+        img.src = qrUrl;
+    }
+
+    document.getElementById('carnetModal').style.display = 'block';
+}
+
+// =====================================================
+// DESCARGAR CARNET - CON SOMBRAS VISIBLES EN PDF Y CARNETS LADO A LADO
+// =====================================================
+
+function descargarCarnetActual() {
+    console.log("📥 Descargando carnet con sombras visibles...");
+
+    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        alert('Error: La librería jsPDF no está cargada.');
+        return;
+    }
+    if (typeof window.html2canvas === 'undefined') {
+        alert('Error: La librería html2canvas no está cargada.');
+        return;
+    }
+
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    if (!jsPDFLib) {
+        alert('Error: No se pudo obtener la referencia de jsPDF');
+        return;
+    }
+
+    const carnetFrontal = document.querySelector('.carnet-frontal');
+    const carnetDorso = document.querySelector('.carnet-dorso');
+
+    if (!carnetFrontal || !carnetDorso) {
+        alert('Error: No se pudo encontrar el carnet para descargar');
+        return;
+    }
+
+    let inscriptions = [];
+    const localData = localStorage.getItem('inscriptions');
+    if (localData) {
+        try {
+            inscriptions = JSON.parse(localData);
+        } catch(e) {}
+    }
+    if (inscriptions.length === 0 && window.inscriptions) {
+        inscriptions = window.inscriptions;
+    }
+
+    const inscripcion = inscriptions.find(ins => String(ins.id) === String(window.carnetActualId));
+    const nombreEstudiante = inscripcion ? inscripcion.estudiante.nombre : 'estudiante';
+    const nombreArchivo = `Carnet_${nombreEstudiante.replace(/\s+/g, '_')}.pdf`;
+
+    const toastMsg = document.createElement('div');
+    toastMsg.style.cssText = `
+        position: fixed; top: 20px; right: 20px;
+        background: #333; color: white; padding: 15px 25px;
+        border-radius: 8px; z-index: 99999;
+        font-size: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: fadeIn 0.3s ease;
+    `;
+    toastMsg.innerHTML = '⏳ Generando carnet...';
+    document.body.appendChild(toastMsg);
+
+    try {
+        const pdf = new jsPDFLib({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // Medidas exactas: 8.4cm x 5.4cm (54mm x 84mm)
+        const carnetAncho = 54;
+        const carnetLargo = 84;
+        const pageWidth = 297;
+        const pageHeight = 210;
+
+        // Sin espacio entre carnets (0 mm) para que queden pegados
+        const espacioEntreCarnets = 0;
+        const totalWidth = (carnetAncho * 2) + espacioEntreCarnets;
+        const startX = (pageWidth - totalWidth) / 2; // Centrado horizontal
+        const startY = (pageHeight - carnetLargo) / 2; // Centrado vertical
+
+        // Capturar con alta calidad y fondo sólido para que las sombras se vean
+        Promise.all([
+            html2canvas(carnetFrontal, {
+                scale: 4,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#f8f9fa',
+                logging: false,
+                width: 205,
+                height: 320,
+                onclone: function(clonedDoc, element) {
+                    element.style.transform = 'none';
+                }
+            }),
+            html2canvas(carnetDorso, {
+                scale: 4,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#f8f9fa',
+                logging: false,
+                width: 205,
+                height: 320,
+                onclone: function(clonedDoc, element) {
+                    element.style.transform = 'none';
+                }
+            })
+        ]).then(([canvasFrontal, canvasDorso]) => {
+            try {
+                const imgDataFrontal = canvasFrontal.toDataURL('image/png');
+                const imgDataDorso = canvasDorso.toDataURL('image/png');
+
+                // Agregar frontal a la izquierda
+                pdf.addImage(imgDataFrontal, 'PNG', startX, startY, carnetAncho, carnetLargo);
+                // Agregar dorso a la derecha, sin espacio
+                pdf.addImage(imgDataDorso, 'PNG', startX + carnetAncho + espacioEntreCarnets, startY, carnetAncho, carnetLargo);
+
+                pdf.save(nombreArchivo);
+                document.body.removeChild(toastMsg);
+                console.log("✅ Carnet descargado con sombras correctamente");
                 if (typeof showToast === 'function') {
                     showToast('Carnet descargado correctamente', 'success');
                 }
