@@ -9044,98 +9044,171 @@ function copiarIdAlPortapapeles() {
     });
 }
 
-function procesarAsistenciaDesdeTablet(datos) {
-    console.log('📦 Datos recibidos:', datos);
+// =====================================================
+// PROCESAR ASISTENCIA DESDE TABLET (VERSIÓN CORREGIDA)
+// =====================================================
+async function procesarAsistenciaDesdeTablet(datos) {
+    console.log('📦 PC recibe desde tablet:', datos);
+
+    let id = null;
+    let nombre = null;
+    let estudiante = null;
+    let inscriptions = [];
+
+    // ----- PASO 1: OBTENER LISTA DE ESTUDIANTES (desde localStorage o Firebase) -----
     try {
-        let id = datos.id || datos.ID;
-        let nombre = datos.nombre || datos.estudiante;
-        let estudiante = null;
-
-        if (id) {
-            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            estudiante = inscriptions.find(ins => ins.id == id);
-        }
-
-        if (!estudiante && nombre) {
-            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            estudiante = inscriptions.find(ins => ins.estudiante.nombre.toLowerCase().includes(nombre.toLowerCase()));
-        }
-
-        if (!estudiante) {
-            console.error('❌ Estudiante no encontrado');
-            if (typeof showToast === 'function') showToast('❌ Estudiante no reconocido', 'error');
-            if (connTablet && connTablet.open) {
-                connTablet.send({ error: 'no_reconocido' });
-            }
-            return;
-        }
-
-        const daySelect = document.getElementById('filter-day');
-        const scheduleSelect = document.getElementById('filter-schedule');
-        const diaSeleccionado = daySelect ? daySelect.value : '';
-        const horarioSeleccionado = scheduleSelect ? scheduleSelect.value : '';
-
-        if (!diaSeleccionado || !horarioSeleccionado) {
-            if (typeof showToast === 'function') showToast('❌ Selecciona un día y horario en el filtro', 'error');
-            return;
-        }
-
-        let estado = 'presente';
-
-        if (estudiante.academico) {
-            const diasEstudio = estudiante.academico.dias || [];
-            const horarioEstudio = estudiante.academico.horario || '';
-            const diaCorrecto = diasEstudio.includes(diaSeleccionado);
-            const horarioCorrecto = horarioEstudio === horarioSeleccionado;
-            if (!diaCorrecto || !horarioCorrecto) {
-                estado = 'reposicion';
-            }
-        }
-
-        if (window.asistenciaApp && typeof window.asistenciaApp.registrarEstudianteEnTabla === 'function') {
-            window.asistenciaApp.registrarEstudianteEnTabla(
-                estudiante,
-                estado,
-                new Date().toISOString().split('T')[0],
-                diaSeleccionado,
-                horarioSeleccionado
-            );
-        }
-
-        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        const fechaReal = new Date().toISOString().split('T')[0];
-        const nuevoRegistro = {
-            id: Date.now(),
-            studentId: estudiante.id,
-            studentName: estudiante.estudiante.nombre,
-            instrumento: estudiante.musical?.instrumentoPrincipal || 'No especificado',
-            nivel: estudiante.estudiante.nivel || 'No especificado',
-            fecha: fechaReal,
-            dia: diaSeleccionado,
-            horario: horarioSeleccionado,
-            estado: estado,
-            tipo: estado === 'presente' ? 'asistencia_tablet' : 'reposicion_tablet',
-            horaRegistro: new Date().toLocaleTimeString(),
-            observaciones: estado === 'reposicion' ? 'Registrado fuera de horario' : '',
-            timestamp: new Date().toISOString()
-        };
-
-        historial.push(nuevoRegistro);
-        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-
-        if (connTablet && connTablet.open) {
-            connTablet.send({
-                tipo: 'confirmacion',
-                nombre: estudiante.estudiante.nombre,
-                estado: estado
-            });
-        }
-
-        if (typeof showToast === 'function') showToast(`✅ ${estudiante.estudiante.nombre} (${estado})`, 'success');
-    } catch (error) {
-        console.error('❌ Error:', error);
-        if (typeof showToast === 'function') showToast('❌ Error al procesar', 'error');
+        inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    } catch (e) {
+        inscriptions = [];
     }
+
+    // Si localStorage está vacío o no hay datos, intentar cargar desde Firebase en vivo
+    if (inscriptions.length === 0 && window.db) {
+        try {
+            const snapshot = await window.db.collection('inscripciones').get();
+            const firebaseData = [];
+            snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+            if (firebaseData.length > 0) {
+                inscriptions = firebaseData;
+                localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+                console.log('✅ Datos recargados desde Firebase (', inscriptions.length, 'estudiantes)');
+            }
+        } catch (err) {
+            console.error('❌ Error cargando desde Firebase:', err);
+        }
+    }
+
+    // ----- PASO 2: EXTRAER ID / NOMBRE DEL TEXTO DEL QR -----
+    if (typeof datos === 'string') {
+        // Dividir por saltos de línea
+        const lines = datos.split('\n');
+        for (let line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('ID:')) {
+                id = trimmed.replace('ID:', '').trim();
+                break;
+            }
+        }
+        // Si no encontró ID, buscar nombre
+        if (!id) {
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('ESTUDIANTE:')) {
+                    nombre = trimmed.replace('ESTUDIANTE:', '').trim();
+                    break;
+                }
+            }
+        }
+    } else if (typeof datos === 'object' && datos !== null) {
+        // Si es objeto (por compatibilidad con versiones anteriores)
+        id = datos.id || datos.ID || null;
+        nombre = datos.nombre || datos.estudiante || null;
+    }
+
+    // ----- PASO 3: BUSCAR ESTUDIANTE -----
+    if (id) {
+        estudiante = inscriptions.find(ins => String(ins.id) === String(id));
+    }
+    if (!estudiante && nombre) {
+        estudiante = inscriptions.find(ins =>
+            ins.estudiante.nombre.toLowerCase().includes(nombre.toLowerCase())
+        );
+    }
+    // Si aún no se encuentra, intentar buscar por ID parcial (por si el QR contiene solo parte)
+    if (!estudiante && id) {
+        estudiante = inscriptions.find(ins => String(ins.id).includes(String(id)));
+    }
+
+    // ----- PASO 4: SI NO SE ENCUENTRA, MOSTRAR ERROR -----
+    if (!estudiante) {
+        console.error('❌ Estudiante no encontrado. Datos recibidos:', datos);
+        if (typeof showToast === 'function') {
+            showToast('❌ Estudiante no reconocido (ID: ' + (id || 'N/A') + ')', 'error');
+        }
+        if (connTablet && connTablet.open) {
+            connTablet.send({ error: 'no_reconocido', detalle: 'ID o nombre no válido' });
+        }
+        return;
+    }
+
+    console.log('✅ Estudiante ENCONTRADO:', estudiante.estudiante.nombre);
+
+    // ----- PASO 5: REGISTRAR ASISTENCIA (código ya existente) -----
+    const daySelect = document.getElementById('filter-day');
+    const scheduleSelect = document.getElementById('filter-schedule');
+    const diaSeleccionado = daySelect ? daySelect.value : '';
+    const horarioSeleccionado = scheduleSelect ? scheduleSelect.value : '';
+
+    if (!diaSeleccionado || !horarioSeleccionado) {
+        if (typeof showToast === 'function') {
+            showToast('❌ Selecciona un día y horario en el filtro', 'error');
+        }
+        return;
+    }
+
+    // Determinar estado (presente o reposición)
+    let estado = 'presente';
+    if (estudiante.academico) {
+        const diasEstudio = estudiante.academico.dias || [];
+        const horarioEstudio = estudiante.academico.horario || '';
+        const diaCorrecto = diasEstudio.includes(diaSeleccionado);
+        const horarioCorrecto = horarioEstudio === horarioSeleccionado;
+        if (!diaCorrecto || !horarioCorrecto) {
+            estado = 'reposicion';
+        }
+    }
+
+    // Registrar en la tabla (si existe función)
+    if (window.asistenciaApp && typeof window.asistenciaApp.registrarEstudianteEnTabla === 'function') {
+        window.asistenciaApp.registrarEstudianteEnTabla(
+            estudiante,
+            estado,
+            new Date().toISOString().split('T')[0],
+            diaSeleccionado,
+            horarioSeleccionado
+        );
+    }
+
+    // Guardar en historial
+    const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+    const nuevoRegistro = {
+        id: Date.now(),
+        studentId: estudiante.id,
+        studentName: estudiante.estudiante.nombre,
+        instrumento: estudiante.musical?.instrumentoPrincipal || 'No especificado',
+        nivel: estudiante.estudiante.nivel || 'No especificado',
+        fecha: new Date().toISOString().split('T')[0],
+        dia: diaSeleccionado,
+        horario: horarioSeleccionado,
+        estado: estado,
+        tipo: estado === 'presente' ? 'asistencia_tablet' : 'reposicion_tablet',
+        horaRegistro: new Date().toLocaleTimeString(),
+        observaciones: estado === 'reposicion' ? 'Registrado fuera de horario' : '',
+        timestamp: new Date().toISOString()
+    };
+    historial.push(nuevoRegistro);
+    localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+
+    // Guardar en Firebase
+    if (window.db) {
+        window.db.collection('asistencia').doc(String(nuevoRegistro.id)).set(nuevoRegistro)
+            .catch(err => console.error('Error guardando asistencia en Firebase:', err));
+    }
+
+    // Enviar confirmación a la tablet
+    if (connTablet && connTablet.open) {
+        connTablet.send({
+            tipo: 'confirmacion',
+            nombre: estudiante.estudiante.nombre,
+            estado: estado
+        });
+    }
+
+    // Mostrar notificación
+    if (typeof showToast === 'function') {
+        showToast(`✅ ${estudiante.estudiante.nombre} (${estado})`, 'success');
+    }
+    console.log('✅ Asistencia registrada para:', estudiante.estudiante.nombre);
 }
 
 // =====================================================
@@ -11387,7 +11460,17 @@ const asistenciaApp = {
         iniciarSincronizacionAsistencia();
         console.log('🔄 Sincronización de asistencia iniciada');
     }
-    
+    if (window.db) {
+    window.db.collection('inscripciones').onSnapshot((snapshot) => {
+        const firestoreData = [];
+        snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+        if (firestoreData.length > 0) {
+            localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
+            window.inscriptions = firestoreData;
+            console.log('🔄 Datos de inscripciones actualizados desde Firebase en tiempo real');
+        }
+    });
+}
     console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
     this.inicializada = true;
 },
