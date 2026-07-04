@@ -9453,50 +9453,251 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
 // =====================================================
 // ELIMINAR INSCRIPCIÓN
 // =====================================================
+// =====================================================
+// ELIMINAR INSCRIPCIÓN - CON VERIFICACIÓN EN FIREBASE
+// =====================================================
+
 async function eliminarInscripcion(id) {
-    console.log('🗑️ ELIMINANDO ID:', id);
+    console.log('🗑️ ELIMINANDO INSCRIPCIÓN ID:', id);
+    
     if (!id) {
         if (typeof showToast === 'function') {
             showToast('❌ ID inválido', 'error');
         }
         return;
     }
-    if (!confirm('¿Está seguro que desea eliminar esta inscripción?')) {
+    
+    if (!confirm('⚠️ ¿Está seguro que desea eliminar esta inscripción? Esta acción no se puede deshacer.')) {
         return;
     }
-    const idStr = String(id);
+    
+    const idStr = String(id).trim();
     console.log('🔍 Buscando inscripción con ID:', idStr);
-    const inscripcion = inscriptions.find(ins => String(ins.id) === idStr);
+    
+    // =============================================
+    // PASO 1: BUSCAR EN LOCALSTORAGE
+    // =============================================
+    let datosLocales = [];
+    try {
+        const stored = localStorage.getItem('inscriptions');
+        datosLocales = stored ? JSON.parse(stored) : [];
+        console.log(`📦 Datos en localStorage: ${datosLocales.length} registros`);
+    } catch (e) {
+        console.error('❌ Error al leer localStorage:', e);
+        datosLocales = [];
+    }
+    
+    const inscripcion = datosLocales.find(ins => String(ins.id).trim() === idStr);
+    
     if (!inscripcion) {
-        console.error('❌ No se encontró la inscripción');
+        console.error('❌ No se encontró la inscripción en localStorage');
         if (typeof showToast === 'function') {
             showToast('❌ No se encontró la inscripción', 'error');
         }
         return;
     }
+    
+    const nombreEstudiante = inscripcion.estudiante?.nombre || 'desconocido';
+    const firestoreId = String(inscripcion.id).trim();
+    console.log(`🔍 Eliminando a: ${nombreEstudiante} (ID Firebase: ${firestoreId})`);
+    
     try {
+        // =============================================
+        // PASO 2: ELIMINAR DE FIRESTORE CON VERIFICACIÓN
+        // =============================================
         if (window.db) {
-            console.log('☁️ Eliminando de Firestore...');
-            await window.db.collection('inscripciones').doc(idStr).delete();
-            console.log('✅ Eliminado de Firestore');
+            console.log('☁️ Intentando eliminar de Firestore...');
+            const docRef = window.db.collection('inscripciones').doc(firestoreId);
+            
+            // 2.1 VERIFICAR QUE EL DOCUMENTO EXISTE
+            console.log('🔍 Verificando existencia en Firebase...');
+            const doc = await docRef.get();
+            
+            if (doc.exists) {
+                console.log('✅ Documento encontrado en Firebase, eliminando...');
+                
+                // 2.2 ELIMINAR
+                await docRef.delete();
+                console.log('✅ Eliminado de Firestore (primer intento)');
+                
+                // 2.3 VERIFICAR QUE REALMENTE SE ELIMINÓ
+                console.log('🔍 Verificando que se eliminó de Firebase...');
+                const docAfter = await docRef.get();
+                
+                if (docAfter.exists) {
+                    console.error('❌ EL DOCUMENTO SIGUE EN FIREBASE - Intentando nuevamente...');
+                    
+                    // Intentar eliminar otra vez
+                    await docRef.delete();
+                    console.log('🔄 Segundo intento de eliminación');
+                    
+                    // Verificar nuevamente
+                    const docAfter2 = await docRef.get();
+                    if (docAfter2.exists) {
+                        console.error('❌ NO SE PUDO ELIMINAR DE FIREBASE');
+                        showToast('❌ No se pudo eliminar de Firebase. Verifica permisos.', 'error');
+                        return;
+                    } else {
+                        console.log('✅ Eliminado definitivamente de Firebase (segundo intento)');
+                    }
+                } else {
+                    console.log('✅ Verificado: Documento eliminado de Firebase');
+                }
+            } else {
+                console.warn('⚠️ El documento no existía en Firebase, continuando con eliminación local...');
+            }
+        } else {
+            console.warn('⚠️ Firebase no disponible, solo eliminando localmente');
         }
-        let stored = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        const newStored = stored.filter(ins => String(ins.id) !== idStr);
-        localStorage.setItem('inscriptions', JSON.stringify(newStored));
-        inscriptions = newStored;
-        window.inscriptions = newStored;
-        console.log(`✅ ${stored.length} → ${newStored.length} registros`);
+        
+        // =============================================
+        // PASO 3: ELIMINAR DE LOCALSTORAGE
+        // =============================================
+        const nuevasInscripciones = datosLocales.filter(ins => String(ins.id).trim() !== firestoreId);
+        localStorage.setItem('inscriptions', JSON.stringify(nuevasInscripciones));
+        
+        // ACTUALIZAR VARIABLES GLOBALES
+        inscriptions = nuevasInscripciones;
+        window.inscriptions = nuevasInscripciones;
+        
+        console.log(`✅ Eliminado de localStorage. Total: ${nuevasInscripciones.length}`);
+        
+        // =============================================
+        // PASO 4: ELIMINAR DATOS RELACIONADOS
+        // =============================================
+        
+        // 4.1 Eliminar pagos asociados
+        try {
+            let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
+            pagosData.pagos = (pagosData.pagos || []).filter(p => String(p.idEstudiante).trim() !== firestoreId);
+            localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+            
+            if (window.db) {
+                await window.db.collection('pagos').doc('global').set(pagosData);
+            }
+            console.log('✅ Pagos asociados eliminados');
+        } catch(e) {
+            console.warn('⚠️ Error al eliminar pagos:', e);
+        }
+        
+        // 4.2 Eliminar asistencia asociada
+        try {
+            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            historial = historial.filter(r => String(r.studentId).trim() !== firestoreId);
+            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+            
+            if (window.db) {
+                const snapshot = await window.db.collection('asistencia')
+                    .where('studentId', '==', firestoreId)
+                    .get();
+                for (const doc of snapshot.docs) {
+                    await doc.ref.delete();
+                }
+            }
+            console.log('✅ Asistencia asociada eliminada');
+        } catch(e) {
+            console.warn('⚠️ Error al eliminar asistencia:', e);
+        }
+        
+        // 4.3 Eliminar tareas asociadas
+        try {
+            let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+            tareas = tareas.filter(t => String(t.estudianteId).trim() !== firestoreId);
+            localStorage.setItem('tareasSubidas', JSON.stringify(tareas));
+            
+            if (window.db) {
+                const snapshot = await window.db.collection('tareas')
+                    .where('estudianteId', '==', firestoreId)
+                    .get();
+                for (const doc of snapshot.docs) {
+                    await doc.ref.delete();
+                }
+            }
+            console.log('✅ Tareas asociadas eliminadas');
+        } catch(e) {
+            console.warn('⚠️ Error al eliminar tareas:', e);
+        }
+        
+        // =============================================
+        // PASO 5: FORZAR SINCRONIZACIÓN DESDE FIREBASE
+        // =============================================
+        if (window.db) {
+            try {
+                console.log('🔄 Forzando sincronización desde Firebase...');
+                const snapshot = await window.db.collection('inscripciones').get({ source: 'server' });
+                const firebaseData = [];
+                snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+                
+                // Verificar que el ID eliminado no esté en Firebase
+                const existeEnFirebase = firebaseData.some(doc => String(doc.id).trim() === firestoreId);
+                if (existeEnFirebase) {
+                    console.error('❌ El ID aún existe en Firebase, eliminando manualmente...');
+                    await window.db.collection('inscripciones').doc(firestoreId).delete();
+                    console.log('✅ Eliminado manualmente de Firebase');
+                    
+                    // Recargar datos
+                    const snapshot2 = await window.db.collection('inscripciones').get({ source: 'server' });
+                    const freshData = [];
+                    snapshot2.forEach(doc => freshData.push({ id: doc.id, ...doc.data() }));
+                    localStorage.setItem('inscriptions', JSON.stringify(freshData));
+                    inscriptions = freshData;
+                    window.inscriptions = freshData;
+                }
+                console.log('✅ Datos sincronizados correctamente');
+            } catch(e) {
+                console.warn('⚠️ Error en sincronización:', e);
+            }
+        }
+        
+        // =============================================
+        // PASO 6: ACTUALIZAR INTERFACES
+        // =============================================
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-        if (typeof showToast === 'function') {
-            showToast('✅ Inscripción eliminada correctamente', 'success');
+        if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
+            asistenciaApp.cargarEstudiantesAutomaticamente();
         }
-        console.log('🎉 Eliminación completada');
+        
+        // =============================================
+        // PASO 7: MENSAJE DE ÉXITO
+        // =============================================
+        const mensajeExito = `✅ ${nombreEstudiante} eliminado correctamente`;
+        if (typeof showToast === 'function') {
+            showToast(mensajeExito, 'success');
+        } else {
+            alert(mensajeExito);
+        }
+        console.log('🎉 Eliminación completada exitosamente');
+        
+        // DISPARAR EVENTO PERSONALIZADO
+        window.dispatchEvent(new CustomEvent('inscripcion-eliminada', {
+            detail: { id: firestoreId, nombre: nombreEstudiante }
+        }));
+        
     } catch (error) {
-        console.error('❌ Error al eliminar:', error);
+        console.error('❌ Error crítico al eliminar:', error);
+        
         if (typeof showToast === 'function') {
             showToast('❌ Error al eliminar: ' + error.message, 'error');
+        } else {
+            alert('❌ Error al eliminar: ' + error.message);
+        }
+        
+        // INTENTAR RESTAURAR DATOS
+        try {
+            if (window.db) {
+                const snapshot = await window.db.collection('inscripciones').get();
+                const firebaseData = [];
+                snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+                localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
+                inscriptions = firebaseData;
+                window.inscriptions = firebaseData;
+                if (typeof renderTable === 'function') renderTable();
+                console.log('🔄 Datos restaurados desde Firebase');
+            }
+        } catch(e) {
+            console.error('❌ Error al restaurar:', e);
         }
     }
 }
