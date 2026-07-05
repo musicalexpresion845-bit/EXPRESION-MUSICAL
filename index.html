@@ -17026,7 +17026,7 @@ function mostrarBienvenidaConFrase(usuarioNombre) {
 }
 
 // =====================================================
-// FUNCIONES DE CARNET - VERSIÓN VERTICAL 8.4x5.4cm
+// FUNCIONES DE CARNET - VERSIÓN COMPLETA CORREGIDA
 // =====================================================
 
 function calcularFechaVencimiento(fechaInicio) {
@@ -17039,12 +17039,12 @@ function calcularFechaVencimiento(fechaInicio) {
             day: '2-digit'
         });
     } catch (e) {
-        return "15/11/2026";
+        return "17/10/2026";
     }
 }
 
 // =====================================================
-// GENERAR CARNET - VERTICAL 8.4cm x 5.4cm
+// GENERAR CARNET - CON LETRAS Y FRANJAS GRANDES
 // =====================================================
 
 function generarCarnetEstudiante(id) {
@@ -17109,247 +17109,268 @@ function generarCarnetEstudiante(id) {
 
     const { nombres, apellidos } = dividirNombre(inscripcion.estudiante.nombre);
     const previewContainer = document.getElementById('carnetPreviewContainer');
+    const fechaVencimiento = calcularFechaVencimiento(inscripcion.academico.fechaInicio);
 
-    // 🔥 CARNET VERTICAL - Diseño exacto de la imagen
+    // =====================================================
+    // DISEÑO - CON LETRAS Y FRANJAS GRANDES
+    // =====================================================
     previewContainer.innerHTML = `
-        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
 
             <!-- ============ CARNET FRONTAL ============ -->
             <div class="carnet-frontal" style="
-                width: 205px;
-                height: 320px;
-                background: #ffffff;
-                border-radius: 10px;
-                box-shadow: 0 6px 24px rgba(0,0,0,0.2);
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                border: 2px solid #E63946;
-                position: relative;
+                width: 210px !important;
+                height: 330px !important;
+                background: #ffffff !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+                border: 1px solid #f0f0f0 !important;
+                position: relative !important;
             ">
-                <!-- Franja superior ROJA con logo -->
+                <!-- Franja superior ROJA - GRANDE -->
                 <div style="
-                    background: #E63946;
-                    padding: 4px 10px 3px 10px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    border-bottom: 2px solid #C1121F;
-                    flex-shrink: 0;
+                    background: linear-gradient(135deg, #E63946, #C1121F) !important;
+                    padding: 14px 14px 12px 14px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 10px !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1);">
-                    <div style="text-align: center;">
-                        <div style="font-size: 8px; font-weight: 700; color: white; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1;">Expresión Musical</div>
-                        <div style="font-size: 5px; color: #ffd700; letter-spacing: 1px; font-weight: 600;">ACADEMIA DE MÚSICA</div>
+                    <!-- MARCA DE AGUA (logo) -->
+                    <div style="
+                        position: absolute !important;
+                        left: 50% !important;
+                        top: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        opacity: 0.10 !important;
+                        pointer-events: none !important;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
+                    </div>
+                    
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <div style="text-align: center; position: relative; z-index: 1;">
+                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 0.5px !important; text-transform: uppercase !important; line-height: 1.3 !important; text-align: center !important;">Expresión Musical</div>
+                        <div style="font-size: 9px !important; color: rgba(255,255,255,0.8) !important; letter-spacing: 1.5px !important; font-weight: 600 !important; margin-top: 2px !important; text-align: center !important;">ACADEMIA DE MÚSICA</div>
                     </div>
                 </div>
 
-                <!-- Cuerpo del carnet -->
+                <!-- Cuerpo -->
                 <div style="
-                    flex: 1;
-                    padding: 4px 8px 3px 8px;
-                    display: flex;
-                    gap: 8px;
-                    align-items: flex-start;
-                    background: #ffffff;
+                    flex: 1 !important;
+                    padding: 6px 12px 4px 12px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 4px !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <!-- Columna izquierda: Foto + ID -->
-                    <div style="
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        flex-shrink: 0;
-                        gap: 3px;
-                        margin-top: 2px;
-                    ">
-                        <!-- Foto -->
+                    <!-- Foto centrada -->
+                    <div style="display: flex; justify-content: center; margin-top: -15px;">
                         <div style="
-                            width: 55px;
-                            height: 68px;
-                            border-radius: 6px;
-                            border: 2px solid #E63946;
-                            overflow: hidden;
-                            background: #f0f0f0;
+                            width: 68px !important;
+                            height: 68px !important;
+                            border-radius: 50% !important;
+                            border: 3px solid #E63946 !important;
+                            overflow: hidden !important;
+                            background: #f5f5f5 !important;
+                            box-shadow: 0 2px 12px rgba(230, 57, 70, 0.15) !important;
                         ">
                             ${inscripcion.estudiante.foto ?
                                 `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
-                                    <i class="fas fa-user" style="font-size: 20px; color: #ccc;"></i>
+                                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5;">
+                                    <i class="fas fa-user" style="font-size: 26px; color: #ccc;"></i>
                                 </div>`
                             }
                         </div>
+                    </div>
 
-                        <!-- ID debajo de la foto -->
-                        <div style="
-                            background: #E63946;
-                            color: white;
-                            padding: 0px 6px;
-                            border-radius: 8px;
-                            font-size: 5.5px;
-                            font-weight: 700;
-                            letter-spacing: 0.5px;
-                            text-align: center;
-                            white-space: nowrap;
-                        ">
-                            ID: ${String(inscripcion.id).slice(-6)}
+                    <!-- Nombre -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 13px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
+                        ${apellidos ? `<div style="font-size: 10px !important; font-weight: 500 !important; color: #666 !important; line-height: 1.2 !important;">${apellidos}</div>` : ''}
+                        <div style="font-size: 6px !important; color: #bbb !important; font-weight: 500 !important; margin-top: 1px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
+                    </div>
+
+                    <!-- Datos -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
+                        <div style="background: #f8f9fa; padding: 3px 5px; border-radius: 4px; text-align: center; border: 1px solid #eee;">
+                            <div style="font-size: 6px !important; color: #666 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important;">Edad</div>
+                            <div style="font-size: 10px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.estudiante.edad}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 3px 5px; border-radius: 4px; text-align: center; border: 1px solid #eee;">
+                            <div style="font-size: 6px !important; color: #666 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important;">Nivel</div>
+                            <div style="font-size: 10px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.estudiante.nivel}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 3px 5px; border-radius: 4px; text-align: center; border: 1px solid #eee;">
+                            <div style="font-size: 6px !important; color: #666 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important;">Plan</div>
+                            <div style="font-size: 10px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.academico.plan}</div>
                         </div>
                     </div>
 
-                    <!-- Columna derecha: Información -->
-                    <div style="flex: 1; min-width: 0; padding-top: 2px;">
-                        <!-- Nombre -->
-                        <div>
-                            <div style="font-size: 4px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Nombre</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #000000; line-height: 1.1;">${nombres}</div>
-                            ${apellidos ? `<div style="font-size: 9px; font-weight: 600; color: #333; line-height: 1.1;">${apellidos}</div>` : ''}
-                        </div>
+                    <!-- Instrumento -->
+                    <div style="
+                        background: #fff5f5 !important;
+                        padding: 3px 8px !important;
+                        border-radius: 6px !important;
+                        border: 1.5px solid #E63946 !important;
+                        text-align: center !important;
+                        margin-top: 2px !important;
+                    ">
+                        <div style="font-size: 6px !important; color: #999 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Instrumento</div>
+                        <div style="font-size: 11px !important; font-weight: 700 !important; color: #E63946 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
+                    </div>
 
-                        <!-- Datos en fila -->
-                        <div style="display: flex; gap: 4px; margin-top: 1px; flex-wrap: wrap;">
-                            <div>
-                                <div style="font-size: 3.5px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Edad</div>
-                                <div style="font-size: 8px; font-weight: 700; color: #000000;">${inscripcion.estudiante.edad}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 3.5px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Género</div>
-                                <div style="font-size: 8px; font-weight: 700; color: #000000;">${inscripcion.estudiante.genero || 'N/E'}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 3.5px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Nivel</div>
-                                <div style="font-size: 8px; font-weight: 700; color: #000000;">${inscripcion.estudiante.nivel}</div>
-                            </div>
+                    <!-- Horario y Género -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 2px;">
+                        <div style="background: #f8f9fa; padding: 3px 5px; border-radius: 4px; text-align: center; border: 1px solid #eee;">
+                            <div style="font-size: 6px !important; color: #666 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important;">Horario</div>
+                            <div style="font-size: 9px !important; font-weight: 600 !important; color: #1a1a1a !important;">${inscripcion.academico.horario || 'N/A'}</div>
                         </div>
-
-                        <!-- Instrumento -->
-                        <div style="margin-top: 1px;">
-                            <div style="font-size: 3.5px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Instrumento</div>
-                            <div style="font-size: 9px; font-weight: 700; color: #E63946;">${inscripcion.musical.instrumentoPrincipal}</div>
-                        </div>
-
-                        <!-- Plan -->
-                        <div style="margin-top: 1px;">
-                            <div style="font-size: 3.5px; color: #999; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Plan</div>
-                            <div style="font-size: 7px; font-weight: 600; color: #000000;">${inscripcion.academico.plan}</div>
+                        <div style="background: #f8f9fa; padding: 3px 5px; border-radius: 4px; text-align: center; border: 1px solid #eee;">
+                            <div style="font-size: 6px !important; color: #666 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important;">Género</div>
+                            <div style="font-size: 9px !important; font-weight: 600 !important; color: #1a1a1a !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Franja inferior NEGRA con validez -->
+                <!-- Franja inferior -->
                 <div style="
-                    background: #000000;
-                    padding: 2px 10px 2px 10px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    border-top: 2px solid #E63946;
-                    flex-shrink: 0;
+                    background: #f8f9fa !important;
+                    padding: 4px 14px !important;
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    border-top: 1px solid #f0f0f0 !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <div>
-                        <div style="font-size: 3.5px; color: #888; font-weight: 600; letter-spacing: 0.5px;">VÁLIDO HASTA</div>
-                        <div style="font-size: 7px; font-weight: 700; color: #ffd700;">${calcularFechaVencimiento(inscripcion.academico.fechaInicio)}</div>
+                    <div style="position: relative; z-index: 1;">
+                        <div style="font-size: 5.5px !important; color: #999 !important; font-weight: 600 !important; letter-spacing: 0.5px !important;">VÁLIDO HASTA</div>
+                        <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #E63946 !important;">${fechaVencimiento}</div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 3px;">
-                        <div style="width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);"></div>
-                        <span style="font-size: 5px; font-weight: 700; color: #4CAF50; letter-spacing: 0.5px;">VÁLIDO</span>
+                    <div style="display: flex; align-items: center; gap: 4px; position: relative; z-index: 1;">
+                        <div style="width: 7px; height: 7px; background: #4CAF50; border-radius: 50%;"></div>
+                        <span style="font-size: 7.5px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
                     </div>
                 </div>
             </div>
 
             <!-- ============ CARNET DORSO ============ -->
             <div class="carnet-dorso" style="
-                width: 205px;
-                height: 320px;
-                background: #ffffff;
-                border-radius: 10px;
-                box-shadow: 0 6px 24px rgba(0,0,0,0.2);
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                border: 2px solid #E63946;
+                width: 210px !important;
+                height: 330px !important;
+                background: #ffffff !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+                border: 1px solid #f0f0f0 !important;
+                position: relative !important;
             ">
-                <!-- Encabezado NEGRO -->
+                <!-- Franja superior NEGRA - GRANDE -->
                 <div style="
-                    background: #000000;
-                    padding: 4px 10px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    border-bottom: 2px solid #E63946;
-                    flex-shrink: 0;
+                    background: linear-gradient(135deg, #1a1a2e, #2d2d44) !important;
+                    padding: 12px 14px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 10px !important;
+                    border-bottom: 1px solid #E63946 !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 14px; height: 14px; object-fit: contain; filter: brightness(0) invert(1);">
-                    <span style="font-size: 6.5px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase;">Código de Verificación</span>
+                    <!-- MARCA DE AGUA (logo) -->
+                    <div style="
+                        position: absolute !important;
+                        left: 50% !important;
+                        top: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        opacity: 0.08 !important;
+                        pointer-events: none !important;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
+                    </div>
+                    
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 24px; height: 24px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <span style="font-size: 10px !important; font-weight: 700 !important; color: rgba(255,255,255,0.8) !important; letter-spacing: 1.5px !important; text-transform: uppercase !important; position: relative; z-index: 1;">Código de Verificación</span>
                 </div>
 
-                <!-- Cuerpo del dorso -->
-                <div style="
-                    flex: 1;
-                    padding: 6px 10px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 3px;
-                    background: #ffffff;
-                ">
-                    <!-- QR más grande -->
+                <!-- Cuerpo -->
+                <div style="flex: 1; padding: 8px 12px 6px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; z-index: 1;">
                     <div id="qr-code-container" style="
-                        width: 110px;
-                        height: 110px;
-                        background: white;
-                        border-radius: 8px;
-                        padding: 4px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border: 2px solid #E63946;
+                        width: 145px !important;
+                        height: 145px !important;
+                        background: white !important;
+                        border-radius: 10px !important;
+                        padding: 5px !important;
+                        border: 2px solid #E63946 !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        box-shadow: 0 2px 12px rgba(230, 57, 70, 0.08) !important;
                     ">
                         <div style="text-align: center;">
                             <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 16px;"></i>
                         </div>
                     </div>
 
-                    <div style="font-size: 4.5px; color: #999; text-align: center;">Escanear para verificar identidad</div>
+                    <div style="font-size: 7px !important; color: #888 !important; text-align: center !important; font-weight: 500 !important; margin-top: 2px !important;">Escanear para verificar identidad</div>
 
-                    <!-- Información de contacto -->
                     <div style="
-                        background: #f5f5f5;
-                        padding: 3px 6px;
-                        border-radius: 6px;
-                        text-align: center;
-                        width: 100%;
-                        margin-top: 2px;
+                        background: #f8f9fa !important;
+                        padding: 4px 10px !important;
+                        border-radius: 6px !important;
+                        text-align: center !important;
+                        width: 100% !important;
+                        border: 1px solid #eee !important;
                     ">
-                        <div style="font-size: 4.5px; color: #E63946; font-weight: 700; letter-spacing: 0.5px;">CONTACTO</div>
-                        <div style="font-size: 5.5px; color: #333; font-weight: 600;">📞 37418036 / 38514409</div>
-                        <div style="font-size: 4.5px; color: #666;">08 Calle c 10-72 Zona 3 San Marcos</div>
+                        <div style="font-size: 7px !important; color: #E63946 !important; font-weight: 700 !important; letter-spacing: 0.5px !important;">CONTACTO</div>
+                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 7px !important; font-weight: 600 !important; color: #1a1a1a !important; margin-top: 2px !important;">
+                            <span>📞 37418036</span>
+                            <span style="color: #ccc;">|</span>
+                            <span>📞 38514409</span>
+                        </div>
+                        <div style="font-size: 6px !important; color: #666 !important; margin-top: 2px !important; font-weight: 500 !important;">
+                            <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 8px;"></i> 08 Calle c 10-72 Zona 3 San Marcos
+                        </div>
                     </div>
                 </div>
 
                 <!-- Franja inferior ROJA -->
                 <div style="
-                    background: #E63946;
-                    padding: 2px 10px;
-                    text-align: center;
-                    border-top: 2px solid #C1121F;
-                    flex-shrink: 0;
+                    background: #E63946 !important;
+                    padding: 4px 10px !important;
+                    text-align: center !important;
+                    border-top: 1px solid #C1121F !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <span style="font-size: 4.5px; color: white; font-weight: 600; letter-spacing: 0.5px;">www.expressionmusical.com</span>
+                    <span style="font-size: 8px !important; color: rgba(255,255,255,0.9) !important; font-weight: 700 !important; letter-spacing: 0.5px !important;">www.expressionmusical.com</span>
                 </div>
             </div>
         </div>
 
-        <!-- Tamaño indicador -->
         <div style="text-align: center; margin-top: 6px;">
-            <span style="font-size: 9px; color: #999; background: #f5f5f5; padding: 2px 14px; border-radius: 12px;">Tamaño: 8.4 x 5.4 cm</span>
+            <span style="font-size: 9px; color: #999; background: #f5f5f5; padding: 2px 12px; border-radius: 12px;">8.4 x 5.4 cm</span>
         </div>
     `;
 
-    // Generar QR
+    // =====================================================
+    // GENERAR QR
+    // =====================================================
     const qrContainer = document.getElementById('qr-code-container');
     if (qrContainer) {
         const textoQR = `
@@ -17358,17 +17379,17 @@ ID: ${inscripcion.id}
 ESTUDIANTE: ${inscripcion.estudiante.nombre}
 INSTRUMENTO: ${inscripcion.musical.instrumentoPrincipal}
 NIVEL: ${inscripcion.estudiante.nivel}
-FECHA: ${new Date().toLocaleDateString()}
+VÁLIDO HASTA: ${fechaVencimiento}
 `.trim();
 
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=250x250&margin=10&format=png&color=000000&bgcolor=ffffff`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=300x300&margin=10&format=png&color=000000&bgcolor=ffffff`;
 
         const img = new Image();
         img.onload = function() {
             qrContainer.innerHTML = `<img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain;">`;
         };
         img.onerror = function() {
-            const altQR = `https://quickchart.io/qr?text=${encodeURIComponent(textoQR)}&size=180&margin=4`;
+            const altQR = `https://quickchart.io/qr?text=${encodeURIComponent(textoQR)}&size=220&margin=4`;
             const img2 = new Image();
             img2.onload = function() {
                 qrContainer.innerHTML = `<img src="${altQR}" style="width: 100%; height: 100%; object-fit: contain;">`;
@@ -17377,6 +17398,7 @@ FECHA: ${new Date().toLocaleDateString()}
                 qrContainer.innerHTML = `
                     <div style="text-align: center;">
                         <i class="fas fa-qrcode" style="color: #E63946; font-size: 32px;"></i>
+                        <div style="font-size: 6px; color: #999; margin-top: 4px;">Código QR</div>
                     </div>
                 `;
             };
@@ -17389,10 +17411,10 @@ FECHA: ${new Date().toLocaleDateString()}
 }
 
 // =====================================================
-// DESCARGAR CARNET - VERTICAL 8.4cm x 5.4cm
+// DESCARGAR CARNET - CON ESCALA ALTA
 // =====================================================
 
-function descargarCarnetActual() {
+async function descargarCarnetActual() {
     console.log("📥 Descargando carnet...");
 
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
@@ -17445,15 +17467,66 @@ function descargarCarnetActual() {
     document.body.appendChild(toastMsg);
 
     try {
+        const scale = 4;
+        
+        const canvasFrontal = await html2canvas(carnetFrontal, {
+            scale: scale,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: 210,
+            height: 330,
+            logging: false,
+            onclone: function(doc) {
+                const style = doc.createElement('style');
+                style.textContent = `
+                    * { font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important; }
+                    .carnet-frontal, .carnet-dorso { 
+                        transform: scale(1) !important;
+                        width: 210px !important;
+                        height: 330px !important;
+                    }
+                    .carnet-frontal div, .carnet-dorso div {
+                        font-size: inherit !important;
+                    }
+                `;
+                doc.head.appendChild(style);
+            }
+        });
+
+        const canvasDorso = await html2canvas(carnetDorso, {
+            scale: scale,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: 210,
+            height: 330,
+            logging: false,
+            onclone: function(doc) {
+                const style = doc.createElement('style');
+                style.textContent = `
+                    * { font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important; }
+                    .carnet-frontal, .carnet-dorso { 
+                        transform: scale(1) !important;
+                        width: 210px !important;
+                        height: 330px !important;
+                    }
+                    .carnet-frontal div, .carnet-dorso div {
+                        font-size: inherit !important;
+                    }
+                `;
+                doc.head.appendChild(style);
+            }
+        });
+
         const pdf = new jsPDFLib({
             orientation: 'portrait',
             unit: 'mm',
             format: 'a4'
         });
 
-        // Medidas exactas: 8.4cm x 5.4cm (vertical: 84mm alto x 54mm ancho)
-        const carnetAncho = 54;   // 5.4cm en mm (ancho)
-        const carnetLargo = 84;   // 8.4cm en mm (alto)
+        const carnetAncho = 54;
+        const carnetLargo = 84;
         const pageWidth = 210;
         const pageHeight = 297;
         const yPos = (pageHeight - carnetLargo) / 2;
@@ -17461,53 +17534,23 @@ function descargarCarnetActual() {
         const totalWidth = (carnetAncho * 2) + espacioEntreCarnets;
         const startX = (pageWidth - totalWidth) / 2;
 
-        Promise.all([
-            html2canvas(carnetFrontal, {
-                scale: 3,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: 205,
-                height: 320,
-                logging: false
-            }),
-            html2canvas(carnetDorso, {
-                scale: 3,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: 205,
-                height: 320,
-                logging: false
-            })
-        ]).then(([canvasFrontal, canvasDorso]) => {
-            try {
-                const imgDataFrontal = canvasFrontal.toDataURL('image/png');
-                const imgDataDorso = canvasDorso.toDataURL('image/png');
+        const imgDataFrontal = canvasFrontal.toDataURL('image/png');
+        const imgDataDorso = canvasDorso.toDataURL('image/png');
 
-                pdf.addImage(imgDataFrontal, 'PNG', startX, yPos, carnetAncho, carnetLargo);
-                pdf.addImage(imgDataDorso, 'PNG', startX + carnetAncho + espacioEntreCarnets, yPos, carnetAncho, carnetLargo);
+        pdf.addImage(imgDataFrontal, 'PNG', startX, yPos, carnetAncho, carnetLargo);
+        pdf.addImage(imgDataDorso, 'PNG', startX + carnetAncho + espacioEntreCarnets, yPos, carnetAncho, carnetLargo);
 
-                pdf.save(nombreArchivo);
-                document.body.removeChild(toastMsg);
-                console.log("✅ Carnet descargado correctamente");
-                if (typeof showToast === 'function') {
-                    showToast('Carnet descargado correctamente', 'success');
-                }
-            } catch (error) {
-                document.body.removeChild(toastMsg);
-                console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF: ' + error.message);
-            }
-        }).catch(error => {
-            document.body.removeChild(toastMsg);
-            console.error('Error al capturar carnets:', error);
-            alert('Error al capturar los carnets: ' + error.message);
-        });
+        pdf.save(nombreArchivo);
+        document.body.removeChild(toastMsg);
+        console.log("✅ Carnet descargado correctamente");
+        if (typeof showToast === 'function') {
+            showToast('Carnet descargado correctamente', 'success');
+        }
+
     } catch (error) {
         document.body.removeChild(toastMsg);
-        console.error('Error al configurar PDF:', error);
-        alert('Error al configurar el PDF: ' + error.message);
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar el PDF: ' + error.message);
     }
 }
 
