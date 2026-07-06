@@ -7952,9 +7952,6 @@ body.dark-mode .acciones .btn:hover {
                         <button class="btn-temario" onclick="guardarSemanaTemario()" style="padding:8px 15px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-save"></i> Guardar Semana</button>
                         <button class="btn-temario btn-temario-success" onclick="guardarTemarioCompleto()" style="padding:8px 15px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-check"></i> Finalizar</button>
                         <button class="btn-temario" onclick="cargarTemarioExistente()" style="padding:8px 15px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer;"><i class="fas fa-download"></i> Cargar Guardado</button>
-                      <button class="btn-temario" onclick="cancelarEdicionSemana()" style="padding:8px 15px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;">
-    <i class="fas fa-times"></i> Cancelar Edición
-</button>
                     </div>
                     <div id="temarioPreview" style="margin-top:20px;">
                         <h4>📋 Vista previa</h4>
@@ -10524,7 +10521,202 @@ function guardarInscripcion() {
         showToast('❌ Error: ' + error.message, 'error');
     }
 }
-  
+  // =============================================
+// 🔥 MANEJADOR DE FOTO - AGREGAR ESTO AL FINAL DEL BLOQUE 2
+// =============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const fotoInput = document.getElementById('fotoEstudiante');
+    const fotoPreview = document.getElementById('fotoPreview');
+    
+    if (fotoInput) {
+        fotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validar que sea imagen
+            if (!file.type.startsWith('image/')) {
+                alert('⚠️ Por favor selecciona una imagen válida');
+                this.value = '';
+                return;
+            }
+            
+            // Validar tamaño (2MB max)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('⚠️ La imagen es demasiado grande. Máximo 2MB.');
+                this.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageData = event.target.result;
+                
+                // 🔥 GUARDAR LA FOTO EN LA VARIABLE GLOBAL
+                window.fotoTemporal = imageData;
+                console.log('📸 Foto guardada correctamente');
+                
+                // Mostrar preview
+                if (fotoPreview) {
+                    fotoPreview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+                }
+                
+                showToast('✅ Foto cargada correctamente', 'success');
+            };
+            reader.readAsDataURL(file);
+        });
+        console.log('✅ Listener de foto configurado');
+    } else {
+        console.error('❌ No se encontró el input de foto');
+    }
+});
+
+// =============================================
+// 🔥 FUNCIÓN PARA USAR FOTO DE CÁMARA - CORREGIDA
+// =============================================
+function usarFotoCapturada() {
+    const canvas = document.getElementById('canvasCapture');
+    if (!canvas) {
+        alert('Error: No se pudo capturar la foto');
+        return;
+    }
+    
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    
+    // 🔥 GUARDAR LA FOTO DE LA CÁMARA
+    window.fotoTemporal = imageData;
+    
+    // Mostrar preview
+    const preview = document.getElementById('fotoPreview');
+    if (preview) {
+        preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+    }
+    
+    // Cerrar modal
+    cerrarCameraModal();
+    showToast('✅ Foto capturada correctamente', 'success');
+}
+
+// =============================================
+// 🔥 RESET FORM - LIMPIAR FOTO
+// =============================================
+function resetForm() {
+    console.log('🧹 Reseteando formulario');
+    
+    // Limpiar foto temporal
+    window.fotoTemporal = null;
+    
+    // Limpiar preview
+    const preview = document.getElementById('fotoPreview');
+    if (preview) {
+        preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
+    }
+    
+    // Limpiar input de archivo
+    const fileInput = document.getElementById('fotoEstudiante');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Resto del reset...
+    const form = document.getElementById('newInscriptionForm');
+    if (form) form.reset();
+    
+    document.querySelectorAll('input[name="diasEstudio"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    const passwordField = document.getElementById('generatedPassword');
+    if (passwordField) {
+        passwordField.value = generateRandomPassword(10);
+    }
+    
+    isEditing = false;
+    currentEditId = null;
+    
+    const editIdInput = document.getElementById('editId');
+    if (editIdInput) editIdInput.value = '';
+    
+    const formTitle = document.getElementById('formTitle');
+    const submitBtnText = document.getElementById('submitBtnText');
+    if (formTitle) formTitle.textContent = 'Nueva Inscripción';
+    if (submitBtnText) submitBtnText.textContent = 'Completar Inscripción';
+    
+    document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+    
+    currentPageForm = 1;
+    updateFormNavigation();
+}
+
+// =============================================
+// 🔥 EDITAR INSCRIPCIÓN - CARGAR FOTO
+// =============================================
+function editarInscripcion(id) {
+    console.log('📝 Editando inscripción ID:', id);
+    
+    const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
+    if (!inscripcion) {
+        alert('Error: No se encontró la inscripción');
+        return;
+    }
+    
+    // Cargar datos del formulario...
+    document.getElementById('editId').value = id;
+    document.getElementById('formTitle').textContent = "Editar Inscripción";
+    document.getElementById('submitBtnText').textContent = "Guardar Cambios";
+    
+    document.getElementById('encargadoNombre').value = inscripcion.encargado.nombre || '';
+    document.getElementById('encargadoDPI').value = inscripcion.encargado.dpi || '';
+    document.getElementById('encargadoTelefono').value = inscripcion.encargado.telefono || '';
+    document.getElementById('encargadoDireccion').value = inscripcion.encargado.direccion || '';
+    
+    document.getElementById('estudianteNombre').value = inscripcion.estudiante.nombre || '';
+    document.getElementById('estudianteEdad').value = inscripcion.estudiante.edad || '';
+    document.getElementById('estudianteGenero').value = inscripcion.estudiante.genero || '';
+    document.getElementById('estudianteNivel').value = inscripcion.estudiante.nivel || '';
+    
+    document.getElementById('planEstudio').value = inscripcion.academico.plan || '';
+    
+    document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
+    if (inscripcion.academico.dias) {
+        inscripcion.academico.dias.forEach(dia => {
+            const cb = document.querySelector(`input[name="diasEstudio"][value="${dia}"]`);
+            if (cb) cb.checked = true;
+        });
+    }
+    
+    document.getElementById('horario').value = inscripcion.academico.horario || '';
+    document.getElementById('fechaInicio').value = inscripcion.academico.fechaInicio || '';
+    
+    document.getElementById('instrumentoPrincipal').value = inscripcion.musical.instrumentoPrincipal || '';
+    document.getElementById('instrumentoSecundario').value = inscripcion.musical.instrumentoSecundario || 'Ninguno';
+    document.getElementById('generatedPassword').value = inscripcion.estudiante.password || '';
+    
+    // 🔥 CARGAR LA FOTO SI EXISTE
+    if (inscripcion.estudiante && inscripcion.estudiante.foto) {
+        window.fotoTemporal = inscripcion.estudiante.foto;
+        const fotoPreview = document.getElementById('fotoPreview');
+        fotoPreview.innerHTML = `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+        console.log('📸 Foto cargada para edición');
+    }
+    
+    isEditing = true;
+    currentEditId = id;
+    currentPageForm = 1;
+    updateFormNavigation();
+    
+    // Mostrar formulario
+    const dataTableContainer = document.getElementById('dataTableContainer');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    const inscriptionForm = document.getElementById('inscriptionForm');
+    
+    if (dataTableContainer) dataTableContainer.style.display = 'none';
+    if (welcomeMessage) welcomeMessage.style.display = 'none';
+    if (inscriptionForm) inscriptionForm.style.display = 'block';
+    
+    const fabContainer = document.getElementById('fabContainer');
+    if (fabContainer) fabContainer.style.display = 'block';
+}
 console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD)");
 </script>
   
@@ -13746,50 +13938,43 @@ function guardarCalificacion(tareaId) {
 }
 
 // =====================================================
-// TEMARIO - VERSIÓN CORREGIDA CON EDICIÓN FUNCIONAL
-// =====================================================
-
-// Variables globales de temario
-let temarioTemporal = { semanas: [] };
-let temarioActual = null;
-let semanaEnEdicion = null; // Guarda el número de semana que se está editando
-
-// =====================================================
-// 1. INICIAR TEMARIO EN TIEMPO REAL
+// 8. TEMARIO - TIEMPO REAL (SOLO DEL DOCENTE)
 // =====================================================
 
 function iniciarTemarioDocenteTiempoReal() {
     const container = document.getElementById('semanasList');
     if (!container) return;
-
+    
     if (docenteListeners.temarios) {
         docenteListeners.temarios();
         docenteListeners.temarios = null;
     }
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
-
+    
     if (!username) {
         container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No se encontró el usuario docente.</p>';
         return;
     }
-
+    
     if (!window.db) {
         cargarTemarioDocenteLocal(container);
         return;
     }
-
+    
     docenteListeners.temarios = window.db.collection('temarios')
         .where('docenteId', '==', username)
         .onSnapshot((snapshot) => {
             const temarios = [];
             snapshot.forEach(doc => temarios.push({ id: doc.id, ...doc.data() }));
+            
             if (temarios.length > 0) {
                 localStorage.setItem('temarios', JSON.stringify(temarios));
             } else {
                 localStorage.setItem('temarios', JSON.stringify([]));
             }
+            
             renderTemarioDocente(temarios, container);
         }, (error) => {
             console.error('❌ Error en listener de temarios:', error);
@@ -13800,6 +13985,7 @@ function iniciarTemarioDocenteTiempoReal() {
 function cargarTemarioDocenteLocal(container) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
+    
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const misTemarios = temarios.filter(t => t.docenteId === username);
     renderTemarioDocente(misTemarios, container);
@@ -13807,12 +13993,12 @@ function cargarTemarioDocenteLocal(container) {
 
 function renderTemarioDocente(temarios, container) {
     if (!container) return;
-
+    
     if (temarios.length === 0) {
         container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay temarios guardados para tu usuario.</p>';
         return;
     }
-
+    
     let html = '';
     temarios.forEach(t => {
         html += `
@@ -13838,84 +14024,60 @@ function renderTemarioDocente(temarios, container) {
             </div>
         `;
     });
+    
     container.innerHTML = html;
 }
-
-// =====================================================
-// 2. CARGAR TEMARIO POR ID
-// =====================================================
 
 function cargarTemarioPorId(temarioId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
-
+    
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.id === temarioId && t.docenteId === username);
-
+    
     if (!temario) {
         alert('⚠️ Temario no encontrado o no pertenece a tu usuario');
         return;
     }
-
-    // Cargar en memoria
+    
     temarioTemporal.semanas = [...temario.semanas];
     temarioActual = temario;
-    semanaEnEdicion = null;
-
-    // Mostrar vista previa
     mostrarVistaPreviaTemario();
-
-    // Llenar formulario
+    
     document.getElementById('temarioInstrumento').value = temario.instrumento;
     document.getElementById('temarioNivel').value = temario.nivel;
     document.getElementById('temarioInstrumento').disabled = true;
     document.getElementById('temarioNivel').disabled = true;
-    document.getElementById('temarioSemana').disabled = false;
-
-    // Restaurar botón
-    const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
-    if (btnGuardar) {
-        btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
-        btnGuardar.style.background = '#E63946';
-        btnGuardar.style.color = 'white';
-    }
-
-    // Limpiar campos
-    document.getElementById('temarioTema').value = '';
-    document.getElementById('temarioDescripcion').value = '';
-    document.getElementById('temarioMaterial').value = '';
-    document.getElementById('temarioSemana').value = temario.semanas.length + 1 || 1;
-    document.getElementById('temarioPonderacion').value = 2.5;
-
+    
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
 
 // =====================================================
-// 3. ELIMINAR TEMARIO COMPLETO
+// 8.1 ELIMINAR TEMARIO COMPLETO
 // =====================================================
 
 function eliminarTemarioCompleto(temarioId) {
     if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODO este temario? Esta acción no se puede deshacer.')) {
         return;
     }
-
+    
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.id === temarioId);
-
+    
     if (!temario) {
         alert('❌ Temario no encontrado');
         return;
     }
-
+    
     temarios = temarios.filter(t => t.id !== temarioId);
     localStorage.setItem('temarios', JSON.stringify(temarios));
-
+    
     if (window.db) {
         window.db.collection('temarios').doc(temarioId).delete()
             .then(() => console.log('☁️ Temario eliminado de Firebase'))
             .catch(e => console.error('❌ Error eliminando temario:', e));
     }
-
+    
     if (temarioActual && temarioActual.id === temarioId) {
         temarioActual = null;
         temarioTemporal.semanas = [];
@@ -13925,106 +14087,166 @@ function eliminarTemarioCompleto(temarioId) {
         document.getElementById('temarioInstrumento').disabled = false;
         document.getElementById('temarioNivel').disabled = false;
     }
-
+    
     alert('✅ Temario eliminado correctamente');
     iniciarTemarioDocenteTiempoReal();
 }
 
 // =====================================================
-// 4. MOSTRAR VISTA PREVIA DEL TEMARIO
+// 8.2 MOSTRAR VISTA PREVIA - VERSIÓN ACORDEÓN (COMPACTA)
 // =====================================================
 
 function mostrarVistaPreviaTemario() {
     const container = document.getElementById('semanasList');
     if (!container) return;
-
+    
     if (temarioTemporal.semanas.length === 0) {
-        container.innerHTML = '<p style="color:#666;">No hay semanas agregadas aún.</p>';
+        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay semanas agregadas aún.</p>';
         return;
     }
-
+    
     // Ordenar semanas
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-
+    
     let html = '';
     temarioTemporal.semanas.forEach(s => {
-        // Verificar si esta semana está en edición
         const esEdicion = (semanaEnEdicion === s.numero);
         
         html += `
-            <div class="temario-card" style="background:white;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1);border-left:4px solid ${esEdicion ? '#FF9800' : '#E63946'};">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <span class="semana-numero" style="background:${esEdicion ? '#FF9800' : '#E63946'};color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;display:inline-block;">
+            <div class="temario-card" style="background:white;border-radius:12px;padding:15px 20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-left:4px solid ${esEdicion ? '#FF9800' : '#E63946'};">
+                <!-- CABECERA: Siempre visible -->
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;" onclick="toggleSemana(${s.numero})">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span class="semana-numero" style="background:${esEdicion ? '#FF9800' : '#E63946'};color:white;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:bold;display:inline-block;">
                             Semana ${s.numero} ${esEdicion ? '✏️ EDITANDO' : ''}
                         </span>
-                        <span style="margin-left:10px;font-size:0.75rem;color:#888;">
+                        <span class="tema-titulo" style="font-size:16px;font-weight:600;color:#1a1a1a;">${s.tema}</span>
+                    </div>
+                    <div style="display:flex;gap:5px;align-items:center;">
+                        <span style="font-size:0.75rem;color:#888;margin-right:5px;">
                             <i class="fas fa-star" style="color:#FFD700;"></i> ${s.ponderacion || 0} pts
                         </span>
-                    </div>
-                    <div style="display:flex;gap:5px;">
-                        <button onclick="editarSemanaTemario(${s.numero})" style="padding:4px 10px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
-                            <i class="fas fa-edit"></i> Editar
+                        <button onclick="event.stopPropagation(); editarSemanaTemario(${s.numero})" style="padding:4px 10px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="eliminarSemanaTemario(${s.numero})" style="padding:4px 10px;background:#E63946;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
-                            <i class="fas fa-trash"></i> Eliminar
+                        <button onclick="event.stopPropagation(); eliminarSemanaTemario(${s.numero})" style="padding:4px 10px;background:#E63946;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
+                            <i class="fas fa-trash"></i>
                         </button>
+                        <span id="icono-${s.numero}" style="color:#888;font-size:0.9rem;transition:transform 0.3s;">
+                            <i class="fas fa-chevron-down"></i>
+                        </span>
                     </div>
                 </div>
-                <div class="tema-titulo" style="font-size:18px;font-weight:600;margin:10px 0;">${s.tema}</div>
-                <p>${s.descripcion || 'Sin descripción'}</p>
-                <p><strong>Material:</strong> ${s.material || 'No especificado'}</p>
+                
+                <!-- CONTENIDO: Oculto por defecto, se muestra al hacer clic -->
+                <div id="contenido-${s.numero}" style="display:none;padding-top:12px;border-top:1px solid #eee;margin-top:12px;">
+                    <div style="margin-bottom:8px;color:#555;font-size:0.9rem;">
+                        <strong>Descripción:</strong><br>
+                        ${s.descripcion || 'Sin descripción'}
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <strong>Material:</strong><br>
+                        <span style="font-size:0.9rem;color:#555;">${s.material || 'No especificado'}</span>
+                    </div>
+                    <div style="font-size:0.8rem;color:#888;">
+                        <i class="fas fa-star" style="color:#FFD700;"></i> Ponderación: ${s.ponderacion || 0} pts
+                    </div>
+                </div>
             </div>
         `;
     });
+    
     container.innerHTML = html;
 }
 
 // =====================================================
-// 5. EDITAR SEMANA - CORREGIDA
+// FUNCIÓN PARA EXPANDIR/COLAPSAR SEMANA
+// =====================================================
+
+function toggleSemana(numero) {
+    const contenido = document.getElementById(`contenido-${numero}`);
+    const icono = document.getElementById(`icono-${numero}`);
+    
+    if (!contenido || !icono) return;
+    
+    if (contenido.style.display === 'none') {
+        contenido.style.display = 'block';
+        icono.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    } else {
+        contenido.style.display = 'none';
+        icono.innerHTML = '<i class="fas fa-chevron-down"></i>';
+    }
+}
+
+// =====================================================
+// EXPORTAR FUNCIÓN toggleSemana AL ÁMBITO GLOBAL
+// =====================================================
+
+window.toggleSemana = toggleSemana;
+
+// =====================================================
+// 8.3 EDITAR SEMANA
 // =====================================================
 
 function editarSemanaTemario(numeroSemana) {
-    console.log('✏️ EDITANDO SEMANA:', numeroSemana);
-    
-    // Buscar la semana en el temario temporal
     const semana = temarioTemporal.semanas.find(s => s.numero === numeroSemana);
     if (!semana) {
         alert('❌ Semana no encontrada');
         return;
     }
-
-    // Cargar datos en el formulario
+    
     document.getElementById('temarioSemana').value = semana.numero;
     document.getElementById('temarioTema').value = semana.tema || '';
     document.getElementById('temarioDescripcion').value = semana.descripcion || '';
     document.getElementById('temarioMaterial').value = semana.material || '';
     document.getElementById('temarioPonderacion').value = semana.ponderacion || 2.5;
-
-    // Guardar qué semana estamos editando
+    
     semanaEnEdicion = numeroSemana;
-
-    // Cambiar el botón de guardar a "Actualizar"
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Actualizar Semana';
         btnGuardar.style.background = '#FF9800';
-        btnGuardar.style.color = 'white';
     }
-
-    // Deshabilitar el campo de semana para que no se pueda cambiar el número
-    document.getElementById('temarioSemana').disabled = true;
-
-    // Scroll al formulario
+    document.getElementById('temarioTema').focus();
     document.querySelector('.form-temario').scrollIntoView({ behavior: 'smooth' });
-    
-    // Mostrar mensaje
-    mostrarVistaPreviaTemario(); // Actualizar vista previa para mostrar el indicador de edición
-    alert(`✏️ Editando Semana ${numeroSemana}. Modifica los datos y haz clic en "Actualizar Semana".`);
 }
 
 // =====================================================
-// 6. GUARDAR SEMANA - CORREGIDA (NUEVA Y ACTUALIZACIÓN)
+// 8.4 ELIMINAR SEMANA
+// =====================================================
+
+function eliminarSemanaTemario(numeroSemana) {
+    console.log(`🗑️ Eliminando Semana ${numeroSemana}...`);
+    if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) return;
+    
+    temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== numeroSemana);
+    temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
+    mostrarVistaPreviaTemario();
+    
+    if (temarioActual) {
+        temarioActual.semanas = temarioActual.semanas.filter(s => s.numero !== numeroSemana);
+        temarioActual.semanas.sort((a, b) => a.numero - b.numero);
+        temarioActual.fechaActualizacion = new Date().toISOString();
+        
+        let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+        const index = temarios.findIndex(t => t.id === temarioActual.id);
+        if (index !== -1) {
+            temarios[index] = temarioActual;
+            localStorage.setItem('temarios', JSON.stringify(temarios));
+        }
+        if (window.db) {
+            window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
+                .then(() => console.log('☁️ Semana eliminada de Firebase'))
+                .catch(e => console.error('❌ Error en Firebase:', e));
+        }
+        alert(`✅ Semana ${numeroSemana} eliminada de ${temarioActual.instrumento} - ${temarioActual.nivel}`);
+    } else {
+        alert(`✅ Semana ${numeroSemana} eliminada (aún no guardada en Firebase)`);
+    }
+}
+
+// =====================================================
+// 8.5 GUARDAR SEMANA - CORREGIDA (ACTUALIZA EN LUGAR DE DUPLICAR)
 // =====================================================
 
 function guardarSemanaTemario() {
@@ -14038,7 +14260,7 @@ function guardarSemanaTemario() {
     const descripcion = document.getElementById('temarioDescripcion')?.value?.trim();
     const material = document.getElementById('temarioMaterial')?.value?.trim();
     const ponderacion = parseFloat(document.getElementById('temarioPonderacion')?.value);
-
+    
     // Validaciones
     if (!instrumento || !nivel) {
         alert('⚠️ Selecciona un Instrumento y Nivel primero');
@@ -14056,13 +14278,13 @@ function guardarSemanaTemario() {
         alert('⚠️ La ponderación debe ser un número válido');
         return;
     }
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
-        alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes crear temario para él.`);
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento}".`);
         return;
     }
-
+    
     // ============================================
     // CASO 1: ESTAMOS EDITANDO UNA SEMANA EXISTENTE
     // ============================================
@@ -14076,9 +14298,9 @@ function guardarSemanaTemario() {
             return;
         }
         
-        // ACTUALIZAR la semana existente (MANTENIENDO el mismo número)
+        // 🔥 ACTUALIZAR la semana existente (MANTENIENDO el mismo número)
         temarioTemporal.semanas[index] = {
-            numero: semanaEnEdicion, // ¡MANTENER EL NÚMERO ORIGINAL!
+            numero: semanaEnEdicion,  // ¡MANTENER EL NÚMERO ORIGINAL!
             tema: tema,
             descripcion: descripcion,
             material: material,
@@ -14091,7 +14313,7 @@ function guardarSemanaTemario() {
             const idx = temarioActual.semanas.findIndex(s => s.numero === semanaEnEdicion);
             if (idx !== -1) {
                 temarioActual.semanas[idx] = {
-                    numero: semanaEnEdicion, // MANTENER EL NÚMERO ORIGINAL
+                    numero: semanaEnEdicion,  // ¡MANTENER EL NÚMERO ORIGINAL!
                     tema: tema,
                     descripcion: descripcion,
                     material: material,
@@ -14120,8 +14342,8 @@ function guardarSemanaTemario() {
         }
 
         // Resetear el modo edición
+        const semanaEditada = semanaEnEdicion;
         semanaEnEdicion = null;
-        document.getElementById('temarioSemana').disabled = false;
 
         // Restaurar el botón
         const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
@@ -14131,13 +14353,13 @@ function guardarSemanaTemario() {
             btnGuardar.style.color = 'white';
         }
 
-        alert(`✅ Semana ${semanaEnEdicion} ACTUALIZADA correctamente en ${instrumento} - ${nivel}`);
+        alert(`✅ Semana ${semanaEditada} ACTUALIZADA correctamente en ${instrumento} - ${nivel}`);
         
         // Ordenar y mostrar
         temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
         mostrarVistaPreviaTemario();
 
-        // Limpiar campos (opcional)
+        // Limpiar campos
         document.getElementById('temarioTema').value = '';
         document.getElementById('temarioDescripcion').value = '';
         document.getElementById('temarioMaterial').value = '';
@@ -14157,6 +14379,15 @@ function guardarSemanaTemario() {
     if (semanaDuplicada) {
         alert(`❌ La Semana ${semana} YA EXISTE. Usa el botón "Editar" para modificarla.`);
         return;
+    }
+
+    // Verificar que no exista en el temario guardado
+    if (temarioActual) {
+        const existeEnGuardado = temarioActual.semanas.some(s => s.numero === semana);
+        if (existeEnGuardado) {
+            alert(`❌ La Semana ${semana} YA EXISTE en el temario guardado. Usa "Editar" para modificarla.`);
+            return;
+        }
     }
 
     // Agregar la nueva semana
@@ -14183,63 +14414,20 @@ function guardarSemanaTemario() {
 }
 
 // =====================================================
-// 7. ELIMINAR SEMANA - CORREGIDA
-// =====================================================
-
-function eliminarSemanaTemario(numeroSemana) {
-    console.log(`🗑️ Eliminando Semana ${numeroSemana}...`);
-    
-    if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) return;
-
-    // Eliminar del temporal
-    temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== numeroSemana);
-    temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-
-    // Si existe temario guardado, eliminar también de ahí
-    if (temarioActual) {
-        temarioActual.semanas = temarioActual.semanas.filter(s => s.numero !== numeroSemana);
-        temarioActual.semanas.sort((a, b) => a.numero - b.numero);
-        temarioActual.fechaActualizacion = new Date().toISOString();
-
-        // Guardar en localStorage
-        let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-        const index = temarios.findIndex(t => t.id === temarioActual.id);
-        if (index !== -1) {
-            temarios[index] = temarioActual;
-            localStorage.setItem('temarios', JSON.stringify(temarios));
-        }
-
-        // Guardar en Firebase
-        if (window.db) {
-            window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
-                .then(() => console.log('☁️ Semana eliminada de Firebase'))
-                .catch(e => console.error('❌ Error en Firebase:', e));
-        }
-
-        alert(`✅ Semana ${numeroSemana} eliminada de ${temarioActual.instrumento} - ${temarioActual.nivel}`);
-    } else {
-        alert(`✅ Semana ${numeroSemana} eliminada (aún no guardada en Firebase)`);
-    }
-
-    mostrarVistaPreviaTemario();
-}
-
-// =====================================================
-// 8. GUARDAR TEMARIO COMPLETO
+// 8.6 GUARDAR TEMARIO COMPLETO
 // =====================================================
 
 function guardarTemarioCompleto() {
-    console.log('🟢 Guardando temario COMPLETO...');
-    
+    console.log('🟢 Guardando temario COMPLETO en Firebase...');
     if (temarioTemporal.semanas.length === 0) {
         alert('⚠️ Debes agregar al menos una semana al temario');
         return;
     }
-
+    
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-
+    
     if (!currentUser.username) {
         alert('⚠️ No se encontró el usuario docente');
         return;
@@ -14256,22 +14444,12 @@ function guardarTemarioCompleto() {
         alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes guardar temario para él.`);
         return;
     }
-
-    // Verificar que no haya semanas duplicadas
-    const numeros = temarioTemporal.semanas.map(s => s.numero);
-    const duplicados = numeros.filter((n, i) => numeros.indexOf(n) !== i);
-    if (duplicados.length > 0) {
-        alert(`⚠️ Hay semanas duplicadas: ${duplicados.join(', ')}. Revisa el temario.`);
-        return;
-    }
-
+    
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     let temarioExistente = temarios.find(t => 
-        t.instrumento === instrumento && 
-        t.nivel === nivel && 
-        t.docenteId === currentUser.username
+        t.instrumento === instrumento && t.nivel === nivel && t.docenteId === currentUser.username
     );
-
+    
     function notificarCambio(temario) {
         let todosTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const index = todosTemarios.findIndex(t => t.id === temario.id);
@@ -14281,24 +14459,25 @@ function guardarTemarioCompleto() {
             todosTemarios.push(temario);
         }
         localStorage.setItem('temarios', JSON.stringify(todosTemarios));
-
         if (window.db) {
             window.db.collection('temarios').doc(temario.id).set(temario)
                 .then(() => console.log('☁️ Temario guardado en Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
     }
-
+    
     if (temarioExistente) {
-        // Verificar duplicados con el existente
-        const semanaDuplicada = temarioTemporal.semanas.some(s => 
-            temarioExistente.semanas.some(ex => ex.numero === s.numero)
-        );
+        let semanaDuplicada = null;
+        for (const semanaNueva of temarioTemporal.semanas) {
+            if (temarioExistente.semanas.some(s => s.numero === semanaNueva.numero)) {
+                semanaDuplicada = semanaNueva.numero;
+                break;
+            }
+        }
         if (semanaDuplicada) {
-            alert(`❌ Una o más semanas YA EXISTEN en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarlas.`);
+            alert(`❌ La Semana ${semanaDuplicada} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
             return;
         }
-
         temarioExistente.semanas = [...temarioExistente.semanas, ...temarioTemporal.semanas];
         temarioExistente.semanas.sort((a, b) => a.numero - b.numero);
         temarioExistente.fechaActualizacion = new Date().toISOString();
@@ -14319,8 +14498,12 @@ function guardarTemarioCompleto() {
         notificarCambio(temario);
         alert(`✅ Temario "${instrumento} - ${nivel}" CREADO\n📌 Semanas: ${temario.semanas.length}`);
     }
-
-    // Resetear
+    
+    const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
+    if (btnGuardar) {
+        btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
+        btnGuardar.style.background = '#E63946';
+    }
     semanaEnEdicion = null;
     temarioTemporal = { semanas: [] };
     document.getElementById('temarioTema').value = '';
@@ -14330,79 +14513,137 @@ function guardarTemarioCompleto() {
     document.getElementById('temarioPonderacion').value = 2.5;
     document.getElementById('temarioInstrumento').disabled = false;
     document.getElementById('temarioNivel').disabled = false;
-    document.getElementById('temarioSemana').disabled = false;
-
-    const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
-    if (btnGuardar) {
-        btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
-        btnGuardar.style.background = '#E63946';
-        btnGuardar.style.color = 'white';
-    }
-
     mostrarVistaPreviaTemario();
     iniciarTemarioDocenteTiempoReal();
 }
 
 // =====================================================
-// 9. CARGAR TEMARIO EXISTENTE (DESDE EL BOTÓN)
+// 8.7 CARGAR TEMARIO EXISTENTE
 // =====================================================
 
 function cargarTemarioExistente() {
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const misTemarios = temarios.filter(t => t.docenteId === currentUser.username);
-
-    if (misTemarios.length === 0) {
+    if (temarios.length === 0) {
         alert('⚠️ No hay temarios guardados para tu usuario');
         return;
     }
-
     let lista = 'Selecciona un temario para cargar:\n\n';
-    misTemarios.forEach((t, i) => {
+    temarios.forEach((t, i) => {
         lista += `${i+1}. ${t.instrumento} - ${t.nivel} (${t.semanas?.length || 0} semanas)\n`;
     });
-
     const seleccion = prompt(lista + '\n\nIngresa el número del temario:');
     if (!seleccion) return;
-
     const idx = parseInt(seleccion) - 1;
-    if (isNaN(idx) || idx < 0 || idx >= misTemarios.length) {
+    if (isNaN(idx) || idx < 0 || idx >= temarios.length) {
         alert('❌ Selección inválida');
         return;
     }
-
-    const temario = misTemarios[idx];
-    cargarTemarioPorId(temario.id);
+    const temario = temarios[idx];
+    temarioActual = temario;
+    temarioTemporal.semanas = [...temario.semanas];
+    mostrarVistaPreviaTemario();
+    document.getElementById('temarioInstrumento').value = temario.instrumento;
+    document.getElementById('temarioNivel').value = temario.nivel;
+    document.getElementById('temarioInstrumento').disabled = true;
+    document.getElementById('temarioNivel').disabled = true;
+    semanaEnEdicion = null;
+    const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
+    if (btnGuardar) {
+        btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
+        btnGuardar.style.background = '#E63946';
+    }
+    alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
 
 // =====================================================
-// 10. CANCELAR EDICIÓN - NUEVA FUNCIÓN
+// 9. GUARDAR CLASE VIRTUAL
 // =====================================================
 
-function cancelarEdicionSemana() {
-    if (semanaEnEdicion !== null) {
-        if (confirm(`¿Cancelar la edición de la Semana ${semanaEnEdicion}? Los cambios no se guardarán.`)) {
-            semanaEnEdicion = null;
-            document.getElementById('temarioSemana').disabled = false;
-            
-            const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
-            if (btnGuardar) {
-                btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
-                btnGuardar.style.background = '#E63946';
-                btnGuardar.style.color = 'white';
-            }
-            
-            document.getElementById('temarioTema').value = '';
-            document.getElementById('temarioDescripcion').value = '';
-            document.getElementById('temarioMaterial').value = '';
-            document.getElementById('temarioSemana').value = temarioTemporal.semanas.length + 1 || 1;
-            document.getElementById('temarioPonderacion').value = 2.5;
-            
-            mostrarVistaPreviaTemario();
-            alert('✅ Edición cancelada');
+function guardarClaseVirtualDocente() {
+    console.log('🟢 Intentando crear clase...');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser || !currentUser.username) {
+        alert('❌ No se encontró el usuario docente. Por favor, cierra sesión y vuelve a entrar.');
+        return;
+    }
+    const titulo = document.getElementById('docTituloClase');
+    const instrumento = document.getElementById('docInstrumentoClase');
+    const nivel = document.getElementById('docNivelClase');
+    const fechaHora = document.getElementById('docFechaHoraClase');
+    const meetLink = document.getElementById('docMeetLink');
+    const duracion = document.getElementById('docDuracion');
+    const descripcion = document.getElementById('docDescripcionClase');
+    
+    if (!titulo || !fechaHora) {
+        alert('❌ Error: No se encontraron los campos del formulario. Recarga la página.');
+        return;
+    }
+    const tituloVal = titulo.value.trim();
+    const fechaHoraVal = fechaHora.value;
+    if (!tituloVal || !fechaHoraVal) {
+        alert('❌ Completa el título y la fecha/hora de la clase.');
+        return;
+    }
+    
+    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento.value)) {
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento.value}". No puedes crear clase para él.`);
+        return;
+    }
+    
+    const nuevaClase = {
+        titulo: tituloVal,
+        instrumento: instrumento ? instrumento.value : 'Piano',
+        nivel: nivel ? nivel.value : 'Principiante',
+        fechaHora: new Date(fechaHoraVal).toISOString(),
+        meetLink: meetLink ? meetLink.value.trim() : '',
+        duracion: duracion ? parseInt(duracion.value) || 60 : 60,
+        descripcion: descripcion ? descripcion.value : '',
+        grabacionUrl: null,
+        creadaPor: currentUser.username,
+        fechaCreacion: new Date().toISOString()
+    };
+    
+    function finalizarCreacionClase(id, claseData) {
+        claseData.id = id;
+        let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        if (!clases.some(c => c.id === id)) {
+            clases.push(claseData);
+            localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
         }
+        alert('✅ Clase virtual creada correctamente.');
+        titulo.value = '';
+        if (meetLink) meetLink.value = '';
+        if (descripcion) descripcion.value = '';
+        if (fechaHora) fechaHora.value = '';
+        iniciarClasesDocenteTiempoReal(currentUser.username);
+        const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') || 
+                          document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
+        if (menuClases) menuClases.click();
+    }
+    
+    if (window.db) {
+        const btnCrear = document.getElementById('btnCrearClaseVirtual');
+        const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
+        if (btnCrear) btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        window.db.collection('clasesVirtuales').add(nuevaClase)
+            .then((docRef) => {
+                console.log('✅ Clase guardada en Firebase con ID:', docRef.id);
+                finalizarCreacionClase(docRef.id, nuevaClase);
+                if (btnCrear) btnCrear.innerHTML = textoOriginal;
+            })
+            .catch((error) => {
+                console.error('❌ Error al guardar en Firebase:', error);
+                alert('❌ Error al guardar en Firebase: ' + error.message + '. La clase se guardará localmente.');
+                const idLocal = Date.now();
+                nuevaClase.id = idLocal;
+                finalizarCreacionClase(idLocal, nuevaClase);
+                if (btnCrear) btnCrear.innerHTML = textoOriginal;
+            });
     } else {
-        alert('No hay ninguna semana en edición');
+        const idLocal = Date.now();
+        nuevaClase.id = idLocal;
+        finalizarCreacionClase(idLocal, nuevaClase);
+        alert('⚠️ Firebase no disponible. La clase se guardó solo localmente.');
     }
 }
 
