@@ -8897,13 +8897,33 @@ function iniciarPeerPC() {
             actualizarEstadoPanel('connected', 'Tablet conectada');
             if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
             
-            connTablet.on('data', function(data) {
-                console.log('📦 Datos recibidos:', data);
-                if (typeof procesarAsistenciaDesdeTablet === 'function') {
-                    procesarAsistenciaDesdeTablet(data);
-                }
-            });
-            
+          connTablet.on('data', function(data) {
+    console.log('📦 Datos recibidos:', data);
+    
+    // 🔥 EXTRAER EL TEXTO RAW DEL QR
+    let textoQR = '';
+    
+    if (typeof data === 'string') {
+        textoQR = data;
+    } else if (typeof data === 'object' && data !== null) {
+        // 🔥 IMPORTANTE: Usar data.raw que es el texto completo del QR
+        textoQR = data.raw || data.texto || data.text || data.data || data.qr || '';
+        
+        // Si no se encontró nada, convertir a string
+        if (!textoQR) {
+            textoQR = JSON.stringify(data);
+        }
+    }
+    
+    console.log('📱 Texto QR a procesar:', textoQR);
+    
+    // 🔥 PROCESAR ASISTENCIA CON EL TEXTO RAW
+    if (textoQR && typeof procesarAsistenciaDesdeTablet === 'function') {
+        procesarAsistenciaDesdeTablet(textoQR);
+    } else {
+        console.error('❌ No se pudo extraer texto QR:', data);
+    }
+});
             connTablet.on('close', function() {
                 console.log('📱 Tablet desconectada');
                 tabletConectada = false;
@@ -9045,18 +9065,24 @@ function copiarIdAlPortapapeles() {
 }
 
 // =====================================================
-// 🔥 PROCESAR ASISTENCIA DESDE TABLET - VERSIÓN FINAL CORREGIDA
+// 🔥 PROCESAR ASISTENCIA - VERSIÓN DEFINITIVA CORREGIDA
 // =====================================================
 async function procesarAsistenciaDesdeTablet(datos) {
-    console.log('📦 PC recibe desde tablet:', datos);
-    console.log('📦 Tipo de datos:', typeof datos);
+    console.log('📦 DATOS RECIBIDOS:', datos);
+    
+    // Si datos es un objeto, extraer el texto
+    let textoCompleto = datos;
+    if (typeof datos === 'object' && datos !== null) {
+        textoCompleto = datos.raw || datos.texto || datos.text || JSON.stringify(datos);
+    }
+    
+    console.log('📱 Texto a procesar:', textoCompleto);
     
     let id = null;
     let nombre = null;
-    let estudiante = null;
     let inscriptions = [];
     
-    // ----- PASO 1: OBTENER LISTA DE ESTUDIANTES -----
+    // 1. CARGAR ESTUDIANTES
     try {
         inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
         console.log('📦 Inscripciones en localStorage:', inscriptions.length);
@@ -9064,121 +9090,95 @@ async function procesarAsistenciaDesdeTablet(datos) {
         inscriptions = [];
     }
     
-    // Si localStorage está vacío, cargar desde Firebase
     if (inscriptions.length === 0 && window.db) {
         try {
-            console.log('🔄 Cargando desde Firebase...');
             const snapshot = await window.db.collection('inscripciones').get();
-            const firebaseData = [];
             snapshot.forEach(doc => {
-                firebaseData.push({ 
-                    id: doc.id,  // Firestore devuelve ID como string
-                    ...doc.data() 
-                });
+                inscriptions.push({ id: doc.id, ...doc.data() });
             });
-            if (firebaseData.length > 0) {
-                inscriptions = firebaseData;
-                localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
-                console.log('✅ Datos recargados desde Firebase:', inscriptions.length);
-            }
-        } catch (err) {
-            console.error('❌ Error cargando desde Firebase:', err);
+            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+            console.log('✅ Cargados desde Firebase:', inscriptions.length);
+        } catch (e) {
+            console.error('❌ Error:', e);
         }
     }
     
-    // ----- PASO 2: EXTRAER ID DEL QR (FORMATO CORRECTO) -----
-    if (typeof datos === 'string') {
-        console.log('📱 Texto QR completo:', datos);
-        
-        // 🔥 Buscar ID después de "ID:" o "ID|" (con | como separador)
-        const idMatch = datos.match(/ID[:|](\d+)/);
+    // 2. EXTRAER ID DEL TEXTO (maneja saltos de línea y espacios)
+    if (typeof textoCompleto === 'string') {
+        // Buscar "ID:" seguido de números (con o sin espacio)
+        const idMatch = textoCompleto.match(/ID:\s*(\d+)/);
         if (idMatch) {
             id = idMatch[1];
-            console.log('🔍 ID extraído del QR:', id);
+            console.log('🔍 ID extraído:', id);
         } else {
-            // Buscar cualquier número de 10+ dígitos (ID de Firestore)
-            const numberMatch = datos.match(/\b(\d{10,})\b/);
-            if (numberMatch) {
-                id = numberMatch[1];
+            // Buscar cualquier número de 10+ dígitos
+            const numMatch = textoCompleto.match(/\b(\d{10,})\b/);
+            if (numMatch) {
+                id = numMatch[1];
                 console.log('🔍 ID extraído (número largo):', id);
             }
         }
         
-        // Si no encontró ID, buscar nombre
-        if (!id) {
-            const nombreMatch = datos.match(/NOMBRE[:|]([^|]+)/);
-            if (nombreMatch) {
-                nombre = nombreMatch[1].trim();
-                console.log('🔍 Nombre extraído del QR:', nombre);
-            }
+        // Extraer nombre también (por si acaso)
+        const nombreMatch = textoCompleto.match(/ESTUDIANTE:\s*([^\n]+)/);
+        if (nombreMatch) {
+            nombre = nombreMatch[1].trim();
+            console.log('🔍 Nombre extraído:', nombre);
         }
-    } else if (typeof datos === 'object' && datos !== null) {
-        // Si es objeto (formato alternativo)
-        id = datos.id || datos.ID || null;
-        nombre = datos.nombre || datos.estudiante || null;
-        console.log('🔍 ID desde objeto:', id);
     }
     
-    // ----- PASO 3: BUSCAR ESTUDIANTE (COMPARACIÓN CORREGIDA) -----
+    // 3. BUSCAR ESTUDIANTE
+    let estudiante = null;
+    
     if (id) {
-        const idStr = String(id).trim();
-        console.log('🔎 Buscando ID exacto:', idStr);
-        console.log('📋 IDs en Firestore:', inscriptions.map(i => String(i.id)).join(', '));
+        const idBuscado = String(id).trim();
+        console.log('🔎 Buscando ID:', idBuscado);
+        console.log('📋 IDs disponibles:', inscriptions.map(i => String(i.id)).join(', '));
         
-        // 🔥 Buscar coincidencia EXACTA (ambos como string)
-        estudiante = inscriptions.find(ins => {
-            const insId = String(ins.id).trim();
-            return insId === idStr;
-        });
+        // 🔥 Comparación exacta (ambos como string)
+        estudiante = inscriptions.find(ins => String(ins.id).trim() === idBuscado);
         
-        // Si no, buscar por coincidencia PARCIAL
+        // Si no, comparar como número
         if (!estudiante) {
-            console.log('🔎 Intentando búsqueda parcial...');
+            const idNum = parseInt(idBuscado);
+            if (!isNaN(idNum)) {
+                estudiante = inscriptions.find(ins => parseInt(String(ins.id)) === idNum);
+            }
+        }
+        
+        // Si no, buscar por coincidencia parcial
+        if (!estudiante) {
             estudiante = inscriptions.find(ins => {
                 const insId = String(ins.id).trim();
-                return insId.includes(idStr) || idStr.includes(insId);
+                return insId.includes(idBuscado) || idBuscado.includes(insId);
             });
         }
     }
     
     // Si no se encontró por ID, buscar por nombre
     if (!estudiante && nombre) {
-        console.log('🔎 Buscando por nombre:', nombre);
         estudiante = inscriptions.find(ins => {
-            const nomEst = ins.estudiante?.nombre?.toLowerCase() || '';
-            return nomEst.includes(nombre.toLowerCase());
+            const nom = ins.estudiante?.nombre?.toLowerCase() || '';
+            return nom.includes(nombre.toLowerCase());
         });
     }
     
-    // ----- PASO 4: SI NO SE ENCUENTRA, MOSTRAR ERROR DETALLADO -----
+    // 4. SI NO SE ENCUENTRA
     if (!estudiante) {
         console.error('❌ ESTUDIANTE NO ENCONTRADO');
-        console.log('📱 QR escaneado:', datos);
         console.log('🔍 ID buscado:', id);
         console.log('📋 IDs disponibles:', inscriptions.map(i => String(i.id)).join(', '));
         
         if (typeof showToast === 'function') {
-            showToast(`❌ Estudiante no encontrado. ID: ${id || 'N/A'}`, 'error');
-        }
-        
-        if (connTablet && connTablet.open) {
-            connTablet.send({ 
-                error: 'no_reconocido', 
-                detalle: `ID: ${id || 'N/A'} no encontrado`,
-                idsDisponibles: inscriptions.map(i => String(i.id))
-            });
+            showToast('❌ Estudiante no encontrado. ID: ' + (id || 'N/A'), 'error');
         }
         return;
     }
     
-    // ----- PASO 5: REGISTRAR ASISTENCIA -----
-    console.log('✅ ESTUDIANTE ENCONTRADO:', estudiante.estudiante.nombre);
+    console.log('✅ ESTUDIANTE ENCONTRADO:', estudiante.estudiante?.nombre);
     console.log('📋 ID completo:', estudiante.id);
     
-    // ============================================================
-    // 🔥 CONTINUAR CON EL REGISTRO DE ASISTENCIA (código existente)
-    // ============================================================
-    
+    // 5. REGISTRAR ASISTENCIA (tu código existente aquí)
     const daySelect = document.getElementById('filter-day');
     const scheduleSelect = document.getElementById('filter-schedule');
     const diaSeleccionado = daySelect ? daySelect.value : '';
@@ -9191,7 +9191,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         return;
     }
     
-    // Determinar estado
     let estado = 'presente';
     if (estudiante.academico) {
         const diasEstudio = estudiante.academico.dias || [];
@@ -9203,7 +9202,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         }
     }
     
-    // Registrar en la tabla
     if (window.asistenciaApp && typeof window.asistenciaApp.registrarEstudianteEnTabla === 'function') {
         window.asistenciaApp.registrarEstudianteEnTabla(
             estudiante,
@@ -9214,7 +9212,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         );
     }
     
-    // Guardar en historial
     const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
     const nuevoRegistro = {
         id: Date.now(),
@@ -9240,7 +9237,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
             .catch(err => console.error('Error guardando asistencia en Firebase:', err));
     }
     
-    // Enviar confirmación a la tablet
     if (connTablet && connTablet.open) {
         connTablet.send({
             tipo: 'confirmacion',
