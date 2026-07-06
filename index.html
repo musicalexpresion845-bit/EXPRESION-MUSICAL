@@ -17026,7 +17026,7 @@ function mostrarBienvenidaConFrase(usuarioNombre) {
 }
 
 // =====================================================
-// FUNCIONES DE CARNET - VERSIÓN CORREGIDA
+// FUNCIONES DE CARNET - VERSIÓN FINAL
 // =====================================================
 
 function calcularFechaVencimiento(fechaInicio) {
@@ -17044,7 +17044,7 @@ function calcularFechaVencimiento(fechaInicio) {
 }
 
 // =====================================================
-// GENERAR CARNET - FOTO 100px
+// GENERAR CARNET
 // =====================================================
 
 function generarCarnetEstudiante(id) {
@@ -17112,7 +17112,7 @@ function generarCarnetEstudiante(id) {
     const fechaVencimiento = calcularFechaVencimiento(inscripcion.academico.fechaInicio);
 
     // =====================================================
-    // DISEÑO - FOTO 100px
+    // DISEÑO - SOMBRAS INTENSAS, BORDES MARCOS, MÁS ESPACIO
     // =====================================================
     previewContainer.innerHTML = `
         <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
@@ -17131,7 +17131,7 @@ function generarCarnetEstudiante(id) {
                 border: 2px solid #E63946 !important;
                 position: relative !important;
             ">
-                <!-- Franja superior ROJA - GRANDE -->
+                <!-- Franja superior ROJA -->
                 <div style="
                     background: #E63946 !important;
                     padding: 18px 12px 14px 12px !important;
@@ -17157,7 +17157,7 @@ function generarCarnetEstudiante(id) {
                     
                     <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 34px; height: 34px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
                     <div style="text-align: center; position: relative; z-index: 1;">
-                        <div style="font-size: 17px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
+                        <div style="font-size: 17px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.3 !important; text-align: center !important;">Expresión Musical</div>
                         <div style="font-size: 11px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 3px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
                     </div>
                 </div>
@@ -17173,7 +17173,7 @@ function generarCarnetEstudiante(id) {
                     z-index: 1 !important;
                     background: #ffffff !important;
                 ">
-                    <!-- FOTO 100px -->
+                    <!-- FOTO CON SOMBRA INTENSA -->
                     <div style="display: flex; justify-content: center; margin-top: -20px;">
                         <div style="
                             width: 100px !important;
@@ -17182,7 +17182,7 @@ function generarCarnetEstudiante(id) {
                             border: 3px solid #E63946 !important;
                             overflow: hidden !important;
                             background: #f5f5f5 !important;
-                            box-shadow: 0 2px 14px rgba(230, 57, 70, 0.15) !important;
+                            box-shadow: 0 0 30px rgba(230, 57, 70, 0.4), 0 4px 20px rgba(230, 57, 70, 0.2) !important;
                         ">
                             ${inscripcion.estudiante.foto ?
                                 `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
@@ -17193,55 +17193,56 @@ function generarCarnetEstudiante(id) {
                         </div>
                     </div>
 
-                    <!-- Nombre -->
+                    <!-- Nombre - CON MÁS ESPACIO ENTRE RENGLONES -->
                     <div style="text-align: center;">
-                        <div style="font-size: 16px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
-                        ${apellidos ? `<div style="font-size: 12px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.1 !important;">${apellidos}</div>` : ''}
-                        <div style="font-size: 11px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
+                        <div style="font-size: 16px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${nombres}</div>
+                        ${apellidos ? `<div style="font-size: 12px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.4 !important;">${apellidos}</div>` : ''}
+                        <div style="font-size: 11px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 3px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
                     </div>
 
-                    <!-- Datos -->
+                    <!-- CUADROS CON BORDES MÁS MARCOS Y SOMBRAS INTENSAS -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 2px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important;">Edad</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.estudiante.edad}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Edad</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.edad}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 2px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important;">Nivel</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.estudiante.nivel}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Nivel</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.nivel}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 2px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important;">Plan</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important;">${inscripcion.academico.plan}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Plan</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.academico.plan}</div>
                         </div>
                     </div>
 
-                    <!-- Instrumento -->
+                    <!-- INSTRUMENTO CON BORDE MÁS MARCO Y SOMBRA INTENSA -->
                     <div style="
                         background: #ffd9d9 !important;
                         padding: 4px 8px !important;
                         border-radius: 6px !important;
-                        border: 2px solid #E63946 !important;
+                        border: 3px solid #E63946 !important;
                         text-align: center !important;
                         min-height: 48px !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
                         gap: 4px !important;
+                        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.25) !important;
                     ">
-                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Instrumento</div>
-                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
+                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.4 !important;">Instrumento</div>
+                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.4 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
                     </div>
 
-                    <!-- Horario y Género -->
+                    <!-- HORARIO Y GÉNERO CON BORDES MÁS MARCOS -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 2px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important;">Horario</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important;">${inscripcion.academico.horario || 'N/A'}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Horario</div>
+                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.academico.horario || 'N/A'}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 2px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important;">Género</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Género</div>
+                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
                         </div>
                     </div>
 
@@ -17253,13 +17254,13 @@ function generarCarnetEstudiante(id) {
                         background: #f0f0f0 !important;
                         padding: 3px 12px !important;
                         border-radius: 6px !important;
-                        border: 1.5px solid #ccc !important;
+                        border: 2px solid #ccc !important;
                         margin-top: 2px !important;
                         min-height: 30px !important;
                     ">
                         <div>
-                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important;">VÁLIDO HASTA</div>
-                            <div style="font-size: 9px !important; font-weight: 700 !important; color: #1a1a2e !important;">${fechaVencimiento}</div>
+                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.4 !important;">VÁLIDO HASTA</div>
+                            <div style="font-size: 9px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.4 !important;">${fechaVencimiento}</div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%;"></div>
@@ -17283,7 +17284,7 @@ function generarCarnetEstudiante(id) {
                 border: 2px solid #E63946 !important;
                 position: relative !important;
             ">
-                <!-- Franja superior NEGRA - GRANDE -->
+                <!-- Franja superior NEGRA -->
                 <div style="
                     background: #1a1a2e !important;
                     padding: 18px 12px 14px 12px !important;
@@ -17308,26 +17309,26 @@ function generarCarnetEstudiante(id) {
                     </div>
                     
                     <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                    <span style="font-size: 14px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1;">Código de Verificación</span>
+                    <span style="font-size: 14px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.4 !important;">Código de Verificación</span>
                 </div>
 
                 <!-- Cuerpo dorso -->
                 <div style="
                     flex: 1 !important;
-                    padding: 2px 4px 2px 4px !important;
+                    padding: 4px 6px 4px 6px !important;
                     display: flex !important;
                     flex-direction: column !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    gap: 1px !important;
+                    gap: 3px !important;
                     position: relative !important;
                     z-index: 1 !important;
                     background: #ffffff !important;
                 ">
                     <!-- QR -->
                     <div id="qr-code-container" style="
-                        width: 240px !important;
-                        height: 240px !important;
+                        width: 230px !important;
+                        height: 230px !important;
                         background: white !important;
                         border-radius: 14px !important;
                         padding: 3px !important;
@@ -17335,7 +17336,7 @@ function generarCarnetEstudiante(id) {
                         display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        box-shadow: 0 2px 14px rgba(230, 57, 70, 0.1) !important;
+                        box-shadow: 0 4px 20px rgba(230, 57, 70, 0.2) !important;
                     ">
                         <div style="text-align: center;">
                             <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 20px;"></i>
@@ -17347,36 +17348,40 @@ function generarCarnetEstudiante(id) {
                         color: #666 !important;
                         text-align: center !important;
                         font-weight: 500 !important;
-                        margin-top: 0px !important;
-                        margin-bottom: 0px !important;
+                        margin-top: 1px !important;
+                        margin-bottom: 1px !important;
+                        line-height: 1.4 !important;
                     ">Escanear para verificar identidad</div>
 
-                    <!-- CONTACTO -->
+                    <!-- CONTACTO CON BORDE MÁS MARCO Y SOMBRA -->
                     <div style="
                         background: #e8e8e8 !important;
-                        padding: 2px 10px !important;
+                        padding: 6px 12px !important;
                         border-radius: 6px !important;
                         text-align: center !important;
                         width: 100% !important;
-                        border: 1.5px solid #ccc !important;
+                        border: 2px solid #ccc !important;
+                        box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;
                     ">
                         <div style="
-                            font-size: 5.5px !important;
+                            font-size: 6.5px !important;
                             color: #E63946 !important;
                             font-weight: 700 !important;
                             letter-spacing: 0.5px !important;
-                            margin-bottom: 1px !important;
+                            margin-bottom: 4px !important;
+                            line-height: 1.4 !important;
                         ">CONTACTO</div>
                         
                         <div style="
                             display: flex !important;
                             justify-content: center !important;
                             align-items: center !important;
-                            gap: 8px !important;
-                            font-size: 5.5px !important;
+                            gap: 10px !important;
+                            font-size: 6px !important;
                             font-weight: 600 !important;
                             color: #1a1a1a !important;
-                            margin-bottom: 1px !important;
+                            margin-bottom: 4px !important;
+                            line-height: 1.4 !important;
                         ">
                             <span>📞 37418036</span>
                             <span style="color: #ccc !important;">|</span>
@@ -17384,15 +17389,16 @@ function generarCarnetEstudiante(id) {
                         </div>
                         
                         <div style="
-                            font-size: 4.5px !important;
+                            font-size: 5.5px !important;
                             color: #555 !important;
                             font-weight: 500 !important;
                             display: flex !important;
                             justify-content: center !important;
                             align-items: center !important;
                             gap: 4px !important;
+                            line-height: 1.4 !important;
                         ">
-                            <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 6px;"></i>
+                            <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 7px;"></i>
                             <span>08 Calle c 10-72 Zona 3 San Marcos</span>
                         </div>
                     </div>
@@ -17403,7 +17409,8 @@ function generarCarnetEstudiante(id) {
                         color: #1a1a2e !important;
                         font-weight: 700 !important;
                         text-align: center !important;
-                        margin-top: 2px !important;
+                        margin-top: 3px !important;
+                        line-height: 1.4 !important;
                     ">www.expressionmusical.com</div>
                 </div>
             </div>
@@ -17534,6 +17541,7 @@ async function descargarCarnetActual() {
                     }
                     .carnet-frontal div, .carnet-dorso div {
                         font-size: inherit !important;
+                        line-height: inherit !important;
                     }
                     .carnet-frontal { background: #ffffff !important; }
                     .carnet-dorso { background: #ffffff !important; }
@@ -17561,6 +17569,7 @@ async function descargarCarnetActual() {
                     }
                     .carnet-frontal div, .carnet-dorso div {
                         font-size: inherit !important;
+                        line-height: inherit !important;
                     }
                     .carnet-frontal { background: #ffffff !important; }
                     .carnet-dorso { background: #ffffff !important; }
