@@ -17026,7 +17026,7 @@ function mostrarBienvenidaConFrase(usuarioNombre) {
 }
 
 // =====================================================
-// FUNCIONES DE CARNET - VERSIÓN FINAL
+// FUNCIONES DE CARNET - VERSIÓN GITHUB PAGES
 // =====================================================
 
 function calcularFechaVencimiento(fechaInicio) {
@@ -17044,7 +17044,7 @@ function calcularFechaVencimiento(fechaInicio) {
 }
 
 // =====================================================
-// GENERAR CARNET
+// GENERAR CARNET - OPTIMIZADO PARA GITHUB PAGES
 // =====================================================
 
 function generarCarnetEstudiante(id) {
@@ -17112,7 +17112,7 @@ function generarCarnetEstudiante(id) {
     const fechaVencimiento = calcularFechaVencimiento(inscripcion.academico.fechaInicio);
 
     // =====================================================
-    // DISEÑO - SOMBRAS INTENSAS, BORDES MARCOS, MÁS ESPACIO
+    // DISEÑO - OPTIMIZADO PARA GITHUB PAGES
     // =====================================================
     previewContainer.innerHTML = `
         <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
@@ -17134,11 +17134,11 @@ function generarCarnetEstudiante(id) {
                 <!-- Franja superior ROJA -->
                 <div style="
                     background: #E63946 !important;
-                    padding: 18px 12px 14px 12px !important;
+                    padding: 16px 12px 12px 12px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    gap: 14px !important;
+                    gap: 12px !important;
                     flex-shrink: 0 !important;
                     position: relative !important;
                     z-index: 1 !important;
@@ -17152,13 +17152,13 @@ function generarCarnetEstudiante(id) {
                         opacity: 0.08 !important;
                         pointer-events: none !important;
                     ">
-                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 200px; height: 200px; object-fit: contain; filter: brightness(0) invert(1);">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
                     </div>
                     
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 34px; height: 34px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
                     <div style="text-align: center; position: relative; z-index: 1;">
-                        <div style="font-size: 17px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.3 !important; text-align: center !important;">Expresión Musical</div>
-                        <div style="font-size: 11px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 3px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
+                        <div style="font-size: 15px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
+                        <div style="font-size: 10px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 2px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
                     </div>
                 </div>
 
@@ -17173,80 +17173,80 @@ function generarCarnetEstudiante(id) {
                     z-index: 1 !important;
                     background: #ffffff !important;
                 ">
-                    <!-- FOTO CON SOMBRA INTENSA -->
-                    <div style="display: flex; justify-content: center; margin-top: -20px;">
+                    <!-- Foto -->
+                    <div style="display: flex; justify-content: center; margin-top: -18px;">
                         <div style="
-                            width: 100px !important;
-                            height: 100px !important;
+                            width: 95px !important;
+                            height: 95px !important;
                             border-radius: 50% !important;
                             border: 3px solid #E63946 !important;
                             overflow: hidden !important;
                             background: #f5f5f5 !important;
-                            box-shadow: 0 0 30px rgba(230, 57, 70, 0.4), 0 4px 20px rgba(230, 57, 70, 0.2) !important;
+                            box-shadow: 0 0 25px rgba(230, 57, 70, 0.3), 0 4px 20px rgba(230, 57, 70, 0.15) !important;
                         ">
                             ${inscripcion.estudiante.foto ?
                                 `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
                                 `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5;">
-                                    <i class="fas fa-user" style="font-size: 36px; color: #ccc;"></i>
+                                    <i class="fas fa-user" style="font-size: 32px; color: #ccc;"></i>
                                 </div>`
                             }
                         </div>
                     </div>
 
-                    <!-- Nombre - CON MÁS ESPACIO ENTRE RENGLONES -->
+                    <!-- Nombre -->
                     <div style="text-align: center;">
-                        <div style="font-size: 16px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${nombres}</div>
-                        ${apellidos ? `<div style="font-size: 12px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.4 !important;">${apellidos}</div>` : ''}
-                        <div style="font-size: 11px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 3px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
+                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${nombres}</div>
+                        ${apellidos ? `<div style="font-size: 11px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.3 !important;">${apellidos}</div>` : ''}
+                        <div style="font-size: 10px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
                     </div>
 
-                    <!-- CUADROS CON BORDES MÁS MARCOS Y SOMBRAS INTENSAS -->
+                    <!-- Datos -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Edad</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.edad}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 46px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; line-height: 1.3 !important;">Edad</div>
+                            <div style="font-size: 13px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.edad}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Nivel</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.nivel}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 46px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; line-height: 1.3 !important;">Nivel</div>
+                            <div style="font-size: 13px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.nivel}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Plan</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.academico.plan}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 46px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; line-height: 1.3 !important;">Plan</div>
+                            <div style="font-size: 13px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.plan}</div>
                         </div>
                     </div>
 
-                    <!-- INSTRUMENTO CON BORDE MÁS MARCO Y SOMBRA INTENSA -->
+                    <!-- Instrumento -->
                     <div style="
                         background: #ffd9d9 !important;
                         padding: 4px 8px !important;
                         border-radius: 6px !important;
                         border: 3px solid #E63946 !important;
                         text-align: center !important;
-                        min-height: 48px !important;
+                        min-height: 46px !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
-                        gap: 4px !important;
-                        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.25) !important;
+                        gap: 3px !important;
+                        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.2) !important;
                     ">
-                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.4 !important;">Instrumento</div>
-                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.4 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
+                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">Instrumento</div>
+                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.3 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
                     </div>
 
-                    <!-- HORARIO Y GÉNERO CON BORDES MÁS MARCOS -->
+                    <!-- Horario y Género -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Horario</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.academico.horario || 'N/A'}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 46px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; line-height: 1.3 !important;">Horario</div>
+                            <div style="font-size: 10px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.horario || 'N/A'}</div>
                         </div>
-                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 48px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 4px !important; line-height: 1.4 !important;">Género</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.4 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
+                        <div style="background: #e8e8e8 !important; padding: 4px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 46px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; line-height: 1.3 !important;">Género</div>
+                            <div style="font-size: 10px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
                         </div>
                     </div>
 
-                    <!-- VÁLIDO -->
+                    <!-- VÁLIDO HASTA - TEXTO COMPLETO -->
                     <div style="
                         display: flex !important;
                         justify-content: space-between !important;
@@ -17258,11 +17258,11 @@ function generarCarnetEstudiante(id) {
                         margin-top: 2px !important;
                         min-height: 30px !important;
                     ">
-                        <div>
-                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.4 !important;">VÁLIDO HASTA</div>
-                            <div style="font-size: 9px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.4 !important;">${fechaVencimiento}</div>
+                        <div style="white-space: nowrap !important;">
+                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">VÁLIDO HASTA</div>
+                            <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.3 !important;">${fechaVencimiento}</div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap !important;">
                             <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%;"></div>
                             <span style="font-size: 8px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
                         </div>
@@ -17287,11 +17287,11 @@ function generarCarnetEstudiante(id) {
                 <!-- Franja superior NEGRA -->
                 <div style="
                     background: #1a1a2e !important;
-                    padding: 18px 12px 14px 12px !important;
+                    padding: 16px 12px 12px 12px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    gap: 14px !important;
+                    gap: 12px !important;
                     border-bottom: 3px solid #E63946 !important;
                     flex-shrink: 0 !important;
                     position: relative !important;
@@ -17305,11 +17305,11 @@ function generarCarnetEstudiante(id) {
                         opacity: 0.08 !important;
                         pointer-events: none !important;
                     ">
-                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 200px; height: 200px; object-fit: contain; filter: brightness(0) invert(1);">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
                     </div>
                     
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                    <span style="font-size: 14px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.4 !important;">Código de Verificación</span>
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <span style="font-size: 13px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.3 !important;">Código de Verificación</span>
                 </div>
 
                 <!-- Cuerpo dorso -->
@@ -17336,7 +17336,7 @@ function generarCarnetEstudiante(id) {
                         display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        box-shadow: 0 4px 20px rgba(230, 57, 70, 0.2) !important;
+                        box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15) !important;
                     ">
                         <div style="text-align: center;">
                             <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 20px;"></i>
@@ -17350,10 +17350,10 @@ function generarCarnetEstudiante(id) {
                         font-weight: 500 !important;
                         margin-top: 1px !important;
                         margin-bottom: 1px !important;
-                        line-height: 1.4 !important;
+                        line-height: 1.3 !important;
                     ">Escanear para verificar identidad</div>
 
-                    <!-- CONTACTO CON BORDE MÁS MARCO Y SOMBRA -->
+                    <!-- CONTACTO -->
                     <div style="
                         background: #e8e8e8 !important;
                         padding: 6px 12px !important;
@@ -17361,15 +17361,15 @@ function generarCarnetEstudiante(id) {
                         text-align: center !important;
                         width: 100% !important;
                         border: 2px solid #ccc !important;
-                        box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;
+                        box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12) !important;
                     ">
                         <div style="
                             font-size: 6.5px !important;
                             color: #E63946 !important;
                             font-weight: 700 !important;
                             letter-spacing: 0.5px !important;
-                            margin-bottom: 4px !important;
-                            line-height: 1.4 !important;
+                            margin-bottom: 3px !important;
+                            line-height: 1.3 !important;
                         ">CONTACTO</div>
                         
                         <div style="
@@ -17380,8 +17380,8 @@ function generarCarnetEstudiante(id) {
                             font-size: 6px !important;
                             font-weight: 600 !important;
                             color: #1a1a1a !important;
-                            margin-bottom: 4px !important;
-                            line-height: 1.4 !important;
+                            margin-bottom: 3px !important;
+                            line-height: 1.3 !important;
                         ">
                             <span>📞 37418036</span>
                             <span style="color: #ccc !important;">|</span>
@@ -17396,21 +17396,25 @@ function generarCarnetEstudiante(id) {
                             justify-content: center !important;
                             align-items: center !important;
                             gap: 4px !important;
-                            line-height: 1.4 !important;
+                            line-height: 1.3 !important;
                         ">
                             <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 7px;"></i>
                             <span>08 Calle c 10-72 Zona 3 San Marcos</span>
                         </div>
                     </div>
 
-                    <!-- www -->
+                    <!-- www - TEXTO COMPLETO CON NOWRAP -->
                     <div style="
                         font-size: 10px !important;
                         color: #1a1a2e !important;
                         font-weight: 700 !important;
                         text-align: center !important;
                         margin-top: 3px !important;
-                        line-height: 1.4 !important;
+                        line-height: 1.3 !important;
+                        white-space: nowrap !important;
+                        overflow: hidden !important;
+                        text-overflow: ellipsis !important;
+                        max-width: 100% !important;
                     ">www.expressionmusical.com</div>
                 </div>
             </div>
