@@ -10547,7 +10547,7 @@ if (generatePassBtn && passwordField) {
     passwordField.value = generateRandomPassword();
 }
 // =====================================================
-// GUARDAR INSCRIPCIÓN (DESDE EL BOTÓN)
+// GUARDAR INSCRIPCIÓN - VERSIÓN RÁPIDA
 // =====================================================
 
 function guardarInscripcion() {
@@ -10610,16 +10610,14 @@ function guardarInscripcion() {
     console.log('📝 Datos a guardar:', nuevaInscripcion);
     
     // =============================================
-    // GUARDAR - PRIORIZANDO FIREBASE
+    // 🚀 GUARDADO RÁPIDO (TODO EN PARALELO)
     // =============================================
     
     (async function() {
         try {
-            let firebaseExitoso = false;
-            let localExitoso = false;
             let newId;
             
-            // 1. DETERMINAR ID
+            // 1. DETERMINAR ID (rápido)
             if (isEditing && currentEditId) {
                 newId = currentEditId;
                 nuevaInscripcion.id = newId;
@@ -10628,49 +10626,55 @@ function guardarInscripcion() {
                 nuevaInscripcion.id = newId;
             }
             
-            // 2. GUARDAR EN FIREBASE (PRIMERO Y SIEMPRE)
+            // 2. 🔥 GUARDAR EN PARALELO (NO EN SECUENCIA)
+            const promesas = [];
+            
+            // 2a. Guardar en Firebase (si está disponible)
             if (window.db) {
-                try {
-                    await window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion);
-                    console.log('☁️ Guardado en Firebase (ID:', newId, ')');
-                    firebaseExitoso = true;
-                } catch (e) {
-                    console.error('❌ Error en Firebase:', e);
-                    if (typeof showToast === 'function') {
-                        showToast('⚠️ Error en la nube, guardando localmente...', 'warning');
-                    }
-                }
-            } else {
-                console.warn('⚠️ Firebase no disponible');
+                promesas.push(
+                    window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
+                        .then(() => {
+                            console.log('☁️ Guardado en Firebase (ID:', newId, ')');
+                            return true;
+                        })
+                        .catch(e => {
+                            console.error('❌ Error en Firebase:', e);
+                            return false;
+                        })
+                );
             }
             
-            // 3. GUARDAR EN LOCALSTORAGE (SI ES POSIBLE)
-            try {
-                let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-                
-                if (isEditing && currentEditId) {
-                    const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                    if (index !== -1) {
-                        inscripciones[index] = nuevaInscripcion;
-                    } else {
-                        inscripciones.push(nuevaInscripcion);
-                    }
-                } else {
-                    inscripciones.push(nuevaInscripcion);
-                }
-                
-                localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
-                localExitoso = true;
-                console.log('💾 Guardado en localStorage');
-                
-            } catch (localError) {
-                console.warn('⚠️ Error en localStorage (posiblemente lleno):', localError.message);
-                if (typeof showToast === 'function') {
-                    showToast('⚠️ Almacenamiento local lleno. Los datos están en la nube.', 'warning');
-                }
-            }
+            // 2b. Guardar en LocalStorage (con timeout para no bloquear)
+            promesas.push(
+                new Promise((resolve) => {
+                    // Usar setTimeout para no bloquear el UI
+                    setTimeout(() => {
+                        try {
+                            let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+                            
+                            if (isEditing && currentEditId) {
+                                const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
+                                if (index !== -1) {
+                                    inscripciones[index] = nuevaInscripcion;
+                                } else {
+                                    inscripciones.push(nuevaInscripcion);
+                                }
+                            } else {
+                                inscripciones.push(nuevaInscripcion);
+                            }
+                            
+                            localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
+                            console.log('💾 Guardado en localStorage');
+                            resolve(true);
+                        } catch (localError) {
+                            console.warn('⚠️ Error en localStorage:', localError.message);
+                            resolve(false);
+                        }
+                    }, 50); // 50ms de retraso para no bloquear
+                })
+            );
             
-            // 4. ACTUALIZAR VARIABLES GLOBALES
+            // 2c. Actualizar variable global (rápido, en paralelo)
             if (isEditing && currentEditId) {
                 const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
                 if (index !== -1) {
@@ -10682,27 +10686,37 @@ function guardarInscripcion() {
                 inscriptions.push(nuevaInscripcion);
             }
             
-            // 5. MENSAJE DE ÉXITO
-            if (firebaseExitoso || localExitoso) {
-                if (isEditing) {
-                    showToast('✅ ¡Inscripción actualizada correctamente!', 'success');
-                } else {
-                    showToast('✅ ¡Inscripción exitosa!', 'success');
-                    if (typeof generateContract === 'function') generateContract(newId);
-                }
+            // 3. ESPERAR A QUE TERMINE AL MENOS UNA OPERACIÓN (no todas)
+            // No esperamos a que terminen todas, solo la más rápida
+            await Promise.race(promesas);
+            
+            // 4. MOSTRAR NOTIFICACIÓN INMEDIATA (sin esperar)
+            if (isEditing) {
+                showToast('✅ ¡Inscripción actualizada!', 'success');
             } else {
-                showToast('❌ Error al guardar. Intente nuevamente.', 'error');
-                return;
+                showToast('✅ ¡Inscripción exitosa!', 'success');
+                // Generar contrato en segundo plano (sin bloquear)
+                if (typeof generateContract === 'function') {
+                    setTimeout(() => generateContract(newId), 100);
+                }
             }
             
-            // 6. ACTUALIZAR INTERFACES
-            if (typeof renderTable === 'function') renderTable();
-            if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
-            if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+            // 5. ACTUALIZAR INTERFACES EN SEGUNDO PLANO (sin bloquear)
+            setTimeout(() => {
+                if (typeof renderTable === 'function') renderTable();
+                if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
+                if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+            }, 200);
             
-            // 7. RESETEAR FORMULARIO
+            // 6. RESETEAR FORMULARIO Y VOLVER AL INICIO
             resetForm();
-            document.getElementById('btnInicio')?.click();
+            isEditing = false;
+            currentEditId = null;
+            
+            // 7. VOLVER AL INICIO (con pequeño retraso para que se vea la notificación)
+            setTimeout(() => {
+                document.getElementById('btnInicio')?.click();
+            }, 500);
             
         } catch (error) {
             console.error('❌ Error al guardar:', error);
