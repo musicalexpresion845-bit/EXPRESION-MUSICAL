@@ -12177,42 +12177,45 @@ const asistenciaApp = {
         this.actualizarContadores();
     },
 
-    cargarAsistenciaPrevia: function(fecha, dia, horario) {
-        const key = `asistencia_${fecha}_${dia}_${horario}`;
-        const data = JSON.parse(localStorage.getItem(key)) || {};
-        Object.keys(data).forEach(studentId => {
-            const registro = data[studentId];
-            const fila = document.querySelector(`tr[data-student-id="${studentId}"]`);
-            if (fila) {
-                const statusCell = fila.querySelector('.attendance-status');
-                const timeCell = fila.querySelector('.attendance-time');
-                if (statusCell) {
-                    let textoEstado = '';
-                    let estadoClass = '';
-                    switch(registro.status) {
-                        case 'presente': textoEstado = '✅ Presente'; estadoClass = 'status-presente'; break;
-                        case 'ausente': textoEstado = '❌ Ausente'; estadoClass = 'status-ausente'; break;
-                        case 'justificado': textoEstado = '📝 Justificado'; estadoClass = 'status-justificado'; break;
-                        case 'reposicion': textoEstado = '🔄 Reposición'; estadoClass = 'status-reposicion'; break;
-                        default: textoEstado = '--'; estadoClass = 'status-vacio';
-                    }
-                    statusCell.innerHTML = textoEstado;
-                    statusCell.className = `attendance-status ${estadoClass}`;
-                    
-                    const styles = {
-                        'presente': 'background: linear-gradient(135deg, #e8f5e8, #d4edda); color: #155724; border-color: #c3e6cb;',
-                        'ausente': 'background: linear-gradient(135deg, #ffebee, #f8d7da); color: #721c24; border-color: #f5c6cb;',
-                        'justificado': 'background: linear-gradient(135deg, #fff3e0, #ffe0b2); color: #e65100; border-color: #ffcc80;',
-                        'reposicion': 'background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #0d47a1; border-color: #90caf9;'
-                    };
-                    statusCell.style = `padding: 8px 12px; border-radius: 6px; text-align: center; font-size: 14px; transition: all 0.3s ease; border: 1px solid; ${styles[registro.status] || ''}`;
-                }
-                if (timeCell) {
-                    timeCell.textContent = registro.hora;
-                }
-            }
-        });
-    },
+  cargarAsistenciaPrevia: function(fecha, dia, horario) {
+    if (!fecha || !dia || !horario) return;
+    
+    // 🔥 SIMPLE: Buscar en el historial
+    const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+    
+    const registros = historial.filter(r => 
+        r.dia === dia && r.horario === horario && r.fecha === fecha
+    );
+    
+    if (registros.length === 0) return;
+    
+    registros.forEach(registro => {
+        const fila = document.querySelector(`tr[data-student-id="${registro.studentId}"]`);
+        if (!fila) return;
+        
+        const statusCell = fila.querySelector('.attendance-status');
+        const timeCell = fila.querySelector('.attendance-time');
+        if (!statusCell) return;
+        
+        // Mostrar estado
+        const estados = {
+            'presente': ['✅ Presente', 'background: #d4edda; color: #155724; border-color: #c3e6cb;'],
+            'ausente': ['❌ Ausente', 'background: #f8d7da; color: #721c24; border-color: #f5c6cb;'],
+            'justificado': ['📝 Justificado', 'background: #fff3cd; color: #856404; border-color: #ffc107;'],
+            'reposicion': ['🔄 Reposición', 'background: #cce5ff; color: #004085; border-color: #b8daff;']
+        };
+        
+        const estado = estados[registro.estado];
+        if (estado) {
+            statusCell.innerHTML = estado[0];
+            statusCell.style.cssText = `padding: 8px 12px; border-radius: 6px; text-align: center; border: 1px solid; ${estado[1]}`;
+        }
+        
+        if (timeCell) timeCell.textContent = registro.horaRegistro || '--:--';
+    });
+    
+    this.actualizarContadores();
+},
 
     // =====================================================
     // REGISTRO MANUAL DE ASISTENCIA (INDIVIDUAL)
@@ -13154,7 +13157,44 @@ setTimeout(function() {
 
 console.log('✅ Día automático activado para asistencia');
   
-  
+  // =====================================================
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL (SOLO 15 LÍNEAS)
+// =====================================================
+
+if (window.db) {
+    console.log('🔄 Iniciando sincronización de asistencia en tiempo real...');
+    
+    window.db.collection('asistencia').onSnapshot((snapshot) => {
+        // Guardar en localStorage
+        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        
+        snapshot.forEach(doc => {
+            const data = { id: doc.id, ...doc.data() };
+            const index = historial.findIndex(h => h.id === data.id);
+            if (index !== -1) {
+                historial[index] = data;
+            } else {
+                historial.push(data);
+            }
+        });
+        
+        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+        
+        // Si la tabla de asistencia está visible, recargar estados
+        const container = document.getElementById('asistenciaContainer');
+        if (container && container.style.display !== 'none') {
+            const dia = document.getElementById('filter-day')?.value;
+            const horario = document.getElementById('filter-schedule')?.value;
+            const fecha = document.getElementById('filter-date')?.value;
+            
+            if (dia && horario && fecha && typeof asistenciaApp !== 'undefined') {
+                asistenciaApp.cargarAsistenciaPrevia(fecha, dia, horario);
+            }
+        }
+        
+        console.log('✅ Asistencia sincronizada');
+    }, (error) => console.error('❌ Error:', error));
+}
   
 console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado");
 </script>
