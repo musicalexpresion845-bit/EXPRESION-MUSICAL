@@ -8098,8 +8098,10 @@ body.dark-mode .acciones .btn:hover {
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
+<!-- REEMPLAZA TODO EL BLOQUE 1 (SISTEMA DE USUARIOS Y LOGIN) CON ESTE CÓDIGO -->
+
 <!-- ============================================ -->
-<!-- BLOQUE 1: SISTEMA DE USUARIOS Y LOGIN       -->
+<!-- BLOQUE 1: SISTEMA DE USUARIOS Y LOGIN (OPTIMIZADO PARA FIREBASE) -->
 <!-- ============================================ -->
 
 <script>
@@ -8109,76 +8111,127 @@ body.dark-mode .acciones .btn:hover {
 let systemUsers = {};
 let usuarioEditando = null;
 let modalAbierto = false;
+let loginIntentando = false;
+let usuariosCargados = false;
+let usuariosCargando = false;
+let usuariosFirestore = {};
 
 // =====================================================
-// 1. CARGAR USUARIOS
+// 1. CARGAR USUARIOS DESDE FIRESTORE (OPTIMIZADO)
 // =====================================================
 async function cargarUsuariosYAdmin() {
-    if (!window.db) return;
-    try {
-        const snapshot = await window.db.collection('usuarios').get();
-        const usuariosFirestore = {};
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            usuariosFirestore[data.username] = data;
+    if (usuariosCargados) return;
+    if (usuariosCargando) {
+        // Esperar a que termine la carga actual
+        return new Promise((resolve) => {
+            const check = setInterval(() => {
+                if (usuariosCargados) {
+                    clearInterval(check);
+                    resolve();
+                }
+            }, 100);
         });
-
-        if (!usuariosFirestore['admin']) {
-            const adminData = {
-                username: 'admin',
-                password: 'admin123',
-                tipo: 'administrador',
-                nombre: 'Administrador',
-                apellido: 'Principal',
-                email: 'admin@expresionmusical.com',
-                telefono: '',
-                estado: 'activo',
-                fechaCreacion: new Date().toISOString(),
-                notas: 'Usuario administrador por defecto'
-            };
-            await window.db.collection('usuarios').doc('admin').set(adminData);
-            usuariosFirestore['admin'] = adminData;
-        }
-
-        let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
-        let unidos = { ...locales, ...usuariosFirestore };
-        localStorage.setItem('systemUsers', JSON.stringify(unidos));
-        window.systemUsers = unidos;
-        
-        console.log('📋 USUARIOS CARGADOS:', Object.keys(window.systemUsers));
-        Object.values(window.systemUsers).forEach(u => {
-            console.log(`  - ${u.username} (${u.tipo})`);
-        });
-    } catch(e) {
-        console.error("Error cargando usuarios:", e);
-        const stored = localStorage.getItem('systemUsers');
-        window.systemUsers = stored ? JSON.parse(stored) : {
-            'admin': {
-                username: 'admin',
-                password: 'admin123',
-                tipo: 'administrador',
-                nombre: 'Administrador',
-                apellido: 'Principal',
-                email: 'admin@expresionmusical.com',
-                telefono: '',
-                estado: 'activo',
-                fechaCreacion: new Date().toISOString(),
-                notas: 'Usuario administrador por defecto'
-            }
-        };
-        localStorage.setItem('systemUsers', JSON.stringify(window.systemUsers));
     }
+    
+    usuariosCargando = true;
+    console.log('🔄 Cargando usuarios desde Firebase...');
+    
+    // 1.1 SIEMPRE ASEGURAR admin LOCAL como respaldo INMEDIATO
+    const adminData = {
+        username: 'admin',
+        password: 'admin123',
+        tipo: 'administrador',
+        nombre: 'Administrador',
+        apellido: 'Principal',
+        email: 'admin@expresionmusical.com',
+        telefono: '',
+        estado: 'activo',
+        fechaCreacion: new Date().toISOString(),
+        notas: 'Usuario administrador por defecto'
+    };
+    
+    // Cargar desde localStorage primero (para tener algo)
+    try {
+        const stored = localStorage.getItem('systemUsers');
+        if (stored && stored !== '{}') {
+            const parsed = JSON.parse(stored);
+            if (parsed['admin']) {
+                systemUsers = parsed;
+                usuariosCargados = true;
+                console.log('📦 Usuarios cargados desde caché local');
+            } else {
+                systemUsers = { 'admin': adminData };
+                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            }
+        } else {
+            systemUsers = { 'admin': adminData };
+            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+        }
+    } catch(e) {
+        systemUsers = { 'admin': adminData };
+        localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+    }
+    
+    // 1.2 CARGAR DESDE FIRESTORE (EN SEGUNDO PLANO, PERO BLOQUEA EL LOGIN)
+    if (window.db) {
+        try {
+            console.log('☁️ Conectando a Firebase...');
+            const snapshot = await window.db.collection('usuarios').get();
+            console.log(`📥 ${snapshot.size} usuarios encontrados en Firebase`);
+            
+            usuariosFirestore = {};
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.username) {
+                    usuariosFirestore[data.username] = data;
+                }
+            });
+            
+            // 1.3 FUSIONAR: Firestore tiene prioridad, pero admin local se mantiene
+            const unidos = { ...systemUsers, ...usuariosFirestore };
+            
+            // SIEMPRE asegurar que admin exista (en caso de que no esté en Firestore)
+            if (!unidos['admin']) {
+                unidos['admin'] = adminData;
+            }
+            
+            systemUsers = unidos;
+            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            usuariosCargados = true;
+            console.log('✅ Usuarios sincronizados desde Firebase:', Object.keys(systemUsers));
+            
+        } catch(e) {
+            console.error('❌ Error cargando desde Firebase:', e);
+            // Si falla Firebase, usar lo que tenemos en localStorage
+            if (systemUsers['admin']) {
+                usuariosCargados = true;
+                console.log('⚠️ Usando caché local (Firebase no disponible)');
+            } else {
+                systemUsers = { 'admin': adminData };
+                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+                usuariosCargados = true;
+                console.log('⚠️ Usando admin por defecto');
+            }
+        }
+    } else {
+        console.warn('⚠️ Firebase no disponible, usando localStorage');
+        usuariosCargados = true;
+    }
+    
+    usuariosCargando = false;
+    window.systemUsers = systemUsers;
+    console.log('✅ Sistema de usuarios listo:', Object.keys(systemUsers));
 }
 
 // =====================================================
-// 2. LOGIN
+// 2. LOGIN - VERIFICA DIRECTAMENTE EN FIRESTORE
 // =====================================================
 function showLogin() {
     const loginScreen = document.getElementById('loginScreen');
     const secretariaScreen = document.getElementById('secretariaScreen');
     const encargadoPanel = document.getElementById('encargadoPanel');
     const docentePanel = document.getElementById('docentePanelVirtual');
-
+    
     if (loginScreen) loginScreen.style.display = 'flex';
     if (secretariaScreen) secretariaScreen.style.display = 'none';
     if (encargadoPanel) encargadoPanel.style.display = 'none';
@@ -8188,17 +8241,17 @@ function showLogin() {
 async function hideLogin() {
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) loginScreen.style.display = 'none';
-
+    
     const secretariaScreen = document.getElementById('secretariaScreen');
     const docentePanel = document.getElementById('docentePanelVirtual');
     const encargadoPanel = document.getElementById('encargadoPanel');
-
+    
     if (secretariaScreen) secretariaScreen.style.display = 'none';
     if (docentePanel) docentePanel.style.display = 'none';
     if (encargadoPanel) encargadoPanel.style.display = 'none';
-
+    
     const userType = localStorage.getItem('userType');
-
+    
     if (userType === 'administrador' || userType === 'secretaria') {
         if (secretariaScreen) secretariaScreen.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
@@ -8208,7 +8261,9 @@ async function hideLogin() {
         document.querySelectorAll('.menu-item-vertical').forEach(item => item.style.display = 'flex');
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = (userType === 'administrador') ? 'Panel de Administrador' : 'Panel de Secretaría';
-        if (typeof loadAllData === 'function') await loadAllData();
+        if (typeof loadAllData === 'function') {
+            setTimeout(loadAllData, 100);
+        }
     } else if (userType === 'docente') {
         if (docentePanel) docentePanel.style.display = 'block';
         const sidebar = document.querySelector('.sidebar');
@@ -8219,7 +8274,7 @@ async function hideLogin() {
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = 'Panel del Docente';
         if (typeof window.mostrarPanelDocenteVirtual === 'function') {
-            window.mostrarPanelDocenteVirtual();
+            setTimeout(window.mostrarPanelDocenteVirtual, 100);
         }
     } else if (userType === 'encargado') {
         if (encargadoPanel) encargadoPanel.style.display = 'block';
@@ -8231,18 +8286,17 @@ async function hideLogin() {
         const panelTitle = document.getElementById('panelTitle');
         if (panelTitle) panelTitle.textContent = 'Portal del Encargado';
         if (typeof cargarSelector === 'function') {
-            cargarSelector();
+            setTimeout(cargarSelector, 100);
         }
     }
-
-    const userTypeFinal = localStorage.getItem('userType');
-    if (userTypeFinal === 'secretaria') {
+    
+    if (userType === 'secretaria') {
         setTimeout(function() {
             if (typeof iniciarPeerPC === 'function') {
                 iniciarPeerPC();
                 console.log('✅ Panel de tablet iniciado desde login');
             }
-        }, 500);
+        }, 300);
     }
 }
 
@@ -8256,41 +8310,146 @@ function checkLoginStatus() {
     }
 }
 
+// =====================================================
+// 3. HANDLE LOGIN - VERIFICA DIRECTAMENTE EN FIRESTORE
+// =====================================================
 async function handleLoginSubmit(e) {
     e.preventDefault();
-
-    const userType = document.getElementById('userType').value;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorElem = document.getElementById('loginError');
-
-    if (!userType) {
-        errorElem.textContent = "Seleccione un tipo de usuario";
-        errorElem.style.display = 'block';
+    
+    if (loginIntentando) {
+        document.getElementById('loginError').textContent = '⏳ Procesando...';
+        document.getElementById('loginError').style.display = 'block';
         return;
     }
-
-    let espera = 0;
-    while ((!window.systemUsers || Object.keys(window.systemUsers).length === 0) && espera < 50) {
-        await new Promise(r => setTimeout(r, 100));
-        espera++;
-    }
-
-    const usuario = (window.systemUsers || {})[username];
-
-    if (usuario && usuario.tipo === userType && usuario.password === password && usuario.estado === 'activo') {
-        errorElem.style.display = 'none';
-        localStorage.setItem('currentUser', JSON.stringify(usuario));
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userType', userType);
-        await hideLogin();
-        if (typeof mostrarBienvenidaConFrase === 'function') {
-            mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
-        }
-    } else {
-        errorElem.textContent = "Credenciales incorrectas o usuario inactivo";
+    
+    loginIntentando = true;
+    
+    const userType = document.getElementById('userType').value;
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorElem = document.getElementById('loginError');
+    
+    errorElem.style.display = 'none';
+    
+    if (!userType || !username || !password) {
+        errorElem.textContent = '⚠️ Complete todos los campos';
         errorElem.style.display = 'block';
+        loginIntentando = false;
+        return;
     }
+    
+    // Mostrar mensaje de "Verificando..."
+    errorElem.textContent = '⏳ Verificando credenciales...';
+    errorElem.style.display = 'block';
+    errorElem.style.color = '#2196F3';
+    
+    try {
+        // 1. BUSCAR EN FIRESTORE DIRECTAMENTE
+        let usuario = null;
+        
+        if (window.db) {
+            try {
+                console.log(`🔍 Buscando usuario "${username}" en Firebase...`);
+                const doc = await window.db.collection('usuarios').doc(username).get();
+                
+                if (doc.exists) {
+                    usuario = doc.data();
+                    console.log('✅ Usuario encontrado en Firebase:', usuario.tipo);
+                    
+                    // Actualizar localStorage para futuros accesos
+                    let users = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+                    users[username] = usuario;
+                    localStorage.setItem('systemUsers', JSON.stringify(users));
+                    window.systemUsers = users;
+                } else {
+                    console.log(`❌ Usuario "${username}" no encontrado en Firebase`);
+                }
+            } catch (firebaseError) {
+                console.error('❌ Error consultando Firebase:', firebaseError);
+                // Si Firebase falla, intentar con localStorage
+                try {
+                    const stored = localStorage.getItem('systemUsers');
+                    if (stored) {
+                        const users = JSON.parse(stored);
+                        usuario = users[username];
+                        if (usuario) {
+                            console.log('📦 Usuario encontrado en caché local');
+                        }
+                    }
+                } catch(e) {}
+            }
+        } else {
+            // Firebase no disponible, usar localStorage
+            try {
+                const stored = localStorage.getItem('systemUsers');
+                if (stored) {
+                    const users = JSON.parse(stored);
+                    usuario = users[username];
+                    if (usuario) {
+                        console.log('📦 Usuario encontrado en localStorage');
+                    }
+                }
+            } catch(e) {}
+        }
+        
+        // 2. VERIFICAR CREDENCIALES
+        if (usuario) {
+            // Verificar tipo de usuario
+            if (usuario.tipo !== userType) {
+                errorElem.textContent = `❌ El usuario "${username}" no es un ${userType}`;
+                errorElem.style.display = 'block';
+                errorElem.style.color = '#E63946';
+                loginIntentando = false;
+                return;
+            }
+            
+            // Verificar contraseña
+            if (usuario.password !== password) {
+                errorElem.textContent = '❌ Contraseña incorrecta';
+                errorElem.style.display = 'block';
+                errorElem.style.color = '#E63946';
+                loginIntentando = false;
+                return;
+            }
+            
+            // Verificar estado
+            if (usuario.estado !== 'activo') {
+                errorElem.textContent = '❌ Usuario inactivo. Contacte al administrador.';
+                errorElem.style.display = 'block';
+                errorElem.style.color = '#E63946';
+                loginIntentando = false;
+                return;
+            }
+            
+            // ✅ LOGIN EXITOSO
+            errorElem.style.display = 'none';
+            localStorage.setItem('currentUser', JSON.stringify(usuario));
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userType', userType);
+            
+            await hideLogin();
+            
+            if (typeof mostrarBienvenidaConFrase === 'function') {
+                mostrarBienvenidaConFrase(usuario.nombre || usuario.username);
+            }
+            
+            loginIntentando = false;
+            return;
+        }
+        
+        // 3. USUARIO NO ENCONTRADO
+        errorElem.textContent = `❌ Usuario "${username}" no encontrado`;
+        errorElem.style.display = 'block';
+        errorElem.style.color = '#E63946';
+        
+    } catch (error) {
+        console.error('Error en login:', error);
+        errorElem.textContent = '❌ Error al verificar credenciales. Intente nuevamente.';
+        errorElem.style.display = 'block';
+        errorElem.style.color = '#E63946';
+    }
+    
+    loginIntentando = false;
 }
 
 function cerrarSesion() {
@@ -8303,10 +8462,11 @@ function cerrarSesion() {
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
     document.getElementById('loginError').style.display = 'none';
+    loginIntentando = false;
 }
 
 // =====================================================
-// 3. CERRAR MODAL DE USUARIO
+// 4. CERRAR MODAL DE USUARIO
 // =====================================================
 function cerrarModalUsuario() {
     console.log('🔴 Cerrando modal de usuario');
@@ -8316,7 +8476,6 @@ function cerrarModalUsuario() {
     }
     modalAbierto = false;
     usuarioEditando = null;
-    
     document.getElementById('usuarioId').value = '';
     document.getElementById('usuarioUsername').value = '';
     document.getElementById('usuarioUsername').disabled = false;
@@ -8328,22 +8487,19 @@ function cerrarModalUsuario() {
     document.getElementById('usuarioTelefono').value = '';
     document.getElementById('usuarioNotas').value = '';
     document.getElementById('usuarioEstado').value = 'activo';
-    
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect) {
         Array.from(instrumentosSelect.options).forEach(opt => opt.selected = false);
     }
-    
     document.getElementById('instrumentos-group').style.display = 'none';
     document.getElementById('estudiantes-vinculacion').style.display = 'none';
 }
 
 // =====================================================
-// 4. GUARDAR USUARIO
+// 5. GUARDAR USUARIO (EN FIRESTORE Y LOCAL)
 // =====================================================
 function guardarUsuario() {
     console.log('💾 Guardando usuario...');
-
     const username = document.getElementById('usuarioUsername')?.value?.trim() || '';
     const password = document.getElementById('usuarioPassword')?.value || '';
     const confirmPassword = document.getElementById('usuarioConfirmarPassword')?.value || '';
@@ -8357,13 +8513,14 @@ function guardarUsuario() {
     
     const esEdicion = document.getElementById('usuarioId')?.value !== '';
     const usernameOriginal = document.getElementById('usuarioId')?.value || '';
-
+    
     if (!username) { alert('⚠️ El nombre de usuario es obligatorio'); return; }
     if (!password) { alert('⚠️ La contraseña es obligatoria'); return; }
     if (!tipo) { alert('⚠️ El tipo de usuario es obligatorio'); return; }
     if (!nombre) { alert('⚠️ El nombre es obligatorio'); return; }
     if (password !== confirmPassword) { alert('⚠️ Las contraseñas no coinciden'); return; }
-
+    
+    // Verificar si el usuario ya existe (solo para nuevos)
     if (!esEdicion) {
         const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
         if (usuarios[username]) {
@@ -8371,7 +8528,7 @@ function guardarUsuario() {
             return;
         }
     }
-
+    
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     let instrumentos = [];
     if (instrumentosSelect && tipo === 'docente') {
@@ -8381,7 +8538,7 @@ function guardarUsuario() {
             return;
         }
     }
-
+    
     const estudiantesIds = [];
     if (tipo === 'encargado') {
         const checkboxes = document.querySelectorAll('#listaEstudiantesParaEncargado input[type="checkbox"]:checked');
@@ -8393,7 +8550,7 @@ function guardarUsuario() {
             return;
         }
     }
-
+    
     const usuarioData = {
         username: username,
         password: password,
@@ -8408,39 +8565,40 @@ function guardarUsuario() {
         estudiantesIds: estudiantesIds,
         fechaActualizacion: new Date().toISOString()
     };
-
+    
     if (!esEdicion) {
         usuarioData.fechaCreacion = new Date().toISOString();
     }
-
-    let usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
     
+    // Guardar en localStorage
+    let usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
     if (esEdicion && usernameOriginal !== username) {
         delete usuarios[usernameOriginal];
     }
-    
     usuarios[username] = usuarioData;
     localStorage.setItem('systemUsers', JSON.stringify(usuarios));
     window.systemUsers = usuarios;
-
+    
+    // Guardar en Firestore
     if (window.db) {
         window.db.collection('usuarios').doc(username).set(usuarioData)
-            .catch(e => console.error('❌ Error en Firebase:', e));
+            .then(() => console.log('☁️ Usuario guardado en Firestore'))
+            .catch(e => console.error('❌ Error en Firestore:', e));
     }
-
+    
+    // Actualizar currentUser si es el mismo
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (currentUser.username === username) {
         localStorage.setItem('currentUser', JSON.stringify(usuarioData));
     }
-
+    
     alert(esEdicion ? '✅ Usuario actualizado correctamente' : '✅ Usuario creado correctamente');
-
     cerrarModalUsuario();
     cargarTablaUsuarios();
 }
 
 // =====================================================
-// 5. ABRIR MODAL PARA EDITAR USUARIO
+// 6. ABRIR MODAL PARA EDITAR USUARIO
 // =====================================================
 function abrirModalEditarUsuario(username) {
     console.log('✏️ ABRIENDO EDICIÓN para:', username);
@@ -8455,19 +8613,18 @@ function abrirModalEditarUsuario(username) {
     
     const usuarios = window.systemUsers || JSON.parse(localStorage.getItem('systemUsers') || '{}');
     const usuario = usuarios[username];
-
     if (!usuario) {
         alert('❌ Usuario no encontrado');
         return;
     }
-
+    
     cargarTiposUsuario();
-
+    
     document.getElementById('usuarioModalTitle').textContent = '✏️ Editar Usuario';
     document.getElementById('usuarioId').value = usuario.username;
     document.getElementById('usuarioUsername').value = usuario.username;
     document.getElementById('usuarioUsername').disabled = true;
-
+    
     const tipoSelect = document.getElementById('usuarioTipo');
     if (tipoSelect) {
         let encontrado = false;
@@ -8486,7 +8643,7 @@ function abrirModalEditarUsuario(username) {
             tipoSelect.value = usuario.tipo;
         }
     }
-
+    
     document.getElementById('usuarioEstado').value = usuario.estado || 'activo';
     document.getElementById('usuarioPassword').value = usuario.password || '';
     document.getElementById('usuarioConfirmarPassword').value = usuario.password || '';
@@ -8495,14 +8652,14 @@ function abrirModalEditarUsuario(username) {
     document.getElementById('usuarioEmail').value = usuario.email || '';
     document.getElementById('usuarioTelefono').value = usuario.telefono || '';
     document.getElementById('usuarioNotas').value = usuario.notas || '';
-
+    
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect && usuario.instrumentos) {
         Array.from(instrumentosSelect.options).forEach(opt => {
             opt.selected = usuario.instrumentos.includes(opt.value);
         });
     }
-
+    
     const estudiantesDiv = document.getElementById('estudiantes-vinculacion');
     if (estudiantesDiv && usuario.tipo === 'encargado') {
         estudiantesDiv.style.display = 'block';
@@ -8510,12 +8667,12 @@ function abrirModalEditarUsuario(username) {
     } else if (estudiantesDiv) {
         estudiantesDiv.style.display = 'none';
     }
-
+    
     const instrumentosGroup = document.getElementById('instrumentos-group');
     if (instrumentosGroup) {
         instrumentosGroup.style.display = usuario.tipo === 'docente' ? 'block' : 'none';
     }
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (tipoSelect) {
         if (currentUser.tipo === 'administrador') {
@@ -8524,7 +8681,7 @@ function abrirModalEditarUsuario(username) {
             tipoSelect.disabled = true;
         }
     }
-
+    
     document.getElementById('usuarioModal').style.display = 'block';
     modalAbierto = true;
     usuarioEditando = username;
@@ -8532,48 +8689,46 @@ function abrirModalEditarUsuario(username) {
 }
 
 // =====================================================
-// 6. ELIMINAR USUARIO
+// 7. ELIMINAR USUARIO
 // =====================================================
 function eliminarUsuario(username) {
     if (!confirm(`¿Eliminar usuario "${username}"?`)) return;
-
     if (username === 'admin') {
         alert('❌ No se puede eliminar el usuario administrador principal');
         return;
     }
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (currentUser.username === username) {
         alert('❌ No puedes eliminar tu propio usuario');
         return;
     }
-
+    
     delete window.systemUsers[username];
     localStorage.setItem('systemUsers', JSON.stringify(window.systemUsers));
-
+    
     if (window.db) {
         window.db.collection('usuarios').doc(username).delete()
             .catch(e => console.error('❌ Error eliminando de Firebase:', e));
     }
-
+    
     cargarTablaUsuarios();
     showToast('Usuario eliminado correctamente', 'success');
 }
 
 // =====================================================
-// 7. CARGAR TIPOS DE USUARIO - CORREGIDO
+// 8. CARGAR TIPOS DE USUARIO
 // =====================================================
 function cargarTiposUsuario() {
     const select = document.getElementById('usuarioTipo');
     if (!select) return;
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userType = currentUser.tipo || localStorage.getItem('userType') || '';
-
+    
     select.innerHTML = '';
-
+    
     if (userType === 'administrador') {
-        // ADMIN: Puede crear TODOS los tipos
         const opciones = [
             { value: 'secretaria', text: 'Secretaría' },
             { value: 'docente', text: 'Docente' },
@@ -8586,9 +8741,7 @@ function cargarTiposUsuario() {
             select.appendChild(option);
         });
         select.disabled = false;
-        console.log('🔓 Administrador - Puede crear TODOS los tipos');
     } else if (userType === 'secretaria') {
-        // 🔥 SECRETARIA: Puede crear DOCENTES y ENCARGADOS
         const opciones = [
             { value: 'docente', text: 'Docente' },
             { value: 'encargado', text: 'Encargado' }
@@ -8600,7 +8753,6 @@ function cargarTiposUsuario() {
             select.appendChild(option);
         });
         select.disabled = false;
-        console.log('🔓 Secretaria - Puede crear DOCENTES y ENCARGADOS');
     } else {
         const option = document.createElement('option');
         option.value = '';
@@ -8611,19 +8763,18 @@ function cargarTiposUsuario() {
 }
 
 // =====================================================
-// 8. CARGAR ESTUDIANTES PARA ENCARGADO
+// 9. CARGAR ESTUDIANTES PARA ENCARGADO
 // =====================================================
 function cargarEstudiantesParaEncargado(estudiantesSeleccionados = []) {
     const container = document.getElementById('listaEstudiantesParaEncargado');
     if (!container) return;
-
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     if (inscriptions.length === 0) {
         container.innerHTML = '<p style="color:#666;">No hay estudiantes registrados</p>';
         return;
     }
-
+    
     let html = '';
     inscriptions.forEach(ins => {
         const idStr = String(ins.id);
@@ -8635,12 +8786,11 @@ function cargarEstudiantesParaEncargado(estudiantesSeleccionados = []) {
             </div>
         `;
     });
-
     container.innerHTML = html;
 }
 
 // =====================================================
-// 9. MOSTRAR MODAL DE USUARIO
+// 10. MOSTRAR MODAL DE USUARIO
 // =====================================================
 function mostrarModalUsuario() {
     console.log('➕ Nuevo usuario');
@@ -8652,7 +8802,7 @@ function mostrarModalUsuario() {
         }, 200);
         return;
     }
-
+    
     document.getElementById('usuarioModalTitle').textContent = '➕ Nuevo Usuario';
     document.getElementById('usuarioId').value = '';
     document.getElementById('usuarioUsername').value = '';
@@ -8665,26 +8815,25 @@ function mostrarModalUsuario() {
     document.getElementById('usuarioEmail').value = '';
     document.getElementById('usuarioTelefono').value = '';
     document.getElementById('usuarioNotas').value = '';
-
+    
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     if (instrumentosSelect) {
         Array.from(instrumentosSelect.options).forEach(opt => opt.selected = false);
     }
-
     document.getElementById('instrumentos-group').style.display = 'none';
     document.getElementById('estudiantes-vinculacion').style.display = 'none';
-
+    
     const pass = generateRandomPassword(10);
     document.getElementById('usuarioPassword').value = pass;
     document.getElementById('usuarioConfirmarPassword').value = pass;
-
+    
     cargarTiposUsuario();
     document.getElementById('usuarioModal').style.display = 'block';
     modalAbierto = true;
 }
 
 // =====================================================
-// 10. GENERAR CONTRASEÑA
+// 11. GENERAR CONTRASEÑA
 // =====================================================
 function generateRandomPassword(length = 10) {
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -8703,46 +8852,37 @@ function generarPasswordUsuario() {
 }
 
 // =====================================================
-// 11. CARGAR TABLA DE USUARIOS - CORREGIDO
+// 12. CARGAR TABLA DE USUARIOS
 // =====================================================
 function cargarTablaUsuarios() {
     console.log('🔄 Cargando tabla de usuarios...');
-
     const tbody = document.querySelector('#usuariosTable tbody');
     if (!tbody) {
         console.warn('⚠️ Tbody no encontrado');
         return;
     }
-
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userType = currentUser.tipo || localStorage.getItem('userType') || '';
-
+    
     if (!window.systemUsers || Object.keys(window.systemUsers).length === 0) {
         const stored = localStorage.getItem('systemUsers');
         window.systemUsers = stored ? JSON.parse(stored) : {};
     }
-
-    const usuarios = window.systemUsers || {};
     
+    const usuarios = window.systemUsers || {};
     let usuariosFiltrados = Object.values(usuarios);
     
-    // 🔥 FILTROS CORREGIDOS
     if (userType === 'secretaria') {
-        // 🔥 SECRETARIA: Ve DOCENTES + ENCARGADOS (NO ve secretarias ni administradores)
-        usuariosFiltrados = usuariosFiltrados.filter(u => 
+        usuariosFiltrados = usuariosFiltrados.filter(u =>
             u.tipo === 'docente' || u.tipo === 'encargado'
         );
-        console.log('🔍 Secretaria - Mostrando DOCENTES y ENCARGADOS');
     } else if (userType === 'administrador') {
-        // 🔥 ADMIN: Ve TODOS los usuarios (SIN NINGÚN FILTRO)
         usuariosFiltrados = usuariosFiltrados;
-        console.log('🔍 Administrador - Mostrando TODOS los usuarios');
     } else {
         usuariosFiltrados = [];
-        console.log('🔍 Otro rol - Sin acceso a gestión de usuarios');
     }
-
-    // 🔥 ORDEN
+    
     let ordenTipos = [];
     if (userType === 'secretaria') {
         ordenTipos = ['docente', 'encargado'];
@@ -8755,21 +8895,21 @@ function cargarTablaUsuarios() {
         const indexB = ordenTipos.indexOf(b.tipo);
         return indexA - indexB;
     });
-
+    
     tbody.innerHTML = '';
-
+    
     if (usuariosFiltrados.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay usuarios disponibles</td></tr>';
         return;
     }
-
+    
     let contador = 1;
     usuariosFiltrados.forEach(usuario => {
         if (!usuario || !usuario.username) return;
-
+        
         const esAdminActual = usuario.username === currentUser.username && usuario.tipo === 'administrador';
         const badgeAdmin = esAdminActual ? ' 👑 (Tú)' : '';
-
+        
         let colorTipo = '';
         switch(usuario.tipo) {
             case 'administrador': colorTipo = '#E63946'; break;
@@ -8778,13 +8918,11 @@ function cargarTablaUsuarios() {
             case 'encargado': colorTipo = '#FF9800'; break;
             default: colorTipo = '#666';
         }
-
-        // 🔥 BOTONES SEGÚN ROL
+        
         let botonesHTML = '';
         if (usuario.username === 'admin') {
             botonesHTML = '<span style="color:#999;font-size:0.7rem;">🔒 Protegido</span>';
         } else if (userType === 'administrador') {
-            // ADMIN: puede editar y eliminar TODOS
             botonesHTML = `
                 <button class="action-btn edit-btn" data-username="${usuario.username}">
                     <i class="fas fa-edit"></i>
@@ -8794,7 +8932,6 @@ function cargarTablaUsuarios() {
                 </button>
             `;
         } else if (userType === 'secretaria') {
-            // SECRETARIA: puede editar y eliminar DOCENTES y ENCARGADOS
             if (usuario.tipo === 'docente' || usuario.tipo === 'encargado') {
                 botonesHTML = `
                     <button class="action-btn edit-btn" data-username="${usuario.username}">
@@ -8810,7 +8947,7 @@ function cargarTablaUsuarios() {
         } else {
             botonesHTML = '<span style="color:#999;font-size:0.7rem;">🔒 Sin permisos</span>';
         }
-
+        
         const fila = document.createElement('tr');
         fila.setAttribute('data-username', usuario.username);
         fila.innerHTML = `
@@ -8825,17 +8962,17 @@ function cargarTablaUsuarios() {
         tbody.appendChild(fila);
         contador++;
     });
-
+    
     // Delegación de eventos para botones
     if (window._usuarioTableHandler) {
         tbody.removeEventListener('click', window._usuarioTableHandler);
         window._usuarioTableHandler = null;
     }
-
+    
     window._usuarioTableHandler = function(e) {
         const target = e.target.closest('button');
         if (!target) return;
-
+        
         if (target.classList.contains('edit-btn')) {
             e.preventDefault();
             e.stopPropagation();
@@ -8845,7 +8982,7 @@ function cargarTablaUsuarios() {
                 abrirModalEditarUsuario(username);
             }
         }
-
+        
         if (target.classList.contains('delete-btn')) {
             e.preventDefault();
             e.stopPropagation();
@@ -8856,13 +8993,13 @@ function cargarTablaUsuarios() {
             }
         }
     };
-
     tbody.addEventListener('click', window._usuarioTableHandler);
+    
     console.log('✅ Tabla de usuarios cargada - Total:', usuariosFiltrados.length);
 }
 
 // =====================================================
-// 12. CONEXIÓN CON TABLET (PEERJS)
+// 13. CONEXIÓN CON TABLET (PEERJS)
 // =====================================================
 let peerPC = null;
 let connTablet = null;
@@ -8876,20 +9013,19 @@ function iniciarPeerPC() {
         limpiarConexionTablet();
         return;
     }
-
+    
     peerIdGenerado = 'expresion123';
     crearPanelConexion();
+    
     const idDisplay = document.getElementById('peerIdDisplay');
     if (idDisplay) idDisplay.textContent = peerIdGenerado;
-
+    
     try {
         peerPC = new Peer(peerIdGenerado);
-        
         peerPC.on('open', function(id) {
             console.log('✅ PC conectada con ID:', id);
             actualizarEstadoPanel('ready', 'Esperando tablet...');
         });
-
         peerPC.on('connection', function(connection) {
             connTablet = connection;
             tabletConectada = true;
@@ -8897,33 +9033,27 @@ function iniciarPeerPC() {
             actualizarEstadoPanel('connected', 'Tablet conectada');
             if (typeof showToast === 'function') showToast('✅ Tablet conectada', 'success');
             
-          connTablet.on('data', function(data) {
-    console.log('📦 Datos recibidos:', data);
-    
-    // 🔥 EXTRAER EL TEXTO RAW DEL QR
-    let textoQR = '';
-    
-    if (typeof data === 'string') {
-        textoQR = data;
-    } else if (typeof data === 'object' && data !== null) {
-        // 🔥 IMPORTANTE: Usar data.raw que es el texto completo del QR
-        textoQR = data.raw || data.texto || data.text || data.data || data.qr || '';
-        
-        // Si no se encontró nada, convertir a string
-        if (!textoQR) {
-            textoQR = JSON.stringify(data);
-        }
-    }
-    
-    console.log('📱 Texto QR a procesar:', textoQR);
-    
-    // 🔥 PROCESAR ASISTENCIA CON EL TEXTO RAW
-    if (textoQR && typeof procesarAsistenciaDesdeTablet === 'function') {
-        procesarAsistenciaDesdeTablet(textoQR);
-    } else {
-        console.error('❌ No se pudo extraer texto QR:', data);
-    }
-});
+            connTablet.on('data', function(data) {
+                console.log('📦 Datos recibidos:', data);
+                
+                let textoQR = '';
+                if (typeof data === 'string') {
+                    textoQR = data;
+                } else if (typeof data === 'object' && data !== null) {
+                    textoQR = data.raw || data.texto || data.text || data.data || data.qr || '';
+                    if (!textoQR) {
+                        textoQR = JSON.stringify(data);
+                    }
+                }
+                
+                console.log('📱 Texto QR a procesar:', textoQR);
+                if (textoQR && typeof procesarAsistenciaDesdeTablet === 'function') {
+                    procesarAsistenciaDesdeTablet(textoQR);
+                } else {
+                    console.error('❌ No se pudo extraer texto QR:', data);
+                }
+            });
+            
             connTablet.on('close', function() {
                 console.log('📱 Tablet desconectada');
                 tabletConectada = false;
@@ -8937,7 +9067,6 @@ function iniciarPeerPC() {
                 if (connTablet) connTablet.close();
             });
         });
-
         peerPC.on('error', function(error) {
             console.error('❌ Error PeerJS:', error);
             actualizarEstadoPanel('error', 'Error de conexión');
@@ -8961,11 +9090,10 @@ function limpiarConexionTablet() {
 
 function crearPanelConexion() {
     if (document.getElementById('tabletConnectionPanel')) return;
-
+    
     const panel = document.createElement('div');
     panel.id = 'tabletConnectionPanel';
     panel.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999;';
-
     panel.innerHTML = `
         <div id="panelExpanded" style="background: #333; color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-family: monospace; width: 280px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -8989,14 +9117,12 @@ function crearPanelConexion() {
             <span style="font-size: 14px;">Tablet conectada</span>
         </div>
     `;
-
     document.body.appendChild(panel);
-
+    
     document.getElementById('minimizeBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         minimizarPanel();
     });
-
     document.getElementById('panelMinimized').addEventListener('click', function() {
         expandirPanel();
     });
@@ -9008,9 +9134,9 @@ function actualizarEstadoPanel(estado, mensaje) {
     const text = document.getElementById('statusText');
     const panelExpanded = document.getElementById('panelExpanded');
     const panelMinimized = document.getElementById('panelMinimized');
-
+    
     if (!dot || !text || !panelExpanded || !panelMinimized) return;
-
+    
     switch(estado) {
         case 'connected':
             panelExpanded.style.display = 'none';
@@ -9065,12 +9191,11 @@ function copiarIdAlPortapapeles() {
 }
 
 // =====================================================
-// 🔥 PROCESAR ASISTENCIA - CON ACTUALIZACIÓN EN VIVO Y SIN DUPLICADOS
+// 14. PROCESAR ASISTENCIA DESDE TABLET
 // =====================================================
 async function procesarAsistenciaDesdeTablet(datos) {
     console.log('📦 DATOS RECIBIDOS:', datos);
     
-    // Extraer texto del QR
     let textoCompleto = datos;
     if (typeof datos === 'object' && datos !== null) {
         textoCompleto = datos.raw || datos.texto || datos.text || JSON.stringify(datos);
@@ -9080,7 +9205,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
     let nombre = null;
     let inscriptions = [];
     
-    // 1. CARGAR ESTUDIANTES
     try {
         inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
         console.log('📦 Inscripciones en localStorage:', inscriptions.length);
@@ -9101,7 +9225,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         }
     }
     
-    // 2. EXTRAER ID DEL TEXTO
     if (typeof textoCompleto === 'string') {
         const idMatch = textoCompleto.match(/ID:\s*(\d+)/);
         if (idMatch) {
@@ -9122,23 +9245,16 @@ async function procesarAsistenciaDesdeTablet(datos) {
         }
     }
     
-    // 3. BUSCAR ESTUDIANTE
     let estudiante = null;
-    
     if (id) {
         const idBuscado = String(id).trim();
-        console.log('🔎 Buscando ID:', idBuscado);
-        console.log('📋 IDs disponibles:', inscriptions.map(i => String(i.id)).join(', '));
-        
         estudiante = inscriptions.find(ins => String(ins.id).trim() === idBuscado);
-        
         if (!estudiante) {
             const idNum = parseInt(idBuscado);
             if (!isNaN(idNum)) {
                 estudiante = inscriptions.find(ins => parseInt(String(ins.id)) === idNum);
             }
         }
-        
         if (!estudiante) {
             estudiante = inscriptions.find(ins => {
                 const insId = String(ins.id).trim();
@@ -9156,9 +9272,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
     
     if (!estudiante) {
         console.error('❌ ESTUDIANTE NO ENCONTRADO');
-        console.log('🔍 ID buscado:', id);
-        console.log('📋 IDs disponibles:', inscriptions.map(i => String(i.id)).join(', '));
-        
         if (typeof showToast === 'function') {
             showToast('❌ Estudiante no encontrado. ID: ' + (id || 'N/A'), 'error');
         }
@@ -9166,9 +9279,7 @@ async function procesarAsistenciaDesdeTablet(datos) {
     }
     
     console.log('✅ ESTUDIANTE ENCONTRADO:', estudiante.estudiante?.nombre);
-    console.log('📋 ID completo:', estudiante.id);
     
-    // 4. OBTENER DÍA Y HORARIO
     const daySelect = document.getElementById('filter-day');
     const scheduleSelect = document.getElementById('filter-schedule');
     let diaSeleccionado = daySelect ? daySelect.value : '';
@@ -9181,39 +9292,33 @@ async function procesarAsistenciaDesdeTablet(datos) {
         return;
     }
     
-    // 5. DETERMINAR ESTADO (Presente o Reposición)
     let estado = 'presente';
     let observaciones = '';
-    
     if (estudiante.academico) {
         const diasEstudio = estudiante.academico.dias || [];
         const horarioEstudio = estudiante.academico.horario || '';
         const diaCorrecto = diasEstudio.includes(diaSeleccionado);
         const horarioCorrecto = horarioEstudio === horarioSeleccionado;
-        
         if (!diaCorrecto || !horarioCorrecto) {
             estado = 'reposicion';
             observaciones = `Reposición - Día/Horario fuera de su horario (${horarioEstudio})`;
         }
     }
     
-    // 6. 🔥 ACTUALIZAR EN LA TABLA EN VIVO
     const fila = document.querySelector(`#studentsList tr[data-student-id="${estudiante.id}"]`);
     const ahora = new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
     
     if (fila) {
         const statusCell = fila.querySelector('.attendance-status');
         const timeCell = fila.querySelector('.attendance-time');
-        
         if (statusCell) {
             const textoEstado = estado === 'presente' ? '✅ Presente' : '🔄 Reposición';
             const estadoClass = estado === 'presente' ? 'status-presente' : 'status-reposicion';
             const color = estado === 'presente' ? '#2E7D32' : '#0D47A1';
-            
             statusCell.innerHTML = textoEstado;
             statusCell.className = `attendance-status ${estadoClass}`;
             statusCell.style.cssText = `
-                padding: 8px 12px; border-radius: 6px; text-align: center; 
+                padding: 8px 12px; border-radius: 6px; text-align: center;
                 font-size: 14px; transition: all 0.3s ease; border: 1px solid;
                 background: ${estado === 'presente' ? 'linear-gradient(135deg, #e8f5e8, #d4edda)' : 'linear-gradient(135deg, #e3f2fd, #bbdefb)'};
                 color: ${color}; border-color: ${estado === 'presente' ? '#c3e6cb' : '#90caf9'};
@@ -9222,8 +9327,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         if (timeCell) {
             timeCell.textContent = ahora;
         }
-        
-        // 🔥 Efecto flash verde
         fila.style.transition = 'background 0.3s';
         fila.style.background = '#d4edda';
         setTimeout(() => {
@@ -9231,12 +9334,10 @@ async function procesarAsistenciaDesdeTablet(datos) {
         }, 1000);
     }
     
-    // 7. 🔥 GUARDAR EN HISTORIAL (SIN DUPLICADOS)
     const fechaActual = new Date().toISOString().split('T')[0];
     let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
     
-    // Buscar si ya existe registro para este estudiante en el mismo día/horario
-    const registroExistente = historial.find(reg => 
+    const registroExistente = historial.find(reg =>
         String(reg.studentId) === String(estudiante.id) &&
         reg.fecha === fechaActual &&
         reg.dia === diaSeleccionado &&
@@ -9244,28 +9345,19 @@ async function procesarAsistenciaDesdeTablet(datos) {
     );
     
     if (registroExistente) {
-        // 🔥 ACTUALIZAR REGISTRO EXISTENTE
-        console.log('🔄 Actualizando registro existente para:', estudiante.estudiante?.nombre);
         registroExistente.estado = estado;
         registroExistente.horaRegistro = ahora;
         registroExistente.observaciones = observaciones || registroExistente.observaciones;
         registroExistente.timestamp = new Date().toISOString();
-        
         if (window.db) {
             window.db.collection('asistencia').doc(String(registroExistente.id)).set(registroExistente)
                 .catch(err => console.error('Error actualizando asistencia en Firebase:', err));
         }
-        
         localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-        
         if (typeof showToast === 'function') {
             showToast(`🔄 ${estudiante.estudiante?.nombre} - ${estado.toUpperCase()} (Hora: ${ahora})`, 'info');
         }
-        
     } else {
-        // 🔥 CREAR NUEVO REGISTRO
-        console.log('➕ Creando nuevo registro para:', estudiante.estudiante?.nombre);
-        
         const nuevoRegistro = {
             id: Date.now(),
             studentId: estudiante.id,
@@ -9281,21 +9373,17 @@ async function procesarAsistenciaDesdeTablet(datos) {
             observaciones: observaciones,
             timestamp: new Date().toISOString()
         };
-        
         historial.push(nuevoRegistro);
         localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-        
         if (window.db) {
             window.db.collection('asistencia').doc(String(nuevoRegistro.id)).set(nuevoRegistro)
                 .catch(err => console.error('Error guardando asistencia en Firebase:', err));
         }
-        
         if (typeof showToast === 'function') {
             showToast(`✅ ${estudiante.estudiante?.nombre} - ${estado.toUpperCase()}`, 'success');
         }
     }
     
-    // 8. ENVIAR CONFIRMACIÓN A LA TABLET
     if (connTablet && connTablet.open) {
         connTablet.send({
             tipo: 'confirmacion',
@@ -9305,7 +9393,6 @@ async function procesarAsistenciaDesdeTablet(datos) {
         });
     }
     
-    // 9. ACTUALIZAR CONTADORES
     if (typeof asistenciaApp !== 'undefined' && asistenciaApp.actualizarContadores) {
         asistenciaApp.actualizarContadores();
     }
@@ -9314,7 +9401,7 @@ async function procesarAsistenciaDesdeTablet(datos) {
 }
 
 // =====================================================
-// 13. MODIFICAR EL HTML DEL MODAL - QUITAR BOTÓN CANCELAR
+// 15. MODIFICAR MODAL DE USUARIO
 // =====================================================
 function modificarModalUsuario() {
     console.log('🔧 Modificando modal de usuario...');
@@ -9324,7 +9411,6 @@ function modificarModalUsuario() {
     const footer = modal.querySelector('.modal-footer');
     if (!footer) return;
     
-    // Buscar y eliminar TODOS los botones de Cancelar
     const botones = footer.querySelectorAll('button');
     botones.forEach(btn => {
         const texto = btn.textContent.toLowerCase().trim();
@@ -9334,7 +9420,6 @@ function modificarModalUsuario() {
         }
     });
     
-    // Asegurar que solo quede el botón Guardar
     const btnGuardar = footer.querySelector('.btn-primary, button:not(.btn-secondary)');
     if (btnGuardar) {
         btnGuardar.style.background = '#E63946';
@@ -9362,9 +9447,29 @@ function modificarModalUsuario() {
 }
 
 // =====================================================
-// 14. INICIALIZACIÓN
+// 16. FUNCIONES DE TOAST
 // =====================================================
+function showToast(message, type = 'success') {
+    console.log('📢 Toast:', message, type);
+    if (typeof Toastify !== 'undefined') {
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity: 'top',
+            position: 'right',
+            backgroundColor: type === 'success' ? '#4CAF50' :
+                            type === 'error' ? '#F44336' :
+                            type === 'warning' ? '#FF9800' : '#2196F3',
+        }).showToast();
+    } else {
+        alert(message);
+    }
+}
 
+// =====================================================
+// 17. INICIALIZACIÓN - OPTIMIZADA
+// =====================================================
 // Funciones globales
 window.abrirModalEditarUsuario = abrirModalEditarUsuario;
 window.eliminarUsuario = eliminarUsuario;
@@ -9374,51 +9479,52 @@ window.cerrarModalUsuario = cerrarModalUsuario;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM cargado - Inicializando sistema de usuarios');
-
-    setTimeout(modificarModalUsuario, 500);
-
+    
+    setTimeout(modificarModalUsuario, 300);
+    
     const closeBtn = document.querySelector('#usuarioModal .close');
     if (closeBtn) {
         closeBtn.addEventListener('click', cerrarModalUsuario);
     }
-
+    
     window.addEventListener('click', function(e) {
         const modal = document.getElementById('usuarioModal');
         if (e.target === modal) {
             cerrarModalUsuario();
         }
     });
-
+    
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             cerrarModalUsuario();
         }
     });
-
+    
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLoginSubmit);
     }
-
+    
     ['logoutButton', 'logoutButtonEncargado', 'logoutButtonDocenteVirtual'].forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
             btn.addEventListener('click', cerrarSesion);
         }
     });
-
+    
+    // Cargar usuarios desde Firebase AL INICIO
     cargarUsuariosYAdmin().then(() => {
         checkLoginStatus();
     });
-
+    
     const btnGestion = document.getElementById('btnGestionUsuarios');
     if (btnGestion) {
         btnGestion.addEventListener('click', function() {
             console.log('🔄 Cargando gestión de usuarios...');
-            setTimeout(cargarTablaUsuarios, 300);
+            setTimeout(cargarTablaUsuarios, 200);
         });
     }
-
+    
     const btnNuevo = document.getElementById('nuevoUsuarioBtn');
     if (btnNuevo) {
         btnNuevo.addEventListener('click', function(e) {
@@ -9437,39 +9543,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 iniciarPeerPC();
                 console.log('✅ Panel de tablet iniciado');
             }
-        }, 1500);
+        }, 500);
     }
 })();
 
-console.log("✅ Bloque 1 cargado: Sistema de usuarios y login");
+console.log("✅ Bloque 1 cargado: Sistema de usuarios y login (optimizado para Firebase)");
 </script>
-<!-- ============================================ -->
-<!-- FIN BLOQUE 1                                -->
-<!-- ============================================ -->
+  <script>
+// =====================================================
+// BLOQUE 2: PANEL DE SECRETARÍA (Inscripciones y CRUD)
+// VERSIÓN CORREGIDA - SIN FOTOS EN LOCALSTORAGE
+// =====================================================
 
-  <!-- ============================================ -->
-<!-- BLOQUE 2: PANEL DE SECRETARÍA (Inscripciones y CRUD) -->
-<!-- ============================================ -->
-
-<script>
 // =====================================================
 // VARIABLES GLOBALES DE INSCRIPCIONES
 // =====================================================
+
 let inscriptions = [];
 let isEditing = false;
 let currentEditId = null;
 let currentPageForm = 1;
 
 // =====================================================
+// 🔥 FUNCIÓN PARA ELIMINAR FOTOS DE LOS DATOS
+// =====================================================
+
+function quitarFotosDeDatos(datos) {
+    // Si es un array, procesar cada elemento
+    if (Array.isArray(datos)) {
+        return datos.map(item => quitarFotosDeDatos(item));
+    }
+    
+    // Si es un objeto, hacer una copia y eliminar fotos
+    if (datos && typeof datos === 'object') {
+        const copia = { ...datos };
+        
+        // Eliminar foto del estudiante
+        if (copia.estudiante && copia.estudiante.foto) {
+            delete copia.estudiante.foto;
+        }
+        
+        // Si tiene un campo 'foto' directo, eliminarlo
+        if (copia.foto) {
+            delete copia.foto;
+        }
+        
+        return copia;
+    }
+    
+    return datos;
+}
+
+// =====================================================
 // CARGAR DATOS DESDE FIRESTORE O LOCALSTORAGE
 // =====================================================
+
 async function loadAllData() {
     console.log('🔄 Cargando datos...');
+    
     let espera = 0;
     while (!window.db && espera < 50) {
         await new Promise(r => setTimeout(r, 100));
         espera++;
     }
+
     if (!window.db) {
         console.warn('⚠️ Firebase no disponible, usando localStorage');
         const stored = localStorage.getItem('inscriptions');
@@ -9477,22 +9614,56 @@ async function loadAllData() {
         if (typeof renderTable === 'function') renderTable();
         return;
     }
+
     try {
+        console.log('☁️ Cargando desde Firebase...');
         const snapshot = await window.db.collection('inscripciones').get();
         const firestoreData = [];
-        snapshot.forEach(doc => firestoreData.push(doc.data()));
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Asegurar que el ID esté en los datos
+            data.id = doc.id;
+            firestoreData.push(data);
+        });
+
         if (firestoreData.length > 0) {
             inscriptions = firestoreData;
-            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+            
+            // 🔥 GUARDAR EN LOCALSTORAGE SIN FOTOS
+            const datosSinFotos = quitarFotosDeDatos(inscriptions);
+            
+            try {
+                localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+                console.log(`✅ Guardados ${datosSinFotos.length} registros SIN FOTOS en localStorage`);
+            } catch (e) {
+                console.warn('⚠️ Error al guardar en localStorage:', e.message);
+                // Si falla, intentar guardar solo IDs
+                try {
+                    const soloIds = inscriptions.map(ins => ({ id: ins.id, nombre: ins.estudiante?.nombre || 'Sin nombre' }));
+                    localStorage.setItem('inscriptions', JSON.stringify(soloIds));
+                    console.log('✅ Guardados solo IDs en localStorage');
+                } catch (e2) {
+                    console.error('❌ No se pudo guardar en localStorage:', e2);
+                }
+            }
+            
             console.log(`✅ Cargados ${inscriptions.length} desde Firestore`);
         } else {
             const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             inscriptions = localData;
             console.log(`📦 Cargados ${inscriptions.length} desde localStorage`);
         }
+
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+        
+        // 🔥 Disparar evento para actualizar otros módulos
+        window.dispatchEvent(new CustomEvent('inscripciones-cargadas', {
+            detail: inscriptions
+        }));
+
     } catch (err) {
         console.error("❌ Error cargando Firestore:", err);
         const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -9502,7 +9673,7 @@ async function loadAllData() {
 }
 
 // =====================================================
-// GUARDAR INSCRIPCIÓN (PRIORIZA FIREBASE)
+// GUARDAR INSCRIPCIÓN (NUEVA O EDICIÓN)
 // =====================================================
 
 async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = false, currentEditId = null) {
@@ -9510,118 +9681,101 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
     
     try {
         let newId;
-        
-        // 1. DETERMINAR EL ID
+
         if (isEditing && currentEditId) {
             nuevaInscripcion.id = currentEditId;
             newId = currentEditId;
-        } else {
-            newId = Date.now() + Math.floor(Math.random() * 10000);
-            nuevaInscripcion.id = newId;
-        }
-        
-        // 2. PRIMERO GUARDAR EN FIREBASE (SIEMPRE)
-        let firebaseExitoso = false;
-        if (window.db) {
-            try {
-                await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
-                console.log('☁️ Guardado en Firebase (ID:', nuevaInscripcion.id, ')');
-                firebaseExitoso = true;
-            } catch (firestoreError) {
-                console.error('❌ Error en Firestore:', firestoreError);
-                // Si Firebase falla, mostrar error pero continuar con LocalStorage
-                if (typeof showToast === 'function') {
-                    showToast('⚠️ Error en la nube, guardando localmente...', 'warning');
-                }
-            }
-        }
-        
-        // 3. LUEGO GUARDAR EN LOCALSTORAGE (SI ES POSIBLE)
-        try {
-            let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             
-            if (isEditing && currentEditId) {
-                const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                if (index !== -1) {
-                    inscripciones[index] = nuevaInscripcion;
-                } else {
-                    inscripciones.push(nuevaInscripcion);
-                }
-            } else {
-                // Verificar duplicados
-                const exists = inscripciones.some(ins => String(ins.id) === String(newId));
-                if (!exists) {
-                    inscripciones.push(nuevaInscripcion);
-                }
-            }
-            
-            localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
-            console.log('💾 Guardado en localStorage');
-            
-        } catch (localError) {
-            console.warn('⚠️ Error en localStorage (posiblemente lleno):', localError.message);
-            // Solo mostrar advertencia, no detener el flujo
-            if (typeof showToast === 'function') {
-                showToast('⚠️ Almacenamiento local lleno. Los datos están en la nube.', 'warning');
-            }
-        }
-        
-        // 4. ACTUALIZAR VARIABLES GLOBALES
-        if (isEditing && currentEditId) {
             const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
             if (index !== -1) {
                 inscriptions[index] = nuevaInscripcion;
+                console.log('📝 Actualizando inscripción existente ID:', currentEditId);
             } else {
                 inscriptions.push(nuevaInscripcion);
+                console.log('➕ Agregando inscripción (no existía) ID:', currentEditId);
             }
         } else {
+            newId = Date.now() + Math.floor(Math.random() * 10000);
+            nuevaInscripcion.id = newId;
+            
+            const exists = inscriptions.some(ins => String(ins.id) === String(newId));
+            if (exists) {
+                console.warn('⚠️ ID duplicado, generando otro...');
+                newId = Date.now() + Math.floor(Math.random() * 99999);
+                nuevaInscripcion.id = newId;
+            }
+            
             inscriptions.push(nuevaInscripcion);
+            console.log('➕ Nueva inscripción ID:', newId);
         }
+
+        // 🔥 GUARDAR EN LOCALSTORAGE SIN FOTOS
+        const datosSinFotos = quitarFotosDeDatos(inscriptions);
         
-        // 5. ACTUALIZAR INTERFACES
+        try {
+            localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+            console.log('💾 Guardado en localStorage SIN FOTOS');
+        } catch (e) {
+            console.warn('⚠️ Error al guardar en localStorage:', e.message);
+            // Intentar guardar solo IDs si falla
+            try {
+                const soloIds = inscriptions.map(ins => ({ 
+                    id: ins.id, 
+                    nombre: ins.estudiante?.nombre || 'Sin nombre' 
+                }));
+                localStorage.setItem('inscriptions', JSON.stringify(soloIds));
+                console.log('✅ Guardados solo IDs en localStorage');
+            } catch (e2) {
+                console.error('❌ No se pudo guardar en localStorage:', e2);
+            }
+        }
+
+        // 🔥 GUARDAR EN FIRESTORE (CON FOTOS)
+        if (window.db) {
+            try {
+                // Guardar con el ID correcto
+                await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
+                console.log('☁️ Guardado en Firestore con ID:', nuevaInscripcion.id);
+            } catch (firestoreError) {
+                console.error('❌ Error en Firestore:', firestoreError);
+            }
+        }
+
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-        
+
         console.log('✅ Guardado completado ID:', newId);
         return newId;
-        
+
     } catch (error) {
         console.error('❌ Error en guardado:', error);
-        if (typeof showToast === 'function') {
-            showToast('❌ Error al guardar: ' + error.message, 'error');
-        }
         throw error;
     }
 }
 
-// =====================================================
-// ELIMINAR INSCRIPCIÓN
-// =====================================================
 // =====================================================
 // ELIMINAR INSCRIPCIÓN - CON VERIFICACIÓN EN FIREBASE
 // =====================================================
 
 async function eliminarInscripcion(id) {
     console.log('🗑️ ELIMINANDO INSCRIPCIÓN ID:', id);
-    
+
     if (!id) {
         if (typeof showToast === 'function') {
             showToast('❌ ID inválido', 'error');
         }
         return;
     }
-    
+
     if (!confirm('⚠️ ¿Está seguro que desea eliminar esta inscripción? Esta acción no se puede deshacer.')) {
         return;
     }
-    
+
     const idStr = String(id).trim();
     console.log('🔍 Buscando inscripción con ID:', idStr);
-    
-    // =============================================
-    // PASO 1: BUSCAR EN LOCALSTORAGE
-    // =============================================
+
+    // Buscar en localStorage
     let datosLocales = [];
     try {
         const stored = localStorage.getItem('inscriptions');
@@ -9631,9 +9785,8 @@ async function eliminarInscripcion(id) {
         console.error('❌ Error al leer localStorage:', e);
         datosLocales = [];
     }
-    
+
     const inscripcion = datosLocales.find(ins => String(ins.id).trim() === idStr);
-    
     if (!inscripcion) {
         console.error('❌ No se encontró la inscripción en localStorage');
         if (typeof showToast === 'function') {
@@ -9641,82 +9794,39 @@ async function eliminarInscripcion(id) {
         }
         return;
     }
-    
+
     const nombreEstudiante = inscripcion.estudiante?.nombre || 'desconocido';
     const firestoreId = String(inscripcion.id).trim();
     console.log(`🔍 Eliminando a: ${nombreEstudiante} (ID Firebase: ${firestoreId})`);
-    
+
     try {
-        // =============================================
-        // PASO 2: ELIMINAR DE FIRESTORE CON VERIFICACIÓN
-        // =============================================
+        // ELIMINAR DE FIRESTORE
         if (window.db) {
             console.log('☁️ Intentando eliminar de Firestore...');
             const docRef = window.db.collection('inscripciones').doc(firestoreId);
-            
-            // 2.1 VERIFICAR QUE EL DOCUMENTO EXISTE
-            console.log('🔍 Verificando existencia en Firebase...');
             const doc = await docRef.get();
             
             if (doc.exists) {
-                console.log('✅ Documento encontrado en Firebase, eliminando...');
-                
-                // 2.2 ELIMINAR
                 await docRef.delete();
-                console.log('✅ Eliminado de Firestore (primer intento)');
-                
-                // 2.3 VERIFICAR QUE REALMENTE SE ELIMINÓ
-                console.log('🔍 Verificando que se eliminó de Firebase...');
-                const docAfter = await docRef.get();
-                
-                if (docAfter.exists) {
-                    console.error('❌ EL DOCUMENTO SIGUE EN FIREBASE - Intentando nuevamente...');
-                    
-                    // Intentar eliminar otra vez
-                    await docRef.delete();
-                    console.log('🔄 Segundo intento de eliminación');
-                    
-                    // Verificar nuevamente
-                    const docAfter2 = await docRef.get();
-                    if (docAfter2.exists) {
-                        console.error('❌ NO SE PUDO ELIMINAR DE FIREBASE');
-                        showToast('❌ No se pudo eliminar de Firebase. Verifica permisos.', 'error');
-                        return;
-                    } else {
-                        console.log('✅ Eliminado definitivamente de Firebase (segundo intento)');
-                    }
-                } else {
-                    console.log('✅ Verificado: Documento eliminado de Firebase');
-                }
+                console.log('✅ Eliminado de Firestore');
             } else {
-                console.warn('⚠️ El documento no existía en Firebase, continuando con eliminación local...');
+                console.warn('⚠️ El documento no existía en Firebase');
             }
-        } else {
-            console.warn('⚠️ Firebase no disponible, solo eliminando localmente');
         }
-        
-        // =============================================
-        // PASO 3: ELIMINAR DE LOCALSTORAGE
-        // =============================================
+
+        // ELIMINAR DE LOCALSTORAGE
         const nuevasInscripciones = datosLocales.filter(ins => String(ins.id).trim() !== firestoreId);
         localStorage.setItem('inscriptions', JSON.stringify(nuevasInscripciones));
-        
-        // ACTUALIZAR VARIABLES GLOBALES
         inscriptions = nuevasInscripciones;
         window.inscriptions = nuevasInscripciones;
-        
         console.log(`✅ Eliminado de localStorage. Total: ${nuevasInscripciones.length}`);
-        
-        // =============================================
-        // PASO 4: ELIMINAR DATOS RELACIONADOS
-        // =============================================
-        
-        // 4.1 Eliminar pagos asociados
+
+        // ELIMINAR DATOS RELACIONADOS
+        // Pagos
         try {
             let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
             pagosData.pagos = (pagosData.pagos || []).filter(p => String(p.idEstudiante).trim() !== firestoreId);
             localStorage.setItem('datosPagos', JSON.stringify(pagosData));
-            
             if (window.db) {
                 await window.db.collection('pagos').doc('global').set(pagosData);
             }
@@ -9724,8 +9834,8 @@ async function eliminarInscripcion(id) {
         } catch(e) {
             console.warn('⚠️ Error al eliminar pagos:', e);
         }
-        
-        // 4.2 Eliminar asistencia asociada
+
+        // Asistencia
         try {
             let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
             historial = historial.filter(r => String(r.studentId).trim() !== firestoreId);
@@ -9743,8 +9853,8 @@ async function eliminarInscripcion(id) {
         } catch(e) {
             console.warn('⚠️ Error al eliminar asistencia:', e);
         }
-        
-        // 4.3 Eliminar tareas asociadas
+
+        // Tareas
         try {
             let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
             tareas = tareas.filter(t => String(t.estudianteId).trim() !== firestoreId);
@@ -9762,51 +9872,15 @@ async function eliminarInscripcion(id) {
         } catch(e) {
             console.warn('⚠️ Error al eliminar tareas:', e);
         }
-        
-        // =============================================
-        // PASO 5: FORZAR SINCRONIZACIÓN DESDE FIREBASE
-        // =============================================
-        if (window.db) {
-            try {
-                console.log('🔄 Forzando sincronización desde Firebase...');
-                const snapshot = await window.db.collection('inscripciones').get({ source: 'server' });
-                const firebaseData = [];
-                snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
-                
-                // Verificar que el ID eliminado no esté en Firebase
-                const existeEnFirebase = firebaseData.some(doc => String(doc.id).trim() === firestoreId);
-                if (existeEnFirebase) {
-                    console.error('❌ El ID aún existe en Firebase, eliminando manualmente...');
-                    await window.db.collection('inscripciones').doc(firestoreId).delete();
-                    console.log('✅ Eliminado manualmente de Firebase');
-                    
-                    // Recargar datos
-                    const snapshot2 = await window.db.collection('inscripciones').get({ source: 'server' });
-                    const freshData = [];
-                    snapshot2.forEach(doc => freshData.push({ id: doc.id, ...doc.data() }));
-                    localStorage.setItem('inscriptions', JSON.stringify(freshData));
-                    inscriptions = freshData;
-                    window.inscriptions = freshData;
-                }
-                console.log('✅ Datos sincronizados correctamente');
-            } catch(e) {
-                console.warn('⚠️ Error en sincronización:', e);
-            }
-        }
-        
-        // =============================================
-        // PASO 6: ACTUALIZAR INTERFACES
-        // =============================================
+
+        // ACTUALIZAR INTERFACES
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
         if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
             asistenciaApp.cargarEstudiantesAutomaticamente();
         }
-        
-        // =============================================
-        // PASO 7: MENSAJE DE ÉXITO
-        // =============================================
+
         const mensajeExito = `✅ ${nombreEstudiante} eliminado correctamente`;
         if (typeof showToast === 'function') {
             showToast(mensajeExito, 'success');
@@ -9814,42 +9888,21 @@ async function eliminarInscripcion(id) {
             alert(mensajeExito);
         }
         console.log('🎉 Eliminación completada exitosamente');
-        
-        // DISPARAR EVENTO PERSONALIZADO
-        window.dispatchEvent(new CustomEvent('inscripcion-eliminada', {
-            detail: { id: firestoreId, nombre: nombreEstudiante }
-        }));
-        
+
     } catch (error) {
         console.error('❌ Error crítico al eliminar:', error);
-        
         if (typeof showToast === 'function') {
             showToast('❌ Error al eliminar: ' + error.message, 'error');
         } else {
             alert('❌ Error al eliminar: ' + error.message);
         }
-        
-        // INTENTAR RESTAURAR DATOS
-        try {
-            if (window.db) {
-                const snapshot = await window.db.collection('inscripciones').get();
-                const firebaseData = [];
-                snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
-                localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
-                inscriptions = firebaseData;
-                window.inscriptions = firebaseData;
-                if (typeof renderTable === 'function') renderTable();
-                console.log('🔄 Datos restaurados desde Firebase');
-            }
-        } catch(e) {
-            console.error('❌ Error al restaurar:', e);
-        }
     }
 }
 
 // =====================================================
-// EDITAR INSCRIPCIÓN - CORREGIDO
+// EDITAR INSCRIPCIÓN
 // =====================================================
+
 function editarInscripcion(id) {
     console.log("🔄 EDITANDO ID:", id);
     
@@ -9875,17 +9928,14 @@ function editarInscripcion(id) {
     document.getElementById('editId').value = id;
     document.getElementById('formTitle').textContent = "Editar Inscripción";
     document.getElementById('submitBtnText').textContent = "Guardar Cambios";
-    
     document.getElementById('encargadoNombre').value = inscripcion.encargado.nombre || '';
     document.getElementById('encargadoDPI').value = inscripcion.encargado.dpi || '';
     document.getElementById('encargadoTelefono').value = inscripcion.encargado.telefono || '';
     document.getElementById('encargadoDireccion').value = inscripcion.encargado.direccion || '';
-    
     document.getElementById('estudianteNombre').value = inscripcion.estudiante.nombre || '';
     document.getElementById('estudianteEdad').value = inscripcion.estudiante.edad || '';
     document.getElementById('estudianteGenero').value = inscripcion.estudiante.genero || '';
     document.getElementById('estudianteNivel').value = inscripcion.estudiante.nivel || '';
-    
     document.getElementById('planEstudio').value = inscripcion.academico.plan || '';
     
     document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
@@ -9898,12 +9948,11 @@ function editarInscripcion(id) {
     
     document.getElementById('horario').value = inscripcion.academico.horario || '';
     document.getElementById('fechaInicio').value = inscripcion.academico.fechaInicio || '';
-    
     document.getElementById('instrumentoPrincipal').value = inscripcion.musical.instrumentoPrincipal || '';
     document.getElementById('instrumentoSecundario').value = inscripcion.musical.instrumentoSecundario || '';
-    
     document.getElementById('generatedPassword').value = inscripcion.estudiante.password || '';
 
+    // 🔥 CARGAR LA FOTO SI EXISTE (desde Firebase, no desde localStorage)
     if (inscripcion.estudiante && inscripcion.estudiante.foto) {
         const fotoPreview = document.getElementById('fotoPreview');
         fotoPreview.innerHTML = `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
@@ -9933,39 +9982,64 @@ function editarInscripcion(id) {
 // =====================================================
 // RENDERIZAR TABLA DE INSCRIPCIONES
 // =====================================================
+
 function renderTable(filter = '') {
     const tableBody = document.querySelector('#inscriptionsTable tbody');
     if (!tableBody) return;
+
     tableBody.innerHTML = '';
-    const data = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    // 🔥 Leer desde localStorage (sin fotos) o desde inscriptions
+    let data = [];
+    try {
+        const stored = localStorage.getItem('inscriptions');
+        if (stored) {
+            data = JSON.parse(stored);
+        } else {
+            data = inscriptions;
+        }
+    } catch(e) {
+        data = inscriptions;
+    }
+
+    // Si no hay datos en localStorage, usar inscriptions
+    if (!data || data.length === 0) {
+        data = inscriptions;
+    }
+
     let filteredData = data;
     if (filter) {
         const term = filter.toLowerCase();
         filteredData = data.filter(ins =>
-            ins.estudiante.nombre.toLowerCase().includes(term) ||
-            ins.encargado.nombre.toLowerCase().includes(term) ||
-            ins.musical.instrumentoPrincipal.toLowerCase().includes(term)
+            (ins.estudiante?.nombre || '').toLowerCase().includes(term) ||
+            (ins.encargado?.nombre || '').toLowerCase().includes(term) ||
+            (ins.musical?.instrumentoPrincipal || '').toLowerCase().includes(term)
         );
     }
+
     if (filteredData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No se encontraron inscripciones</td></tr>';
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No se encontraron inscripciones</td></tr>`;
         return;
     }
+
     filteredData.forEach(inscripcion => {
         const row = document.createElement('tr');
+        const estado = inscripcion.estado || 'activo';
+        const esActivo = estado === 'activo';
+        
         row.innerHTML = `
             <td>${inscripcion.id}</td>
-            <td>${inscripcion.estudiante.nombre}</td>
-            <td>${inscripcion.encargado.nombre}</td>
-            <td>${inscripcion.estudiante.edad}</td>
-            <td>${inscripcion.musical.instrumentoPrincipal}</td>
-            <td>${inscripcion.academico.plan}</td>
+            <td>${inscripcion.estudiante?.nombre || 'Sin nombre'}</td>
+            <td>${inscripcion.encargado?.nombre || 'Sin encargado'}</td>
+            <td>${inscripcion.estudiante?.edad || 'N/A'}</td>
+            <td>${inscripcion.musical?.instrumentoPrincipal || 'N/A'}</td>
+            <td>${inscripcion.academico?.plan || 'N/A'}</td>
             <td>
                 <button class="action-btn contract-btn" data-id="${inscripcion.id}"><i class="fas fa-file-contract"></i> Contrato</button>
                 <button class="action-btn carnet-btn" data-id="${inscripcion.id}" style="background-color:#9C27B0;color:white;"><i class="fas fa-id-card"></i> Carnet</button>
-                <button class="action-btn estado-btn" data-id="${inscripcion.id}" data-estado="${inscripcion.estado || 'activo'}" style="background-color:${(inscripcion.estado || 'activo') === 'activo' ? '#f44336' : '#4CAF50'};color:white;">
-                    <i class="fas ${(inscripcion.estado || 'activo') === 'activo' ? 'fa-pause-circle' : 'fa-play-circle'}"></i>
-                    ${(inscripcion.estado || 'activo') === 'activo' ? 'Suspender' : 'Activar'}
+                <button class="action-btn estado-btn" data-id="${inscripcion.id}" data-estado="${estado}" style="background-color:${esActivo ? '#f44336' : '#4CAF50'};color:white;">
+                    <i class="fas ${esActivo ? 'fa-pause-circle' : 'fa-play-circle'}"></i>
+                    ${esActivo ? 'Suspender' : 'Activar'}
                 </button>
                 <button class="action-btn edit-btn" data-id="${inscripcion.id}"><i class="fas fa-edit"></i></button>
                 <button class="action-btn delete-btn" data-id="${inscripcion.id}"><i class="fas fa-trash"></i></button>
@@ -9973,6 +10047,7 @@ function renderTable(filter = '') {
         `;
         tableBody.appendChild(row);
     });
+
     setTimeout(() => {
         agregarEventListenersTabla();
     }, 100);
@@ -9981,15 +10056,19 @@ function renderTable(filter = '') {
 // =====================================================
 // EVENT LISTENERS PARA BOTONES DE LA TABLA
 // =====================================================
+
 function agregarEventListenersTabla() {
     const table = document.getElementById('inscriptionsTable');
     if (!table) return;
+
     if (window._clickHandler) {
         table.removeEventListener('click', window._clickHandler);
     }
+
     window._clickHandler = function(e) {
         const target = e.target;
         
+        // Botón carnet
         if (target.classList.contains('carnet-btn') || target.closest('.carnet-btn')) {
             const btn = target.classList.contains('carnet-btn') ? target : target.closest('.carnet-btn');
             const id = btn.getAttribute('data-id');
@@ -9998,7 +10077,8 @@ function agregarEventListenersTabla() {
             if (typeof generarCarnetEstudiante === 'function') generarCarnetEstudiante(id);
             return;
         }
-        
+
+        // Botón estado (suspender/activar)
         if (target.classList.contains('estado-btn') || target.closest('.estado-btn')) {
             const btn = target.classList.contains('estado-btn') ? target : target.closest('.estado-btn');
             const id = btn.getAttribute('data-id');
@@ -10007,7 +10087,8 @@ function agregarEventListenersTabla() {
             if (typeof toggleEstadoEstudiante === 'function') toggleEstadoEstudiante(id);
             return;
         }
-        
+
+        // Botón contrato
         if (target.classList.contains('contract-btn') || target.closest('.contract-btn')) {
             const btn = target.classList.contains('contract-btn') ? target : target.closest('.contract-btn');
             const id = btn.getAttribute('data-id');
@@ -10016,7 +10097,8 @@ function agregarEventListenersTabla() {
             if (typeof generateContract === 'function') generateContract(id);
             return;
         }
-        
+
+        // Botón editar
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
             const btn = target.classList.contains('edit-btn') ? target : target.closest('.edit-btn');
             const id = parseInt(btn.getAttribute('data-id'));
@@ -10025,7 +10107,8 @@ function agregarEventListenersTabla() {
             editarInscripcion(id);
             return;
         }
-        
+
+        // Botón eliminar
         if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
             const btn = target.classList.contains('delete-btn') ? target : target.closest('.delete-btn');
             const id = btn.getAttribute('data-id');
@@ -10035,12 +10118,14 @@ function agregarEventListenersTabla() {
             return;
         }
     };
+
     table.addEventListener('click', window._clickHandler);
 }
 
 // =====================================================
 // FUNCIONES DEL FORMULARIO DE INSCRIPCIÓN
 // =====================================================
+
 function generateRandomPassword(length = 10) {
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let password = "";
@@ -10053,38 +10138,44 @@ function generateRandomPassword(length = 10) {
 
 function resetForm() {
     console.log('🧹 Reseteando formulario...');
+    
     const form = document.getElementById('newInscriptionForm');
     if (form) form.reset();
+    
     document.querySelectorAll('input[name="diasEstudio"]').forEach(checkbox => {
         checkbox.checked = false;
     });
+
     const passwordField = document.getElementById('generatedPassword');
     if (passwordField) {
         passwordField.value = generateRandomPassword(10);
     }
+
     isEditing = false;
     currentEditId = null;
+    
     const editIdInput = document.getElementById('editId');
     if (editIdInput) editIdInput.value = '';
+    
     const formTitle = document.getElementById('formTitle');
     const submitBtnText = document.getElementById('submitBtnText');
     if (formTitle) formTitle.textContent = 'Nueva Inscripción';
     if (submitBtnText) submitBtnText.textContent = 'Completar Inscripción';
+    
     document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
-    setTimeout(() => {
-        document.querySelectorAll('.floating label').forEach(label => {
-            label.style.top = '17px';
-            label.style.left = '40px';
-            label.style.fontSize = '14px';
-            label.style.color = 'var(--gris-oscuro)';
-        });
-    }, 100);
+    
+    // 🔥 LIMPIAR FOTO
+    window.fotoTemporal = null;
     const preview = document.getElementById('fotoPreview');
     if (preview) {
-        preview.innerHTML = '<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>';
+        preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
     }
-    window.fotoTemporal = null;
+    const fileInput = document.getElementById('fotoEstudiante');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
     currentPageForm = 1;
     updateFormNavigation();
 }
@@ -10092,15 +10183,19 @@ function resetForm() {
 function validatePage(pageNumber) {
     console.log('🔍 Validando página:', pageNumber);
     let isValid = true;
+    
     const currentPage = document.querySelector(`.form-page[data-page="${pageNumber}"]`);
     if (!currentPage) {
         console.error('❌ Página no encontrada:', pageNumber);
         return false;
     }
+
     currentPage.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     currentPage.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
     const requiredFields = currentPage.querySelectorAll('[required]');
     let firstError = null;
+
     requiredFields.forEach(field => {
         if (field.type === 'checkbox') {
             return;
@@ -10115,6 +10210,7 @@ function validatePage(pageNumber) {
             isValid = false;
         }
     });
+
     if (pageNumber === 3) {
         const checkedDays = document.querySelectorAll('input[name="diasEstudio"]:checked').length;
         const errorDiv = document.getElementById('diasEstudio-error');
@@ -10128,10 +10224,12 @@ function validatePage(pageNumber) {
             if (errorDiv) errorDiv.style.display = 'none';
         }
     }
+
     if (!isValid && firstError) {
         firstError.focus();
         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
     return isValid;
 }
 
@@ -10144,16 +10242,19 @@ function updateFormNavigation() {
     const nextBtn = document.querySelector('.next-btn');
     const submitBtn = document.querySelector('.submit-btn');
     const currentStepIndicator = document.getElementById('current-step');
-    
+
     if (currentStepIndicator) {
         currentStepIndicator.textContent = currentPageForm;
     }
+
     if (prevBtn) {
         prevBtn.style.display = currentPageForm === 1 ? 'none' : 'flex';
     }
+
     if (nextBtn) {
         nextBtn.style.display = currentPageForm === formPages.length ? 'none' : 'flex';
     }
+
     if (submitBtn) {
         if (currentPageForm === formPages.length) {
             submitBtn.style.display = 'flex';
@@ -10162,6 +10263,7 @@ function updateFormNavigation() {
             submitBtn.style.display = 'none';
         }
     }
+
     steps.forEach((step, index) => {
         if (index + 1 <= currentPageForm) {
             step.classList.add('active');
@@ -10169,6 +10271,7 @@ function updateFormNavigation() {
             step.classList.remove('active');
         }
     });
+
     formPages.forEach(page => {
         const pageNum = parseInt(page.dataset.page);
         if (pageNum === currentPageForm) {
@@ -10180,16 +10283,17 @@ function updateFormNavigation() {
 }
 
 // =====================================================
-// MANEJADOR DE ENVÍO DEL FORMULARIO (CORREGIDO)
+// MANEJADOR DE ENVÍO DEL FORMULARIO
 // =====================================================
 
 async function handleFormSubmit(e) {
     if (e) e.preventDefault();
     console.log('🚀 FORMULARIO ENVIADO');
-    
-    // Validar todos los pasos
-    let allValid = true;
+    console.log('📝 ¿Es edición?', isEditing, 'ID:', currentEditId);
+
     const formPages = document.querySelectorAll('.form-page');
+    let allValid = true;
+    
     for (let i = 1; i <= formPages.length; i++) {
         if (!validatePage(i)) {
             allValid = false;
@@ -10199,20 +10303,23 @@ async function handleFormSubmit(e) {
             break;
         }
     }
-    
+
     if (!allValid) {
-        showToast('⚠️ Complete todos los campos requeridos', 'error');
+        if (typeof showToast === 'function') {
+            showToast('⚠️ Complete todos los campos requeridos', 'error');
+        } else {
+            alert('⚠️ Complete todos los campos requeridos');
+        }
         return;
     }
-    
-    // Recoger datos
+
     const diasEstudio = [];
     document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(checkbox => {
         diasEstudio.push(checkbox.value);
     });
-    
+
     const getValue = (id) => document.getElementById(id)?.value || '';
-    
+
     const nuevaInscripcion = {
         encargado: {
             nombre: getValue('encargadoNombre'),
@@ -10239,94 +10346,102 @@ async function handleFormSubmit(e) {
             instrumentoSecundario: getValue('instrumentoSecundario') || 'Ninguno'
         }
     };
-    
-    console.log('📝 Datos a guardar:', nuevaInscripcion);
-    
+
+    console.log('📝 Datos del formulario:', nuevaInscripcion);
+
     try {
-        let firebaseExitoso = false;
-        let localExitoso = false;
-        let newId;
-        
-        // Determinar ID
         if (isEditing && currentEditId) {
-            newId = currentEditId;
-            nuevaInscripcion.id = newId;
-        } else {
-            newId = Date.now() + Math.floor(Math.random() * 10000);
-            nuevaInscripcion.id = newId;
-        }
-        
-        // 🔥 GUARDAR EN FIREBASE (SIEMPRE PRIMERO)
-        if (window.db) {
-            try {
-                await window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion);
-                console.log('☁️ Guardado en Firebase');
-                firebaseExitoso = true;
-            } catch (e) {
-                console.error('❌ Error en Firebase:', e);
-            }
-        }
-        
-        // 🔥 GUARDAR EN LOCALSTORAGE (SI ES POSIBLE)
-        try {
-            let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            if (isEditing && currentEditId) {
-                const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                if (index !== -1) inscripciones[index] = nuevaInscripcion;
-                else inscripciones.push(nuevaInscripcion);
-            } else {
-                inscripciones.push(nuevaInscripcion);
-            }
-            localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
-            localExitoso = true;
-            console.log('💾 Guardado en localStorage');
-        } catch (localError) {
-            console.warn('⚠️ localStorage lleno:', localError.message);
-            // No mostrar error, solo advertencia
-        }
-        
-        // Actualizar variable global
-        if (isEditing && currentEditId) {
+            console.log('✏️ GUARDANDO EDICIÓN PARA ID:', currentEditId);
+            nuevaInscripcion.id = currentEditId;
+            
             const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
-            if (index !== -1) inscriptions[index] = nuevaInscripcion;
-            else inscriptions.push(nuevaInscripcion);
+            if (index !== -1) {
+                inscriptions[index] = nuevaInscripcion;
+                console.log('✅ Actualizado en el array local');
+            } else {
+                inscriptions.push(nuevaInscripcion);
+                console.log('➕ Agregado al array (no existía)');
+            }
+
+            // 🔥 Guardar sin fotos en localStorage
+            const datosSinFotos = quitarFotosDeDatos(inscriptions);
+            localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+            console.log('💾 Guardado en localStorage SIN FOTOS');
+
+            // Guardar en Firebase (con fotos)
+            if (window.db) {
+                try {
+                    await window.db.collection('inscripciones').doc(String(currentEditId)).set(nuevaInscripcion);
+                    console.log('☁️ Guardado en Firestore');
+                } catch (e) {
+                    console.error('❌ Error en Firestore:', e);
+                }
+            }
+
+            if (typeof showToast === 'function') {
+                showToast('✅ ¡Inscripción actualizada correctamente!', 'success');
+            } else {
+                alert('✅ ¡Inscripción actualizada correctamente!');
+            }
+            
+            isEditing = false;
+            currentEditId = null;
+
         } else {
-            inscriptions.push(nuevaInscripcion);
+            console.log('➕ NUEVA INSCRIPCIÓN');
+            const newId = await guardarInscripcionEnBaseDeDatos(nuevaInscripcion);
+            
+            if (typeof showToast === 'function') {
+                showToast('✅ ¡Inscripción exitosa!', 'success');
+            } else {
+                alert('✅ ¡Inscripción exitosa!');
+            }
+            
+            if (typeof generateContract === 'function') {
+                generateContract(newId);
+            }
         }
-        
-        if (firebaseExitoso || localExitoso) {
-            showToast(isEditing ? '✅ Inscripción actualizada' : '✅ Inscripción exitosa', 'success');
-            if (!isEditing && typeof generateContract === 'function') generateContract(newId);
-        } else {
-            showToast('❌ Error al guardar', 'error');
-            return;
-        }
-        
-        // Actualizar interfaces
+
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-        
+
         resetForm();
-        isEditing = false;
-        currentEditId = null;
         document.getElementById('btnInicio')?.click();
-        
+
     } catch (error) {
-        console.error('❌ Error:', error);
-        showToast('❌ Error: ' + error.message, 'error');
+        console.error('❌ Error al guardar:', error);
+        if (typeof showToast === 'function') {
+            showToast('❌ Error: ' + error.message, 'error');
+        } else {
+            alert('❌ Error: ' + error.message);
+        }
     }
 }
 
 // =====================================================
 // LISTA DE ENCARGADOS PARA RECIBOS
 // =====================================================
+
 function actualizarListaEncargados() {
     const select = document.getElementById('encargado');
     if (!select) return;
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+
+    // 🔥 Obtener datos SIN fotos
+    let inscriptionsData = [];
+    try {
+        const stored = localStorage.getItem('inscriptions');
+        if (stored) {
+            inscriptionsData = JSON.parse(stored);
+        } else {
+            inscriptionsData = inscriptions;
+        }
+    } catch(e) {
+        inscriptionsData = inscriptions;
+    }
+
     const encargados = new Map();
-    inscriptions.forEach(ins => {
+    inscriptionsData.forEach(ins => {
         if (ins.encargado?.nombre && ins.estado !== 'inactivo') {
             const nombre = ins.encargado.nombre.trim();
             if (!encargados.has(nombre)) {
@@ -10337,8 +10452,10 @@ function actualizarListaEncargados() {
             }
         }
     });
+
     select.innerHTML = '<option value="">Seleccione un encargado</option>';
     const ordenados = Array.from(encargados.entries()).sort((a,b) => a[0].localeCompare(b[0]));
+    
     ordenados.forEach(([nombre, datos]) => {
         const opt = document.createElement('option');
         opt.value = nombre;
@@ -10352,6 +10469,7 @@ function actualizarListaEncargados() {
 // =====================================================
 // MOSTRAR NOTIFICACIONES (TOAST)
 // =====================================================
+
 function showToast(message, type = 'success') {
     console.log('📢 Toast:', message, type);
     if (typeof Toastify !== 'undefined') {
@@ -10371,11 +10489,12 @@ function showToast(message, type = 'success') {
 }
 
 // =====================================================
-// 🔥 NAVEGACIÓN DEL MENÚ Y CONFIGURACIÓN FINAL
+// 🔥 NAVEGACIÓN DEL MENÚ
 // =====================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Inicializando navegación del menú...');
-    
+
     const btnInicio = document.getElementById('btnInicio');
     const btnInscripcion = document.getElementById('btnInscripcion');
     const btnRecibos = document.getElementById('btnRecibos');
@@ -10479,7 +10598,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 🔥 VINCULAR FORMULARIO AL EVENTO SUBMIT
+    // VINCULAR FORMULARIO AL EVENTO SUBMIT
     const newInscriptionForm = document.getElementById('newInscriptionForm');
     if (newInscriptionForm) {
         console.log('✅ Formulario encontrado, vinculando evento submit');
@@ -10487,16 +10606,16 @@ document.addEventListener('DOMContentLoaded', function() {
         newInscriptionForm.addEventListener('submit', handleFormSubmit);
     }
 
-    // 🔥 CONFIGURAR BOTONES DE NAVEGACIÓN
+    // CONFIGURAR BOTONES DE NAVEGACIÓN
     const nextBtn = document.querySelector('.next-btn');
     const prevBtn = document.querySelector('.prev-btn');
     const submitBtn = document.querySelector('.submit-btn');
-    
+
     if (nextBtn) {
         nextBtn.removeEventListener('click', handleNextPage);
         nextBtn.addEventListener('click', handleNextPage);
     }
-    
+
     if (prevBtn) {
         prevBtn.removeEventListener('click', handlePrevPage);
         prevBtn.addEventListener('click', handlePrevPage);
@@ -10505,7 +10624,10 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFormNavigation();
 });
 
-// 🔥 FUNCIONES DE NAVEGACIÓN DEL FORMULARIO
+// =====================================================
+// FUNCIONES DE NAVEGACIÓN DEL FORMULARIO
+// =====================================================
+
 function handleNextPage(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -10528,6 +10650,7 @@ function handlePrevPage(e) {
     e.preventDefault();
     e.stopPropagation();
     console.log('⬅️ Anterior paso');
+    
     if (currentPageForm > 1) {
         currentPageForm--;
         updateFormNavigation();
@@ -10538,25 +10661,28 @@ function handlePrevPage(e) {
 // =====================================================
 // GENERAR CONTRASEÑA
 // =====================================================
+
 const generatePassBtn = document.getElementById('generatePasswordBtn');
 const passwordField = document.getElementById('generatedPassword');
+
 if (generatePassBtn && passwordField) {
     generatePassBtn.addEventListener('click', function() {
         passwordField.value = generateRandomPassword();
     });
     passwordField.value = generateRandomPassword();
 }
+
 // =====================================================
-// GUARDAR INSCRIPCIÓN - VERSIÓN RÁPIDA
+// 🔥 FUNCIÓN GUARDAR INSCRIPCIÓN (DIRECTA)
 // =====================================================
 
 function guardarInscripcion() {
     console.log('🟢 Click en GUARDAR');
     console.log('📝 isEditing:', isEditing, 'currentEditId:', currentEditId);
-    
-    // Validar todos los pasos
-    let allValid = true;
+
     const formPages = document.querySelectorAll('.form-page');
+    let allValid = true;
+    
     for (let i = 1; i <= formPages.length; i++) {
         if (!validatePage(i)) {
             allValid = false;
@@ -10566,20 +10692,19 @@ function guardarInscripcion() {
             break;
         }
     }
-    
+
     if (!allValid) {
         showToast('⚠️ Complete todos los campos requeridos', 'error');
         return;
     }
-    
-    // Recoger datos del formulario
+
     const diasEstudio = [];
     document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(checkbox => {
         diasEstudio.push(checkbox.value);
     });
-    
+
     const getValue = (id) => document.getElementById(id)?.value || '';
-    
+
     const nuevaInscripcion = {
         encargado: {
             nombre: getValue('encargadoNombre'),
@@ -10606,163 +10731,106 @@ function guardarInscripcion() {
             instrumentoSecundario: getValue('instrumentoSecundario') || 'Ninguno'
         }
     };
-    
+
     console.log('📝 Datos a guardar:', nuevaInscripcion);
-    
-    // =============================================
-    // 🚀 GUARDADO RÁPIDO (TODO EN PARALELO)
-    // =============================================
-    
-    (async function() {
-        try {
-            let newId;
+
+    try {
+        if (isEditing && currentEditId) {
+            console.log('✏️ GUARDANDO EDICIÓN ID:', currentEditId);
+            nuevaInscripcion.id = currentEditId;
             
-            // 1. DETERMINAR ID (rápido)
-            if (isEditing && currentEditId) {
-                newId = currentEditId;
-                nuevaInscripcion.id = newId;
-            } else {
-                newId = Date.now() + Math.floor(Math.random() * 10000);
-                nuevaInscripcion.id = newId;
-            }
-            
-            // 2. 🔥 GUARDAR EN PARALELO (NO EN SECUENCIA)
-            const promesas = [];
-            
-            // 2a. Guardar en Firebase (si está disponible)
-            if (window.db) {
-                promesas.push(
-                    window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
-                        .then(() => {
-                            console.log('☁️ Guardado en Firebase (ID:', newId, ')');
-                            return true;
-                        })
-                        .catch(e => {
-                            console.error('❌ Error en Firebase:', e);
-                            return false;
-                        })
-                );
-            }
-            
-            // 2b. Guardar en LocalStorage (con timeout para no bloquear)
-            promesas.push(
-                new Promise((resolve) => {
-                    // Usar setTimeout para no bloquear el UI
-                    setTimeout(() => {
-                        try {
-                            let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-                            
-                            if (isEditing && currentEditId) {
-                                const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                                if (index !== -1) {
-                                    inscripciones[index] = nuevaInscripcion;
-                                } else {
-                                    inscripciones.push(nuevaInscripcion);
-                                }
-                            } else {
-                                inscripciones.push(nuevaInscripcion);
-                            }
-                            
-                            localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
-                            console.log('💾 Guardado en localStorage');
-                            resolve(true);
-                        } catch (localError) {
-                            console.warn('⚠️ Error en localStorage:', localError.message);
-                            resolve(false);
-                        }
-                    }, 50); // 50ms de retraso para no bloquear
-                })
-            );
-            
-            // 2c. Actualizar variable global (rápido, en paralelo)
-            if (isEditing && currentEditId) {
-                const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
-                if (index !== -1) {
-                    inscriptions[index] = nuevaInscripcion;
-                } else {
-                    inscriptions.push(nuevaInscripcion);
-                }
+            const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
+            if (index !== -1) {
+                inscriptions[index] = nuevaInscripcion;
+                console.log('✅ Actualizado en array');
             } else {
                 inscriptions.push(nuevaInscripcion);
+                console.log('➕ Agregado (no existía)');
             }
-            
-            // 3. ESPERAR A QUE TERMINE AL MENOS UNA OPERACIÓN (no todas)
-            // No esperamos a que terminen todas, solo la más rápida
-            await Promise.race(promesas);
-            
-            // 4. MOSTRAR NOTIFICACIÓN INMEDIATA (sin esperar)
-            if (isEditing) {
-                showToast('✅ ¡Inscripción actualizada!', 'success');
-            } else {
-                showToast('✅ ¡Inscripción exitosa!', 'success');
-                // Generar contrato en segundo plano (sin bloquear)
-                if (typeof generateContract === 'function') {
-                    setTimeout(() => generateContract(newId), 100);
-                }
+
+            // 🔥 Guardar sin fotos
+            const datosSinFotos = quitarFotosDeDatos(inscriptions);
+            localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+            console.log('💾 Guardado en localStorage SIN FOTOS');
+
+            if (window.db) {
+                window.db.collection('inscripciones').doc(String(currentEditId)).set(nuevaInscripcion)
+                    .then(() => console.log('☁️ Guardado en Firestore'))
+                    .catch(e => console.error('❌ Error Firestore:', e));
             }
-            
-            // 5. ACTUALIZAR INTERFACES EN SEGUNDO PLANO (sin bloquear)
-            setTimeout(() => {
-                if (typeof renderTable === 'function') renderTable();
-                if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
-                if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-            }, 200);
-            
-            // 6. RESETEAR FORMULARIO Y VOLVER AL INICIO
-            resetForm();
+
+            showToast('✅ ¡Inscripción actualizada correctamente!', 'success');
             isEditing = false;
             currentEditId = null;
+
+        } else {
+            console.log('➕ NUEVA INSCRIPCIÓN');
+            const newId = Date.now() + Math.floor(Math.random() * 10000);
+            nuevaInscripcion.id = newId;
+            inscriptions.push(nuevaInscripcion);
             
-            // 7. VOLVER AL INICIO (con pequeño retraso para que se vea la notificación)
-            setTimeout(() => {
-                document.getElementById('btnInicio')?.click();
-            }, 500);
-            
-        } catch (error) {
-            console.error('❌ Error al guardar:', error);
-            showToast('❌ Error: ' + error.message, 'error');
+            // 🔥 Guardar sin fotos
+            const datosSinFotos = quitarFotosDeDatos(inscriptions);
+            localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+            console.log('💾 Guardado en localStorage SIN FOTOS');
+
+            if (window.db) {
+                window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
+                    .then(() => console.log('☁️ Guardado en Firestore'))
+                    .catch(e => console.error('❌ Error Firestore:', e));
+            }
+
+            showToast('✅ ¡Inscripción exitosa!', 'success');
+            if (typeof generateContract === 'function') generateContract(newId);
         }
-    })();
+
+        if (typeof renderTable === 'function') renderTable();
+        if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
+        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+
+        resetForm();
+        document.getElementById('btnInicio')?.click();
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        showToast('❌ Error: ' + error.message, 'error');
+    }
 }
-  // =============================================
-// 🔥 MANEJADOR DE FOTO - AGREGAR ESTO AL FINAL DEL BLOQUE 2
-// =============================================
+
+// =====================================================
+// 🔥 MANEJADOR DE FOTO
+// =====================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     const fotoInput = document.getElementById('fotoEstudiante');
     const fotoPreview = document.getElementById('fotoPreview');
-    
+
     if (fotoInput) {
         fotoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            
-            // Validar que sea imagen
+
             if (!file.type.startsWith('image/')) {
                 alert('⚠️ Por favor selecciona una imagen válida');
                 this.value = '';
                 return;
             }
-            
-            // Validar tamaño (2MB max)
+
             if (file.size > 2 * 1024 * 1024) {
                 alert('⚠️ La imagen es demasiado grande. Máximo 2MB.');
                 this.value = '';
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(event) {
                 const imageData = event.target.result;
-                
-                // 🔥 GUARDAR LA FOTO EN LA VARIABLE GLOBAL
                 window.fotoTemporal = imageData;
                 console.log('📸 Foto guardada correctamente');
                 
-                // Mostrar preview
                 if (fotoPreview) {
                     fotoPreview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
                 }
-                
                 showToast('✅ Foto cargada correctamente', 'success');
             };
             reader.readAsDataURL(file);
@@ -10773,154 +10841,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// =============================================
-// 🔥 FUNCIÓN PARA USAR FOTO DE CÁMARA - CORREGIDA
-// =============================================
+// =====================================================
+// 🔥 FUNCIÓN PARA USAR FOTO DE CÁMARA
+// =====================================================
+
 function usarFotoCapturada() {
     const canvas = document.getElementById('canvasCapture');
     if (!canvas) {
         alert('Error: No se pudo capturar la foto');
         return;
     }
-    
+
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
-    
-    // 🔥 GUARDAR LA FOTO DE LA CÁMARA
     window.fotoTemporal = imageData;
-    
-    // Mostrar preview
+
     const preview = document.getElementById('fotoPreview');
     if (preview) {
         preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
     }
-    
-    // Cerrar modal
+
     cerrarCameraModal();
     showToast('✅ Foto capturada correctamente', 'success');
 }
 
-// =============================================
-// 🔥 RESET FORM - LIMPIAR FOTO
-// =============================================
-function resetForm() {
-    console.log('🧹 Reseteando formulario');
-    
-    // Limpiar foto temporal
-    window.fotoTemporal = null;
-    
-    // Limpiar preview
-    const preview = document.getElementById('fotoPreview');
-    if (preview) {
-        preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
-    }
-    
-    // Limpiar input de archivo
-    const fileInput = document.getElementById('fotoEstudiante');
-    if (fileInput) {
-        fileInput.value = '';
-    }
-    
-    // Resto del reset...
-    const form = document.getElementById('newInscriptionForm');
-    if (form) form.reset();
-    
-    document.querySelectorAll('input[name="diasEstudio"]').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    const passwordField = document.getElementById('generatedPassword');
-    if (passwordField) {
-        passwordField.value = generateRandomPassword(10);
-    }
-    
-    isEditing = false;
-    currentEditId = null;
-    
-    const editIdInput = document.getElementById('editId');
-    if (editIdInput) editIdInput.value = '';
-    
-    const formTitle = document.getElementById('formTitle');
-    const submitBtnText = document.getElementById('submitBtnText');
-    if (formTitle) formTitle.textContent = 'Nueva Inscripción';
-    if (submitBtnText) submitBtnText.textContent = 'Completar Inscripción';
-    
-    document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
-    
-    currentPageForm = 1;
-    updateFormNavigation();
-}
-
-// =============================================
-// 🔥 EDITAR INSCRIPCIÓN - CARGAR FOTO
-// =============================================
-function editarInscripcion(id) {
-    console.log('📝 Editando inscripción ID:', id);
-    
-    const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
-    if (!inscripcion) {
-        alert('Error: No se encontró la inscripción');
-        return;
-    }
-    
-    // Cargar datos del formulario...
-    document.getElementById('editId').value = id;
-    document.getElementById('formTitle').textContent = "Editar Inscripción";
-    document.getElementById('submitBtnText').textContent = "Guardar Cambios";
-    
-    document.getElementById('encargadoNombre').value = inscripcion.encargado.nombre || '';
-    document.getElementById('encargadoDPI').value = inscripcion.encargado.dpi || '';
-    document.getElementById('encargadoTelefono').value = inscripcion.encargado.telefono || '';
-    document.getElementById('encargadoDireccion').value = inscripcion.encargado.direccion || '';
-    
-    document.getElementById('estudianteNombre').value = inscripcion.estudiante.nombre || '';
-    document.getElementById('estudianteEdad').value = inscripcion.estudiante.edad || '';
-    document.getElementById('estudianteGenero').value = inscripcion.estudiante.genero || '';
-    document.getElementById('estudianteNivel').value = inscripcion.estudiante.nivel || '';
-    
-    document.getElementById('planEstudio').value = inscripcion.academico.plan || '';
-    
-    document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
-    if (inscripcion.academico.dias) {
-        inscripcion.academico.dias.forEach(dia => {
-            const cb = document.querySelector(`input[name="diasEstudio"][value="${dia}"]`);
-            if (cb) cb.checked = true;
-        });
-    }
-    
-    document.getElementById('horario').value = inscripcion.academico.horario || '';
-    document.getElementById('fechaInicio').value = inscripcion.academico.fechaInicio || '';
-    
-    document.getElementById('instrumentoPrincipal').value = inscripcion.musical.instrumentoPrincipal || '';
-    document.getElementById('instrumentoSecundario').value = inscripcion.musical.instrumentoSecundario || 'Ninguno';
-    document.getElementById('generatedPassword').value = inscripcion.estudiante.password || '';
-    
-    // 🔥 CARGAR LA FOTO SI EXISTE
-    if (inscripcion.estudiante && inscripcion.estudiante.foto) {
-        window.fotoTemporal = inscripcion.estudiante.foto;
-        const fotoPreview = document.getElementById('fotoPreview');
-        fotoPreview.innerHTML = `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-        console.log('📸 Foto cargada para edición');
-    }
-    
-    isEditing = true;
-    currentEditId = id;
-    currentPageForm = 1;
-    updateFormNavigation();
-    
-    // Mostrar formulario
-    const dataTableContainer = document.getElementById('dataTableContainer');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-    const inscriptionForm = document.getElementById('inscriptionForm');
-    
-    if (dataTableContainer) dataTableContainer.style.display = 'none';
-    if (welcomeMessage) welcomeMessage.style.display = 'none';
-    if (inscriptionForm) inscriptionForm.style.display = 'block';
-    
-    const fabContainer = document.getElementById('fabContainer');
-    if (fabContainer) fabContainer.style.display = 'block';
-}
-console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD)");
+console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD) - CORREGIDO SIN FOTOS EN LOCALSTORAGE");
 </script>
   
 <!-- ============================================ -->
@@ -19598,50 +19542,6 @@ window.mostrarModalUsuario = function() {
     }
 };
   
- // =====================================================
-// 🧹 LIMPIEZA DE LOCALSTORAGE (MANTENER ESPACIO)
-// =====================================================
-
-function mantenerEspacioLocalStorage() {
-    try {
-        let total = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                total += localStorage[key].length * 2;
-            }
-        }
-        const totalMB = total / 1024 / 1024;
-        console.log(`📦 Espacio LocalStorage: ${totalMB.toFixed(2)} MB`);
-        
-        // Si supera 4MB, limpiar datos antiguos
-        if (totalMB > 4) {
-            console.log('⚠️ Limpiando datos antiguos...');
-            
-            // Limpiar historial de asistencia (más de 30 días)
-            const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-            const hoy = new Date();
-            const hace30Dias = new Date();
-            hace30Dias.setDate(hace30Dias.getDate() - 30);
-            const filtrado = historial.filter(r => new Date(r.fecha) > hace30Dias);
-            localStorage.setItem('historialAsistencia', JSON.stringify(filtrado));
-            
-            // Limpiar recibos (más de 60 días)
-            const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-            const hace60Dias = new Date();
-            hace60Dias.setDate(hace60Dias.getDate() - 60);
-            const recibosFiltrados = recibos.filter(r => new Date(r.fecha) > hace60Dias);
-            localStorage.setItem('historialRecibos', JSON.stringify(recibosFiltrados));
-            
-            console.log('✅ Limpieza completada');
-        }
-    } catch (e) {
-        console.warn('⚠️ Error en limpieza:', e);
-    }
-}
-
-// Ejecutar cada 5 minutos
-setInterval(mantenerEspacioLocalStorage, 300000);
-setTimeout(mantenerEspacioLocalStorage, 5000);
   
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
