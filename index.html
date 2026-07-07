@@ -9511,7 +9511,6 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
     try {
         let newId;
         
-        // 1. DETERMINAR EL ID
         if (isEditing && currentEditId) {
             nuevaInscripcion.id = currentEditId;
             newId = currentEditId;
@@ -9520,77 +9519,50 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
             nuevaInscripcion.id = newId;
         }
         
-        // 2. PRIMERO GUARDAR EN FIREBASE (SIEMPRE)
-        let firebaseExitoso = false;
+        // Primero Firebase (siempre)
         if (window.db) {
             try {
                 await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
-                console.log('☁️ Guardado en Firebase (ID:', nuevaInscripcion.id, ')');
-                firebaseExitoso = true;
-            } catch (firestoreError) {
-                console.error('❌ Error en Firestore:', firestoreError);
-                // Si Firebase falla, mostrar error pero continuar con LocalStorage
-                if (typeof showToast === 'function') {
-                    showToast('⚠️ Error en la nube, guardando localmente...', 'warning');
-                }
+                console.log('☁️ Guardado en Firebase');
+            } catch (e) {
+                console.error('❌ Error en Firebase:', e);
             }
         }
         
-        // 3. LUEGO GUARDAR EN LOCALSTORAGE (SI ES POSIBLE)
+        // Luego localStorage (si es posible)
         try {
             let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-            
             if (isEditing && currentEditId) {
                 const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                if (index !== -1) {
-                    inscripciones[index] = nuevaInscripcion;
-                } else {
-                    inscripciones.push(nuevaInscripcion);
-                }
+                if (index !== -1) inscripciones[index] = nuevaInscripcion;
+                else inscripciones.push(nuevaInscripcion);
             } else {
-                // Verificar duplicados
-                const exists = inscripciones.some(ins => String(ins.id) === String(newId));
-                if (!exists) {
-                    inscripciones.push(nuevaInscripcion);
-                }
+                inscripciones.push(nuevaInscripcion);
             }
-            
             localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
             console.log('💾 Guardado en localStorage');
-            
-        } catch (localError) {
-            console.warn('⚠️ Error en localStorage (posiblemente lleno):', localError.message);
-            // Solo mostrar advertencia, no detener el flujo
-            if (typeof showToast === 'function') {
-                showToast('⚠️ Almacenamiento local lleno. Los datos están en la nube.', 'warning');
-            }
+        } catch (e) {
+            console.warn('⚠️ localStorage lleno:', e.message);
         }
         
-        // 4. ACTUALIZAR VARIABLES GLOBALES
+        // Actualizar variable global
         if (isEditing && currentEditId) {
             const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
-            if (index !== -1) {
-                inscriptions[index] = nuevaInscripcion;
-            } else {
-                inscriptions.push(nuevaInscripcion);
-            }
+            if (index !== -1) inscriptions[index] = nuevaInscripcion;
+            else inscriptions.push(nuevaInscripcion);
         } else {
             inscriptions.push(nuevaInscripcion);
         }
         
-        // 5. ACTUALIZAR INTERFACES
+        // Actualizar interfaces
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
         
-        console.log('✅ Guardado completado ID:', newId);
         return newId;
         
     } catch (error) {
-        console.error('❌ Error en guardado:', error);
-        if (typeof showToast === 'function') {
-            showToast('❌ Error al guardar: ' + error.message, 'error');
-        }
+        console.error('❌ Error:', error);
         throw error;
     }
 }
@@ -10552,7 +10524,6 @@ if (generatePassBtn && passwordField) {
 
 function guardarInscripcion() {
     console.log('🟢 Click en GUARDAR');
-    console.log('📝 isEditing:', isEditing, 'currentEditId:', currentEditId);
     
     // Validar todos los pasos
     let allValid = true;
@@ -10562,7 +10533,6 @@ function guardarInscripcion() {
             allValid = false;
             currentPageForm = i;
             updateFormNavigation();
-            console.log('❌ Error en página', i);
             break;
         }
     }
@@ -10572,10 +10542,10 @@ function guardarInscripcion() {
         return;
     }
     
-    // Recoger datos del formulario
+    // Recoger datos
     const diasEstudio = [];
-    document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(checkbox => {
-        diasEstudio.push(checkbox.value);
+    document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(cb => {
+        diasEstudio.push(cb.value);
     });
     
     const getValue = (id) => document.getElementById(id)?.value || '';
@@ -10607,17 +10577,11 @@ function guardarInscripcion() {
         }
     };
     
-    console.log('📝 Datos a guardar:', nuevaInscripcion);
-    
-    // =============================================
-    // 🚀 GUARDADO RÁPIDO (TODO EN PARALELO)
-    // =============================================
-    
     (async function() {
         try {
             let newId;
             
-            // 1. DETERMINAR ID (rápido)
+            // Determinar ID
             if (isEditing && currentEditId) {
                 newId = currentEditId;
                 nuevaInscripcion.id = newId;
@@ -10626,100 +10590,73 @@ function guardarInscripcion() {
                 nuevaInscripcion.id = newId;
             }
             
-            // 2. 🔥 GUARDAR EN PARALELO (NO EN SECUENCIA)
+            // Guardar en paralelo (rápido)
             const promesas = [];
             
-            // 2a. Guardar en Firebase (si está disponible)
             if (window.db) {
                 promesas.push(
                     window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
-                        .then(() => {
-                            console.log('☁️ Guardado en Firebase (ID:', newId, ')');
-                            return true;
-                        })
-                        .catch(e => {
-                            console.error('❌ Error en Firebase:', e);
-                            return false;
-                        })
+                        .then(() => console.log('☁️ Guardado en Firebase'))
+                        .catch(e => console.error('❌ Error en Firebase:', e))
                 );
             }
             
-            // 2b. Guardar en LocalStorage (con timeout para no bloquear)
+            // Guardar en localStorage en segundo plano
             promesas.push(
                 new Promise((resolve) => {
-                    // Usar setTimeout para no bloquear el UI
                     setTimeout(() => {
                         try {
                             let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-                            
                             if (isEditing && currentEditId) {
                                 const index = inscripciones.findIndex(ins => String(ins.id) === String(currentEditId));
-                                if (index !== -1) {
-                                    inscripciones[index] = nuevaInscripcion;
-                                } else {
-                                    inscripciones.push(nuevaInscripcion);
-                                }
+                                if (index !== -1) inscripciones[index] = nuevaInscripcion;
+                                else inscripciones.push(nuevaInscripcion);
                             } else {
                                 inscripciones.push(nuevaInscripcion);
                             }
-                            
                             localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
                             console.log('💾 Guardado en localStorage');
-                            resolve(true);
-                        } catch (localError) {
-                            console.warn('⚠️ Error en localStorage:', localError.message);
-                            resolve(false);
+                        } catch (e) {
+                            console.warn('⚠️ localStorage lleno:', e.message);
                         }
-                    }, 50); // 50ms de retraso para no bloquear
+                        resolve();
+                    }, 50);
                 })
             );
             
-            // 2c. Actualizar variable global (rápido, en paralelo)
+            // Actualizar variable global
             if (isEditing && currentEditId) {
                 const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
-                if (index !== -1) {
-                    inscriptions[index] = nuevaInscripcion;
-                } else {
-                    inscriptions.push(nuevaInscripcion);
-                }
+                if (index !== -1) inscriptions[index] = nuevaInscripcion;
+                else inscriptions.push(nuevaInscripcion);
             } else {
                 inscriptions.push(nuevaInscripcion);
             }
             
-            // 3. ESPERAR A QUE TERMINE AL MENOS UNA OPERACIÓN (no todas)
-            // No esperamos a que terminen todas, solo la más rápida
-            await Promise.race(promesas);
+            // Mostrar notificación inmediata
+            showToast(isEditing ? '✅ Actualizado' : '✅ Guardado', 'success');
             
-            // 4. MOSTRAR NOTIFICACIÓN INMEDIATA (sin esperar)
-            if (isEditing) {
-                showToast('✅ ¡Inscripción actualizada!', 'success');
-            } else {
-                showToast('✅ ¡Inscripción exitosa!', 'success');
-                // Generar contrato en segundo plano (sin bloquear)
-                if (typeof generateContract === 'function') {
-                    setTimeout(() => generateContract(newId), 100);
-                }
+            if (!isEditing && typeof generateContract === 'function') {
+                setTimeout(() => generateContract(newId), 200);
             }
             
-            // 5. ACTUALIZAR INTERFACES EN SEGUNDO PLANO (sin bloquear)
+            // Actualizar interfaces en segundo plano
             setTimeout(() => {
                 if (typeof renderTable === 'function') renderTable();
                 if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
                 if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
             }, 200);
             
-            // 6. RESETEAR FORMULARIO Y VOLVER AL INICIO
             resetForm();
             isEditing = false;
             currentEditId = null;
             
-            // 7. VOLVER AL INICIO (con pequeño retraso para que se vea la notificación)
             setTimeout(() => {
                 document.getElementById('btnInicio')?.click();
             }, 500);
             
         } catch (error) {
-            console.error('❌ Error al guardar:', error);
+            console.error('❌ Error:', error);
             showToast('❌ Error: ' + error.message, 'error');
         }
     })();
@@ -19643,6 +19580,154 @@ function mantenerEspacioLocalStorage() {
 setInterval(mantenerEspacioLocalStorage, 300000);
 setTimeout(mantenerEspacioLocalStorage, 5000);
   
+  // =====================================================
+// 🚀 CARGA POR DEMANDA (RÁPIDO)
+// =====================================================
+
+// 1. Cargar inscripciones (solo cuando se necesitan)
+async function cargarInscripciones() {
+    console.log('📋 Cargando inscripciones...');
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('inscripciones').get();
+            const data = [];
+            snapshot.forEach(doc => data.push(doc.data()));
+            inscriptions = data;
+            localStorage.setItem('inscriptions', JSON.stringify(data));
+            console.log(`✅ ${data.length} inscripciones cargadas`);
+            return data;
+        } catch (e) {
+            console.error('❌ Error:', e);
+        }
+    }
+    return JSON.parse(localStorage.getItem('inscriptions') || '[]');
+}
+
+// 2. Cargar pagos (solo cuando se necesitan)
+async function cargarPagos() {
+    console.log('💰 Cargando pagos...');
+    if (window.db) {
+        try {
+            const doc = await window.db.collection('pagos').doc('global').get();
+            if (doc.exists) {
+                window.datos = doc.data();
+                localStorage.setItem('datosPagos', JSON.stringify(window.datos));
+                console.log(`✅ ${window.datos.pagos?.length || 0} pagos cargados`);
+                return window.datos;
+            }
+        } catch (e) {
+            console.error('❌ Error:', e);
+        }
+    }
+    const local = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
+    window.datos = local;
+    return local;
+}
+
+// 3. Cargar asistencia (solo cuando se necesitan)
+async function cargarAsistencia() {
+    console.log('📅 Cargando asistencia...');
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('asistencia').get();
+            const data = [];
+            snapshot.forEach(doc => data.push(doc.data()));
+            localStorage.setItem('historialAsistencia', JSON.stringify(data));
+            console.log(`✅ ${data.length} registros de asistencia cargados`);
+            return data;
+        } catch (e) {
+            console.error('❌ Error:', e);
+        }
+    }
+    return JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+}
+
+// 4. Cargar usuarios (solo cuando se necesitan)
+async function cargarUsuariosLazy() {
+    console.log('👤 Cargando usuarios...');
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('usuarios').get();
+            const data = {};
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                data[user.username] = user;
+            });
+            window.systemUsers = data;
+            localStorage.setItem('systemUsers', JSON.stringify(data));
+            console.log(`✅ ${Object.keys(data).length} usuarios cargados`);
+            return data;
+        } catch (e) {
+            console.error('❌ Error:', e);
+        }
+    }
+    return JSON.parse(localStorage.getItem('systemUsers') || '{}');
+}
+
+// 5. Carga mínima al inicio (SOLO lo esencial)
+async function cargarMinimo() {
+    console.log('🚀 Cargando mínimo esencial...');
+    await cargarUsuariosLazy();
+    await cargarInscripciones();
+    if (typeof renderTable === 'function') renderTable();
+    if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+    console.log('✅ Carga mínima completada');
+}
+
+// 6. Interceptar clicks en el menú para cargar bajo demanda
+document.addEventListener('DOMContentLoaded', function() {
+    const menuItems = document.querySelectorAll('.menu-item-vertical');
+    menuItems.forEach(item => {
+        item.addEventListener('click', async function() {
+            const id = this.id;
+            if (id === 'btnPagos') {
+                console.log('💰 Cargando pagos bajo demanda...');
+                await cargarPagos();
+                if (typeof iniciarPagos === 'function') iniciarPagos();
+            }
+            if (id === 'btnAsistencia') {
+                console.log('📅 Cargando asistencia bajo demanda...');
+                await cargarAsistencia();
+                if (typeof asistenciaApp !== 'undefined' && asistenciaApp.init) {
+                    asistenciaApp.init();
+                }
+            }
+            if (id === 'btnBaseDatos' || id === 'btnInscripcion') {
+                console.log('📋 Cargando inscripciones bajo demanda...');
+                await cargarInscripciones();
+                if (typeof renderTable === 'function') renderTable();
+            }
+            if (id === 'btnGestionUsuarios') {
+                console.log('👤 Cargando usuarios bajo demanda...');
+                await cargarUsuariosLazy();
+                if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+            }
+        });
+    });
+});
+
+// 7. Inicialización rápida
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('⚡ Inicializando sistema rápido...');
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userType = localStorage.getItem('userType');
+    
+    if (isLoggedIn && userType) {
+        console.log('🔐 Sesión encontrada, cargando mínimo...');
+        setTimeout(async () => {
+            await cargarMinimo();
+            if (typeof hideLogin === 'function') hideLogin();
+        }, 100);
+    } else {
+        console.log('👤 Sin sesión, login visible');
+        setTimeout(cargarUsuariosLazy, 1000);
+    }
+});
+
+console.log('✅ Carga bajo demanda activado');
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
 </script>
