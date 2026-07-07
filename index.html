@@ -9549,10 +9549,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 console.log("✅ Bloque 1 cargado: Sistema de usuarios y login (optimizado para Firebase)");
 </script>
-  <script>
+
+<script>
 // =====================================================
 // BLOQUE 2: PANEL DE SECRETARÍA (Inscripciones y CRUD)
-// VERSIÓN CORREGIDA - SIN FOTOS EN LOCALSTORAGE
+// VERSIÓN COMPLETA - CON CARGA DE FOTOS DESDE FIREBASE
 // =====================================================
 
 // =====================================================
@@ -9595,6 +9596,28 @@ function quitarFotosDeDatos(datos) {
 }
 
 // =====================================================
+// 🔥 FUNCIÓN PARA CARGAR FOTO DESDE FIREBASE
+// =====================================================
+
+async function cargarFotoDesdeFirebase(id) {
+    if (!window.db) return null;
+    
+    try {
+        const doc = await window.db.collection('inscripciones').doc(String(id)).get();
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.estudiante && data.estudiante.foto) {
+                return data.estudiante.foto;
+            }
+        }
+        return null;
+    } catch (e) {
+        console.error('❌ Error cargando foto desde Firebase:', e);
+        return null;
+    }
+}
+
+// =====================================================
 // CARGAR DATOS DESDE FIRESTORE O LOCALSTORAGE
 // =====================================================
 
@@ -9622,7 +9645,6 @@ async function loadAllData() {
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            // Asegurar que el ID esté en los datos
             data.id = doc.id;
             firestoreData.push(data);
         });
@@ -9659,7 +9681,7 @@ async function loadAllData() {
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
         
-        // 🔥 Disparar evento para actualizar otros módulos
+        // Disparar evento para actualizar otros módulos
         window.dispatchEvent(new CustomEvent('inscripciones-cargadas', {
             detail: inscriptions
         }));
@@ -9717,7 +9739,6 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
             console.log('💾 Guardado en localStorage SIN FOTOS');
         } catch (e) {
             console.warn('⚠️ Error al guardar en localStorage:', e.message);
-            // Intentar guardar solo IDs si falla
             try {
                 const soloIds = inscriptions.map(ins => ({ 
                     id: ins.id, 
@@ -9733,7 +9754,6 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
         // 🔥 GUARDAR EN FIRESTORE (CON FOTOS)
         if (window.db) {
             try {
-                // Guardar con el ID correcto
                 await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
                 console.log('☁️ Guardado en Firestore con ID:', nuevaInscripcion.id);
             } catch (firestoreError) {
@@ -9755,7 +9775,7 @@ async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = fal
 }
 
 // =====================================================
-// ELIMINAR INSCRIPCIÓN - CON VERIFICACIÓN EN FIREBASE
+// ELIMINAR INSCRIPCIÓN
 // =====================================================
 
 async function eliminarInscripcion(id) {
@@ -9775,7 +9795,6 @@ async function eliminarInscripcion(id) {
     const idStr = String(id).trim();
     console.log('🔍 Buscando inscripción con ID:', idStr);
 
-    // Buscar en localStorage
     let datosLocales = [];
     try {
         const stored = localStorage.getItem('inscriptions');
@@ -9900,12 +9919,13 @@ async function eliminarInscripcion(id) {
 }
 
 // =====================================================
-// EDITAR INSCRIPCIÓN
+// 🔥 EDITAR INSCRIPCIÓN - CORREGIDO (CARGA FOTO DE FIREBASE)
 // =====================================================
 
-function editarInscripcion(id) {
+async function editarInscripcion(id) {
     console.log("🔄 EDITANDO ID:", id);
     
+    // Buscar en localStorage (datos básicos sin foto)
     const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
     if (!inscripcion) {
         alert('Error: No se encontró la inscripción');
@@ -9924,7 +9944,7 @@ function editarInscripcion(id) {
     const fabContainer = document.getElementById('fabContainer');
     if (fabContainer) fabContainer.style.display = 'block';
 
-    // Cargar datos
+    // Cargar datos básicos (sin foto)
     document.getElementById('editId').value = id;
     document.getElementById('formTitle').textContent = "Editar Inscripción";
     document.getElementById('submitBtnText').textContent = "Guardar Cambios";
@@ -9952,11 +9972,28 @@ function editarInscripcion(id) {
     document.getElementById('instrumentoSecundario').value = inscripcion.musical.instrumentoSecundario || '';
     document.getElementById('generatedPassword').value = inscripcion.estudiante.password || '';
 
-    // 🔥 CARGAR LA FOTO SI EXISTE (desde Firebase, no desde localStorage)
-    if (inscripcion.estudiante && inscripcion.estudiante.foto) {
-        const fotoPreview = document.getElementById('fotoPreview');
-        fotoPreview.innerHTML = `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-        window.fotoTemporal = inscripcion.estudiante.foto;
+    // 🔥 CARGAR LA FOTO DESDE FIREBASE (NO DESDE LOCALSTORAGE)
+    const fotoPreview = document.getElementById('fotoPreview');
+    const fotoInput = document.getElementById('fotoEstudiante');
+    
+    // Mostrar estado de carga
+    fotoPreview.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 30px; color: #E63946;"></i>`;
+
+    try {
+        const fotoUrl = await cargarFotoDesdeFirebase(id);
+        if (fotoUrl) {
+            window.fotoTemporal = fotoUrl;
+            fotoPreview.innerHTML = `<img src="${fotoUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+            console.log('📸 Foto cargada desde Firebase correctamente');
+        } else {
+            fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
+            window.fotoTemporal = null;
+            console.log('ℹ️ El estudiante no tiene foto en Firebase');
+        }
+    } catch (e) {
+        console.error('❌ Error cargando foto desde Firebase:', e);
+        fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
+        window.fotoTemporal = null;
     }
 
     isEditing = true;
@@ -9989,7 +10026,7 @@ function renderTable(filter = '') {
 
     tableBody.innerHTML = '';
     
-    // 🔥 Leer desde localStorage (sin fotos) o desde inscriptions
+    // Leer desde localStorage (sin fotos) o desde inscriptions
     let data = [];
     try {
         const stored = localStorage.getItem('inscriptions');
@@ -10002,7 +10039,6 @@ function renderTable(filter = '') {
         data = inscriptions;
     }
 
-    // Si no hay datos en localStorage, usar inscriptions
     if (!data || data.length === 0) {
         data = inscriptions;
     }
@@ -10165,7 +10201,7 @@ function resetForm() {
     document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
     
-    // 🔥 LIMPIAR FOTO
+    // Limpiar foto
     window.fotoTemporal = null;
     const preview = document.getElementById('fotoPreview');
     if (preview) {
@@ -10363,7 +10399,7 @@ async function handleFormSubmit(e) {
                 console.log('➕ Agregado al array (no existía)');
             }
 
-            // 🔥 Guardar sin fotos en localStorage
+            // Guardar sin fotos en localStorage
             const datosSinFotos = quitarFotosDeDatos(inscriptions);
             localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
             console.log('💾 Guardado en localStorage SIN FOTOS');
@@ -10427,7 +10463,6 @@ function actualizarListaEncargados() {
     const select = document.getElementById('encargado');
     if (!select) return;
 
-    // 🔥 Obtener datos SIN fotos
     let inscriptionsData = [];
     try {
         const stored = localStorage.getItem('inscriptions');
@@ -10748,7 +10783,7 @@ function guardarInscripcion() {
                 console.log('➕ Agregado (no existía)');
             }
 
-            // 🔥 Guardar sin fotos
+            // Guardar sin fotos
             const datosSinFotos = quitarFotosDeDatos(inscriptions);
             localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
             console.log('💾 Guardado en localStorage SIN FOTOS');
@@ -10769,7 +10804,7 @@ function guardarInscripcion() {
             nuevaInscripcion.id = newId;
             inscriptions.push(nuevaInscripcion);
             
-            // 🔥 Guardar sin fotos
+            // Guardar sin fotos
             const datosSinFotos = quitarFotosDeDatos(inscriptions);
             localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
             console.log('💾 Guardado en localStorage SIN FOTOS');
@@ -10864,7 +10899,7 @@ function usarFotoCapturada() {
     showToast('✅ Foto capturada correctamente', 'success');
 }
 
-console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD) - CORREGIDO SIN FOTOS EN LOCALSTORAGE");
+console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD) - CORREGIDO");
 </script>
   
 <!-- ============================================ -->
