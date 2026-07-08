@@ -10169,8 +10169,7 @@ function resetForm() {
     document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
     
-    // 🔥 IMPORTANTE: NO borrar window.fotoTemporal aquí
-    // window.fotoTemporal se limpia en guardarInscripcion después de guardar
+    window.fotoTemporal = null;
     const preview = document.getElementById('fotoPreview');
     if (preview) {
         preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
@@ -10408,7 +10407,6 @@ async function handleFormSubmit(e) {
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
-        // 🔥 Limpiar foto DESPUÉS de guardar
         window.fotoTemporal = null;
         const preview = document.getElementById('fotoPreview');
         if (preview) {
@@ -10501,6 +10499,118 @@ function showToast(message, type = 'success') {
 }
 
 // =====================================================
+// 🔥 MANEJADOR DE FOTO - CORREGIDO
+// =====================================================
+
+// Variable global para la foto
+window.fotoTemporal = null;
+
+// Función para iniciar el manejador de foto
+function iniciarManejadorFoto() {
+    console.log('🔧 Iniciando manejador de foto...');
+    
+    const fotoInput = document.getElementById('fotoEstudiante');
+    const fotoPreview = document.getElementById('fotoPreview');
+
+    if (!fotoInput) {
+        console.warn('⚠️ No se encontró el input de foto');
+        return;
+    }
+
+    console.log('✅ fotoInput encontrado');
+
+    // Remover listeners anteriores
+    const nuevoInput = fotoInput.cloneNode(true);
+    fotoInput.parentNode.replaceChild(nuevoInput, fotoInput);
+    const nuevoFotoInput = document.getElementById('fotoEstudiante');
+    
+    nuevoFotoInput.addEventListener('change', function(e) {
+        console.log('📸 EVENTO CHANGE DISPARADO');
+        const file = e.target.files[0];
+        if (!file) {
+            console.log('📸 No hay archivo');
+            return;
+        }
+
+        console.log('📸 Archivo:', file.name, file.type, file.size);
+
+        if (!file.type.startsWith('image/')) {
+            alert('⚠️ Selecciona una imagen válida');
+            this.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert('⚠️ La imagen es demasiado grande. Máximo 2MB.');
+            this.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            window.fotoTemporal = event.target.result;
+            console.log('📸 Foto guardada en window.fotoTemporal');
+            
+            if (fotoPreview) {
+                fotoPreview.innerHTML = `<img src="${window.fotoTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+                console.log('📸 Preview actualizado');
+            }
+            showToast('✅ Foto cargada correctamente', 'success');
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    console.log('✅ Manejador de foto configurado');
+}
+
+// =====================================================
+// 🔥 FUNCIÓN PARA USAR FOTO DE CÁMARA
+// =====================================================
+
+function usarFotoCapturada() {
+    const canvas = document.getElementById('canvasCapture');
+    if (!canvas) {
+        alert('Error: No se pudo capturar la foto');
+        return;
+    }
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    window.fotoTemporal = imageData;
+    console.log('📸 Foto de cámara guardada');
+
+    const preview = document.getElementById('fotoPreview');
+    if (preview) {
+        preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+    }
+
+    cerrarCameraModal();
+    showToast('✅ Foto capturada correctamente', 'success');
+}
+
+// =====================================================
+// 🔥 FUNCIÓN PARA RECUPERAR PAGOS
+// =====================================================
+
+async function recuperarPagos() {
+    if (!window.db) return;
+    
+    try {
+        const doc = await window.db.collection('pagos').doc('global').get();
+        if (doc.exists) {
+            const data = doc.data();
+            localStorage.setItem('datosPagos', JSON.stringify(data));
+            window.datos = data;
+            console.log('✅ Pagos recuperados desde Firebase:', data.pagos?.length || 0);
+            if (typeof actualizarVista === 'function') actualizarVista();
+            return data;
+        }
+    } catch (e) {
+        console.error('❌ Error recuperando pagos:', e);
+    }
+    return null;
+}
+
+// =====================================================
 // 🔥 NAVEGACIÓN DEL MENÚ
 // =====================================================
 
@@ -10545,6 +10655,9 @@ document.addEventListener('DOMContentLoaded', function() {
             currentEditId = null;
             document.getElementById('formTitle').textContent = "Nueva Inscripción";
             document.getElementById('submitBtnText').textContent = "Completar Inscripción";
+            
+            // 🔥 AQUÍ ESTÁ LA SOLUCIÓN - EJECUTAR EL MANEJADOR DE FOTO AL ABRIR EL FORMULARIO
+            setTimeout(iniciarManejadorFoto, 300);
         });
     }
 
@@ -10796,7 +10909,6 @@ function guardarInscripcion() {
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
-        // 🔥 Limpiar foto DESPUÉS de guardar
         window.fotoTemporal = null;
         const preview = document.getElementById('fotoPreview');
         if (preview) {
@@ -10816,72 +10928,6 @@ function guardarInscripcion() {
     }
 }
 
-// =====================================================
-// 🔥 MANEJADOR DE FOTO - CORREGIDO
-// =====================================================
-
-// Variable global para la foto
-window.fotoTemporal = null;
-
-// Función para iniciar el manejador de foto
-function iniciarManejadorFoto() {
-    console.log('🔧 Iniciando manejador de foto...');
-    
-    const fotoInput = document.getElementById('fotoEstudiante');
-    const fotoPreview = document.getElementById('fotoPreview');
-
-    if (!fotoInput) {
-        console.warn('⚠️ No se encontró el input de foto, reintentando en 500ms...');
-        setTimeout(iniciarManejadorFoto, 500);
-        return;
-    }
-
-    console.log('✅ fotoInput encontrado');
-
-    // Remover listeners anteriores
-    const nuevoInput = fotoInput.cloneNode(true);
-    fotoInput.parentNode.replaceChild(nuevoInput, fotoInput);
-    const nuevoFotoInput = document.getElementById('fotoEstudiante');
-    
-    nuevoFotoInput.addEventListener('change', function(e) {
-        console.log('📸 EVENTO CHANGE DISPARADO');
-        const file = e.target.files[0];
-        if (!file) {
-            console.log('📸 No hay archivo');
-            return;
-        }
-
-        console.log('📸 Archivo:', file.name, file.type, file.size);
-
-        if (!file.type.startsWith('image/')) {
-            alert('⚠️ Selecciona una imagen válida');
-            this.value = '';
-            return;
-        }
-
-        if (file.size > 2 * 1024 * 1024) {
-            alert('⚠️ La imagen es demasiado grande. Máximo 2MB.');
-            this.value = '';
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            window.fotoTemporal = event.target.result;
-            console.log('📸 Foto guardada en window.fotoTemporal');
-            
-            if (fotoPreview) {
-                fotoPreview.innerHTML = `<img src="${window.fotoTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-                console.log('📸 Preview actualizado');
-            }
-            showToast('✅ Foto cargada correctamente', 'success');
-        };
-        reader.readAsDataURL(file);
-    });
-    
-    console.log('✅ Manejador de foto configurado');
-}
-
 // Ejecutar al cargar la página
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
@@ -10891,61 +10937,16 @@ if (document.readyState === 'loading') {
     setTimeout(iniciarManejadorFoto, 500);
 }
 
-// También ejecutar cuando se abre el formulario de inscripción
+// 🔥 TAMBIÉN EJECUTAR CUANDO SE HACE CLIC EN EL FAB (botón flotante)
 document.addEventListener('click', function(e) {
-    if (e.target.id === 'btnInscripcion' || e.target.closest('#btnInscripcion')) {
+    const target = e.target.closest('#showInscriptionFormBtn');
+    if (target) {
+        console.log('🔘 Click en FAB, forzando manejador de foto...');
         setTimeout(iniciarManejadorFoto, 500);
     }
 });
 
-// =====================================================
-// 🔥 FUNCIÓN PARA USAR FOTO DE CÁMARA
-// =====================================================
-
-function usarFotoCapturada() {
-    const canvas = document.getElementById('canvasCapture');
-    if (!canvas) {
-        alert('Error: No se pudo capturar la foto');
-        return;
-    }
-
-    const imageData = canvas.toDataURL('image/jpeg', 0.9);
-    window.fotoTemporal = imageData;
-    console.log('📸 Foto de cámara guardada');
-
-    const preview = document.getElementById('fotoPreview');
-    if (preview) {
-        preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-    }
-
-    cerrarCameraModal();
-    showToast('✅ Foto capturada correctamente', 'success');
-}
-
-// =====================================================
-// 🔥 FUNCIÓN PARA RECUPERAR PAGOS
-// =====================================================
-
-async function recuperarPagos() {
-    if (!window.db) return;
-    
-    try {
-        const doc = await window.db.collection('pagos').doc('global').get();
-        if (doc.exists) {
-            const data = doc.data();
-            localStorage.setItem('datosPagos', JSON.stringify(data));
-            window.datos = data;
-            console.log('✅ Pagos recuperados desde Firebase:', data.pagos?.length || 0);
-            if (typeof actualizarVista === 'function') actualizarVista();
-            return data;
-        }
-    } catch (e) {
-        console.error('❌ Error recuperando pagos:', e);
-    }
-    return null;
-}
-
-// Ejecutar al cargar la página para recuperar pagos
+// Ejecutar recuperar pagos al cargar
 setTimeout(recuperarPagos, 1000);
 
 console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD) - CORREGIDO");
