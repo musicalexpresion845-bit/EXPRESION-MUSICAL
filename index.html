@@ -8496,10 +8496,12 @@ function cerrarModalUsuario() {
 }
 
 // =====================================================
-// 5. GUARDAR USUARIO (EN FIRESTORE Y LOCAL)
+// 5. GUARDAR USUARIO (CORREGIDO)
 // =====================================================
+
 function guardarUsuario() {
     console.log('💾 Guardando usuario...');
+    
     const username = document.getElementById('usuarioUsername')?.value?.trim() || '';
     const password = document.getElementById('usuarioPassword')?.value || '';
     const confirmPassword = document.getElementById('usuarioConfirmarPassword')?.value || '';
@@ -8513,13 +8515,14 @@ function guardarUsuario() {
     
     const esEdicion = document.getElementById('usuarioId')?.value !== '';
     const usernameOriginal = document.getElementById('usuarioId')?.value || '';
-    
+
+    // Validaciones
     if (!username) { alert('⚠️ El nombre de usuario es obligatorio'); return; }
     if (!password) { alert('⚠️ La contraseña es obligatoria'); return; }
     if (!tipo) { alert('⚠️ El tipo de usuario es obligatorio'); return; }
     if (!nombre) { alert('⚠️ El nombre es obligatorio'); return; }
     if (password !== confirmPassword) { alert('⚠️ Las contraseñas no coinciden'); return; }
-    
+
     // Verificar si el usuario ya existe (solo para nuevos)
     if (!esEdicion) {
         const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
@@ -8528,7 +8531,8 @@ function guardarUsuario() {
             return;
         }
     }
-    
+
+    // Obtener instrumentos (solo para docente)
     const instrumentosSelect = document.getElementById('usuarioInstrumentos');
     let instrumentos = [];
     if (instrumentosSelect && tipo === 'docente') {
@@ -8538,19 +8542,24 @@ function guardarUsuario() {
             return;
         }
     }
-    
-    const estudiantesIds = [];
+
+    // 🔥🔥🔥 OBTENER ESTUDIANTES SELECCIONADOS (CORREGIDO)
+    let estudiantesIds = [];
     if (tipo === 'encargado') {
         const checkboxes = document.querySelectorAll('#listaEstudiantesParaEncargado input[type="checkbox"]:checked');
         checkboxes.forEach(cb => {
             estudiantesIds.push(cb.value);
         });
+        
+        console.log('📋 Estudiantes seleccionados para encargado:', estudiantesIds);
+        
         if (estudiantesIds.length === 0) {
             alert('⚠️ Seleccione al menos un estudiante para el encargado');
             return;
         }
     }
-    
+
+    // Construir datos del usuario
     const usuarioData = {
         username: username,
         password: password,
@@ -8562,14 +8571,16 @@ function guardarUsuario() {
         telefono: telefono || '',
         notas: notas || '',
         instrumentos: instrumentos,
-        estudiantesIds: estudiantesIds,
+        estudiantesIds: estudiantesIds, // 🔥 ESTO ES LO QUE SE GUARDA
         fechaActualizacion: new Date().toISOString()
     };
-    
+
     if (!esEdicion) {
         usuarioData.fechaCreacion = new Date().toISOString();
     }
-    
+
+    console.log('📦 Datos a guardar:', usuarioData);
+
     // Guardar en localStorage
     let usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
     if (esEdicion && usernameOriginal !== username) {
@@ -8578,23 +8589,31 @@ function guardarUsuario() {
     usuarios[username] = usuarioData;
     localStorage.setItem('systemUsers', JSON.stringify(usuarios));
     window.systemUsers = usuarios;
-    
+
     // Guardar en Firestore
     if (window.db) {
         window.db.collection('usuarios').doc(username).set(usuarioData)
-            .then(() => console.log('☁️ Usuario guardado en Firestore'))
+            .then(() => {
+                console.log('☁️ Usuario guardado en Firestore');
+                console.log('📋 EstudiantesIds guardados:', usuarioData.estudiantesIds);
+            })
             .catch(e => console.error('❌ Error en Firestore:', e));
     }
-    
+
     // Actualizar currentUser si es el mismo
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (currentUser.username === username) {
         localStorage.setItem('currentUser', JSON.stringify(usuarioData));
     }
-    
+
     alert(esEdicion ? '✅ Usuario actualizado correctamente' : '✅ Usuario creado correctamente');
     cerrarModalUsuario();
     cargarTablaUsuarios();
+    
+    // 🔥 Si es encargado, recargar el selector
+    if (tipo === 'encargado' && typeof cargarSelector === 'function') {
+        setTimeout(cargarSelector, 500);
+    }
 }
 
 // =====================================================
@@ -8763,32 +8782,115 @@ function cargarTiposUsuario() {
 }
 
 // =====================================================
-// 9. CARGAR ESTUDIANTES PARA ENCARGADO
+// 9. CARGAR ESTUDIANTES PARA ENCARGADO (CORREGIDO)
 // =====================================================
+
 function cargarEstudiantesParaEncargado(estudiantesSeleccionados = []) {
+    console.log('🔄 Cargando estudiantes para encargado...');
+    console.log('📋 IDs seleccionados:', estudiantesSeleccionados);
+    
     const container = document.getElementById('listaEstudiantesParaEncargado');
     if (!container) return;
-    
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+
+    // Obtener inscripciones
+    let inscriptions = [];
+    try {
+        const stored = localStorage.getItem('inscriptions');
+        if (stored) {
+            inscriptions = JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error('Error al leer inscripciones:', e);
+    }
+
+    // Si no hay en localStorage, intentar desde Firebase
+    if (inscriptions.length === 0 && window.db) {
+        window.db.collection('inscripciones').get()
+            .then((snapshot) => {
+                const firebaseData = [];
+                snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+                if (firebaseData.length > 0) {
+                    localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
+                    renderEstudiantesCheckboxes(firebaseData, estudiantesSeleccionados);
+                }
+            })
+            .catch(err => console.error('Error cargando desde Firebase:', err));
+        return;
+    }
+
+    renderEstudiantesCheckboxes(inscriptions, estudiantesSeleccionados);
+}
+
+function renderEstudiantesCheckboxes(inscriptions, estudiantesSeleccionados) {
+    const container = document.getElementById('listaEstudiantesParaEncargado');
+    if (!container) return;
+
+    // 🔥 CONVERTIR A STRING PARA COMPARACIÓN SEGURA
+    const seleccionadosStr = estudiantesSeleccionados.map(id => String(id));
+    console.log('📋 IDs seleccionados (string):', seleccionadosStr);
+
     if (inscriptions.length === 0) {
         container.innerHTML = '<p style="color:#666;">No hay estudiantes registrados</p>';
         return;
     }
-    
+
     let html = '';
     inscriptions.forEach(ins => {
         const idStr = String(ins.id);
-        const checked = estudiantesSeleccionados.some(id => String(id) === idStr) ? 'checked' : '';
+        // 🔥 VERIFICAR SI ESTÁ SELECCIONADO
+        const checked = seleccionadosStr.includes(idStr) ? 'checked' : '';
+        const nombre = ins.estudiante?.nombre || 'Sin nombre';
+        const instrumento = ins.musical?.instrumentoPrincipal || 'Sin instrumento';
+        
         html += `
             <div style="display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #eee;">
                 <input type="checkbox" id="est_${idStr}" value="${idStr}" ${checked}>
-                <label for="est_${idStr}">${ins.estudiante?.nombre || 'Sin nombre'} (${ins.musical?.instrumentoPrincipal || 'Sin instrumento'})</label>
+                <label for="est_${idStr}" style="cursor:pointer;">${nombre} (${instrumento})</label>
             </div>
         `;
     });
+
     container.innerHTML = html;
+    console.log('✅ Checkboxes renderizados. Seleccionados:', document.querySelectorAll('#listaEstudiantesParaEncargado input:checked').length);
+}
+// =====================================================
+// 🔥 VERIFICAR ESTUDIANTES DE UN ENCARGADO
+// =====================================================
+function verificarEstudiantesEncargado(username) {
+    if (!username) {
+        console.error('❌ Username no proporcionado');
+        return;
+    }
+    
+    const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+    const usuario = usuarios[username];
+    
+    if (!usuario) {
+        console.error('❌ Usuario no encontrado:', username);
+        return;
+    }
+    
+    console.log('📋 Usuario:', usuario.nombre);
+    console.log('📋 Tipo:', usuario.tipo);
+    console.log('📋 EstudiantesIds:', usuario.estudiantesIds || []);
+    
+    // Verificar en Firebase
+    if (window.db) {
+        window.db.collection('usuarios').doc(username).get()
+            .then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    console.log('☁️ Desde Firebase - EstudiantesIds:', data.estudiantesIds || []);
+                }
+            })
+            .catch(err => console.error('Error:', err));
+    }
+    
+    return usuario.estudiantesIds || [];
 }
 
+// Exponer globalmente
+window.verificarEstudiantesEncargado = verificarEstudiantesEncargado;
 // =====================================================
 // 10. MOSTRAR MODAL DE USUARIO
 // =====================================================
@@ -15345,6 +15447,49 @@ let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
   let listenerFotoEstudiante = null;
 
+  // =====================================================
+// 🔥 CARGAR SELECTOR DE ESTUDIANTES PARA ENCARGADO  <-- PEGAR AQUÍ
+// =====================================================
+
+function cargarSelector() {
+    console.log('🔄 Cargando selector de estudiantes...');
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
+    if (!username) {
+        console.warn('⚠️ No se encontró usuario encargado');
+        return;
+    }
+
+    // 🔥 PRIMERO: CARGAR DESDE FIREBASE (SIEMPRE)
+    if (window.db) {
+        window.db.collection('usuarios').doc(username).get()
+            .then((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    console.log('☁️ Datos del encargado desde Firebase:', userData);
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    cargarSelectorTiempoReal(userData);
+                } else {
+                    console.warn('⚠️ Usuario no encontrado en Firebase, usando localStorage');
+                    const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                    cargarSelectorTiempoReal(userData);
+                }
+            })
+            .catch((error) => {
+                console.error('❌ Error cargando desde Firebase:', error);
+                const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                cargarSelectorTiempoReal(userData);
+            });
+    } else {
+        const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        cargarSelectorTiempoReal(userData);
+    }
+}
+
+// Exponer globalmente para que pueda ser llamada desde guardarUsuario
+window.cargarSelector = cargarSelector;
 // =====================================================
 // FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA (ENCARGADO)
 // =====================================================
@@ -15746,7 +15891,7 @@ function renderizarMaterial(material) {
 
 function iniciarSelectorTiempoReal() {
     console.log('🔄 Iniciando selector de estudiantes en tiempo real...');
-    
+     cargarSelector();
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     encargadoUserName = currentUser.username;
     
