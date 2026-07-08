@@ -9705,9 +9705,13 @@ async function loadAllData() {
 // 🔥 GUARDAR INSCRIPCIÓN - DEFINITIVA (CON FOTO EN FIREBASE)
 // =====================================================
 
+// =====================================================
+// 🔥 GUARDAR INSCRIPCIÓN - MANTIENE LA FOTO
+// =====================================================
 function guardarInscripcion() {
-    console.log('🟢 GUARDANDO INSCRIPCIÓN (VERSIÓN DEFINITIVA)...');
-    
+    console.log('🟢 GUARDANDO INSCRIPCIÓN...');
+    showToast('⏳ Guardando inscripción...', 'info');
+
     // Validar formulario
     const formPages = document.querySelectorAll('.form-page');
     for (let i = 1; i <= formPages.length; i++) {
@@ -9719,16 +9723,37 @@ function guardarInscripcion() {
         }
     }
 
-    // Recolectar datos
     const diasEstudio = [];
     document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(cb => {
         diasEstudio.push(cb.value);
     });
 
     const getValue = (id) => document.getElementById(id)?.value || '';
+    const editId = document.getElementById('editId')?.value;
 
-    // 🔥 DATOS COMPLETOS CON FOTO (PARA FIREBASE)
-    const datosCompletos = {
+    // 🔥🔥🔥 IMPORTANTE: SI ES EDICIÓN, PRESERVAR LA FOTO EXISTENTE
+    let fotoFinal = window.fotoTemporal || null;
+
+    // Si estamos editando y NO hay foto temporal, buscar la foto existente
+    if (isEditing && currentEditId && !fotoFinal) {
+        // Buscar en memoria primero
+        const existing = inscriptions.find(ins => String(ins.id) === String(currentEditId));
+        if (existing && existing.estudiante && existing.estudiante.foto) {
+            fotoFinal = existing.estudiante.foto;
+            console.log('📸 Foto recuperada de memoria para preservar');
+        }
+    }
+
+    if (fotoFinal) {
+        console.log('📸 FOTO A GUARDAR: TIENE FOTO ✅');
+        showToast('📸 Guardando con foto', 'success');
+    } else {
+        console.log('📸 FOTO A GUARDAR: NO TIENE FOTO ❌');
+        showToast('⚠️ Guardando SIN foto', 'warning');
+    }
+
+    // DATOS DEL FORMULARIO (SIN FOTO)
+    const datosFormulario = {
         encargado: {
             nombre: getValue('encargadoNombre'),
             dpi: getValue('encargadoDPI'),
@@ -9740,8 +9765,7 @@ function guardarInscripcion() {
             edad: getValue('estudianteEdad'),
             genero: getValue('estudianteGenero'),
             nivel: getValue('estudianteNivel'),
-            password: getValue('generatedPassword'),
-            foto: window.fotoTemporal || null
+            password: getValue('generatedPassword')
         },
         academico: {
             plan: getValue('planEstudio'),
@@ -9755,70 +9779,93 @@ function guardarInscripcion() {
         }
     };
 
-    // 🔥 DATOS SIN FOTO (PARA LOCALSTORAGE)
-    const datosSinFoto = JSON.parse(JSON.stringify(datosCompletos));
-    datosSinFoto.estudiante.foto = null;
-
-    console.log('📸 ¿TIENE FOTO?', datosCompletos.estudiante.foto ? '✅ SÍ' : '❌ NO');
+    // 🔥🔥🔥 SI HAY FOTO, AGREGARLA A LOS DATOS
+    if (fotoFinal) {
+        datosFormulario.estudiante.foto = fotoFinal;
+    }
 
     let idFinal;
+    let datosParaLocalStorage;
 
     if (isEditing && currentEditId) {
         idFinal = currentEditId;
-        datosCompletos.id = idFinal;
-        datosSinFoto.id = idFinal;
+        datosFormulario.id = idFinal;
         
+        // Para localStorage, guardar SIN foto (para no saturar)
+        datosParaLocalStorage = JSON.parse(JSON.stringify(datosFormulario));
+        if (datosParaLocalStorage.estudiante) {
+            delete datosParaLocalStorage.estudiante.foto;
+        }
+        
+        // Actualizar en memoria
         const index = inscriptions.findIndex(ins => String(ins.id) === String(idFinal));
         if (index !== -1) {
-            inscriptions[index] = datosSinFoto;
+            inscriptions[index] = datosParaLocalStorage;
         } else {
-            inscriptions.push(datosSinFoto);
+            inscriptions.push(datosParaLocalStorage);
         }
     } else {
         idFinal = Date.now() + Math.floor(Math.random() * 10000);
-        datosCompletos.id = idFinal;
-        datosSinFoto.id = idFinal;
-        inscriptions.push(datosSinFoto);
+        datosFormulario.id = idFinal;
+        
+        // Para localStorage, guardar SIN foto
+        datosParaLocalStorage = JSON.parse(JSON.stringify(datosFormulario));
+        if (datosParaLocalStorage.estudiante) {
+            delete datosParaLocalStorage.estudiante.foto;
+        }
+        
+        inscriptions.push(datosParaLocalStorage);
     }
 
-    // 💾 GUARDAR EN LOCALSTORAGE (SIN FOTO)
+    // GUARDAR EN LOCALSTORAGE (SIN FOTO)
     localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
     console.log('💾 LocalStorage guardado (sin foto)');
 
-    // ☁️ GUARDAR EN FIRESTORE (CON FOTO)
+    // 🔥🔥🔥 GUARDAR EN FIRESTORE (CON FOTO O SIN ELLA, PERO PRESERVANDO LA EXISTENTE)
     if (window.db) {
-        console.log('☁️ SUBIENDO A FIRESTORE CON FOTO...');
-        window.db.collection('inscripciones').doc(String(idFinal)).set(datosCompletos)
+        console.log('☁️ SUBIENDO A FIRESTORE...');
+        
+        // 🔥 IMPORTANTE: Para edición, usar merge: true para NO sobrescribir campos
+        const options = isEditing ? { merge: true } : {};
+        
+        window.db.collection('inscripciones').doc(String(idFinal)).set(datosFormulario, options)
             .then(() => {
-                console.log('✅✅✅ FIRESTORE GUARDADO CON FOTO');
-                console.log('📸 La foto está en Firebase, ID:', idFinal);
-                showToast('✅ Guardado con foto en Firebase', 'success');
+                console.log('✅✅✅ GUARDADO EN FIRESTORE');
+                if (datosFormulario.estudiante && datosFormulario.estudiante.foto) {
+                    console.log('📸 FOTO GUARDADA EN FIREBASE');
+                    showToast('✅ Guardado CON FOTO en Firebase', 'success');
+                } else {
+                    console.log('ℹ️ Guardado SIN FOTO en Firebase');
+                    showToast('✅ Guardado SIN FOTO en Firebase', 'info');
+                }
             })
             .catch(err => {
                 console.error('❌ Error en Firestore:', err);
-                showToast('❌ Error: ' + err.message, 'error');
+                showToast('❌ Error al guardar: ' + err.message, 'error');
             });
-    } else {
-        console.warn('⚠️ Firebase no disponible');
     }
 
-    // LIMPIAR FOTO TEMPORAL
-    window.fotoTemporal = null;
+    // Limpiar campos
     const preview = document.getElementById('fotoPreview');
     if (preview) {
         preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
     }
+
     const fileInput = document.getElementById('fotoEstudiante');
     if (fileInput) fileInput.value = '';
 
-    // ACTUALIZAR VISTAS
+    // Resetear estado de edición
+    isEditing = false;
+    currentEditId = null;
+
+    // Actualizar vistas
     if (typeof renderTable === 'function') renderTable();
     if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
     if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
     resetForm();
     document.getElementById('btnInicio')?.click();
-    showToast('✅ Inscripción guardada', 'success');
+    showToast('✅ Inscripción guardada correctamente', 'success');
 }
 
 // =====================================================
@@ -9955,35 +10002,66 @@ async function eliminarInscripcion(id) {
 }
 
 // =====================================================
-// 🔥 EDITAR INSCRIPCIÓN - CARGA FOTO SOLO DE FIREBASE
+// 🔥 EDITAR INSCRIPCIÓN - SIEMPRE CONSULTA FIREBASE
 // =====================================================
-
 async function editarInscripcion(id) {
     console.log("🔄 EDITANDO ID:", id);
-    
+    console.log("📸 CONSULTANDO DIRECTAMENTE A FIREBASE (sin usar caché)");
+
     let inscripcion = null;
-    
-    if (window.db) {
-        try {
-            const doc = await window.db.collection('inscripciones').doc(String(id)).get();
-            if (doc.exists) {
-                inscripcion = { id: doc.id, ...doc.data() };
-                console.log('✅ Datos cargados desde Firebase');
-            }
-        } catch(e) {
-            console.error('❌ Error cargando desde Firebase:', e);
-        }
-    }
-    
-    if (!inscripcion) {
-        inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
-    }
-    
-    if (!inscripcion) {
-        alert('Error: No se encontró la inscripción');
+    let fotoCargada = false;
+
+    // 🔥🔥🔥 SIEMPRE CARGAR DESDE FIRESTORE - NUNCA USAR MEMORIA
+    if (!window.db) {
+        showToast('❌ Firebase no disponible', 'error');
+        alert('Error: Firebase no está disponible. No se pueden cargar los datos.');
         return;
     }
 
+    try {
+        console.log('☁️ Consultando Firebase para ID:', id);
+        const doc = await window.db.collection('inscripciones').doc(String(id)).get();
+        
+        if (doc.exists) {
+            inscripcion = { id: doc.id, ...doc.data() };
+            console.log('✅ Datos obtenidos DIRECTAMENTE de Firebase');
+
+            // VERIFICAR SI TIENE FOTO
+            if (inscripcion.estudiante && inscripcion.estudiante.foto) {
+                window.fotoTemporal = inscripcion.estudiante.foto;
+                fotoCargada = true;
+                console.log('📸 FOTO ENCONTRADA EN FIREBASE ✅');
+                showToast('📸 Foto cargada desde Firebase', 'success');
+            } else {
+                window.fotoTemporal = null;
+                console.log('ℹ️ No hay foto en Firebase');
+                showToast('ℹ️ Este estudiante no tiene foto', 'info');
+            }
+        } else {
+            console.warn('⚠️ Documento no existe en Firebase');
+            showToast('⚠️ No se encontró la inscripción en Firebase', 'warning');
+            alert('Error: No se encontró la inscripción con ID: ' + id + ' en Firebase');
+            return;
+        }
+    } catch (e) {
+        console.error('❌ Error crítico al cargar desde Firebase:', e);
+        showToast('❌ Error al cargar desde Firebase: ' + e.message, 'error');
+        alert('Error al cargar los datos desde Firebase: ' + e.message);
+        return;
+    }
+
+    // 🔥 PASO 2: ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTO)
+    // Esto es solo para mantener consistencia, pero NO se usa para cargar
+    const index = inscriptions.findIndex(ins => String(ins.id) === String(id));
+    if (index !== -1 && inscripcion) {
+        inscriptions[index] = { ...inscripcion };
+        console.log('🔄 Memoria actualizada con datos de Firebase (incluye foto)');
+    } else if (inscripcion) {
+        inscriptions.push({ ...inscripcion });
+        console.log('🔄 Nuevo registro agregado a memoria desde Firebase');
+    }
+
+    // 🔥 PASO 3: MOSTRAR FORMULARIO DE EDICIÓN
     const dataTableContainer = document.getElementById('dataTableContainer');
     const welcomeMessage = document.getElementById('welcomeMessage');
     const inscriptionForm = document.getElementById('inscriptionForm');
@@ -9996,21 +10074,21 @@ async function editarInscripcion(id) {
     if (fabContainer) fabContainer.style.display = 'block';
 
     document.getElementById('editId').value = id;
-    document.getElementById('formTitle').textContent = "Editar Inscripción";
+    document.getElementById('formTitle').textContent = "✏️ Editar Inscripción";
     document.getElementById('submitBtnText').textContent = "Guardar Cambios";
 
+    // Llenar todos los campos
     document.getElementById('encargadoNombre').value = inscripcion.encargado?.nombre || '';
     document.getElementById('encargadoDPI').value = inscripcion.encargado?.dpi || '';
     document.getElementById('encargadoTelefono').value = inscripcion.encargado?.telefono || '';
     document.getElementById('encargadoDireccion').value = inscripcion.encargado?.direccion || '';
-
     document.getElementById('estudianteNombre').value = inscripcion.estudiante?.nombre || '';
     document.getElementById('estudianteEdad').value = inscripcion.estudiante?.edad || '';
     document.getElementById('estudianteGenero').value = inscripcion.estudiante?.genero || '';
     document.getElementById('estudianteNivel').value = inscripcion.estudiante?.nivel || '';
-
     document.getElementById('planEstudio').value = inscripcion.academico?.plan || '';
-
+    
+    // Días de estudio
     document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
     if (inscripcion.academico?.dias) {
         inscripcion.academico.dias.forEach(dia => {
@@ -10021,37 +10099,27 @@ async function editarInscripcion(id) {
 
     document.getElementById('horario').value = inscripcion.academico?.horario || '';
     document.getElementById('fechaInicio').value = inscripcion.academico?.fechaInicio || '';
-
     document.getElementById('instrumentoPrincipal').value = inscripcion.musical?.instrumentoPrincipal || '';
     document.getElementById('instrumentoSecundario').value = inscripcion.musical?.instrumentoSecundario || '';
-
     document.getElementById('generatedPassword').value = inscripcion.estudiante?.password || '';
 
+    // 🔥 MOSTRAR LA FOTO EN EL PREVIEW
     const fotoPreview = document.getElementById('fotoPreview');
-    fotoPreview.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 30px; color: #E63946;"></i>`;
-
-    try {
-        const fotoUrl = await cargarFotoDesdeFirebase(id);
-        if (fotoUrl) {
-            window.fotoTemporal = fotoUrl;
-            fotoPreview.innerHTML = `<img src="${fotoUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-            console.log('📸 Foto cargada desde Firebase correctamente');
-        } else {
-            fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
-            window.fotoTemporal = null;
-            console.log('ℹ️ El estudiante no tiene foto en Firebase');
-        }
-    } catch (e) {
-        console.error('❌ Error cargando foto desde Firebase:', e);
+    if (window.fotoTemporal) {
+        fotoPreview.innerHTML = `<img src="${window.fotoTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+        console.log('📸 Foto mostrada en preview ✅');
+    } else {
         fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
-        window.fotoTemporal = null;
+        console.log('ℹ️ No hay foto para mostrar');
     }
 
+    // Configurar estado de edición
     isEditing = true;
     currentEditId = id;
     currentPageForm = 1;
     updateFormNavigation();
 
+    // Ajustar labels flotantes
     setTimeout(() => {
         document.querySelectorAll('.floating input, .floating textarea, .floating select').forEach(field => {
             if (field.value) {
@@ -10065,6 +10133,8 @@ async function editarInscripcion(id) {
             }
         });
     }, 200);
+
+    console.log('✅ Edición preparada correctamente con datos DIRECTOS de Firebase');
 }
 
 // =====================================================
@@ -15273,6 +15343,7 @@ let encargadoListeners = {
 };
 let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
+  let listenerFotoEstudiante = null;
 
 // =====================================================
 // FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA (ENCARGADO)
@@ -15793,98 +15864,113 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
         select.selectedIndex = 0;
     }
     
+    // 🔥🔥🔥 CORRECCIÓN: HACER async/await
     select.removeEventListener('change', window.handleEstudianteChange);
-    window.handleEstudianteChange = function() {
+    
+    window.handleEstudianteChange = async function() {
         const id = parseInt(this.value);
         if (id) {
             encargadoEstudianteActual = id;
             encargadoInstrumentoSeleccionado = null;
             encargadoInstrumentosLista = [];
-            window.actualizarInfoEstudiante(id);
+            // 🔥 AÑADIR await PARA ESPERAR LA FOTO
+            await window.actualizarInfoEstudiante(id);
+            console.log('✅ Estudiante seleccionado con foto:', id);
         }
     };
+    
     select.addEventListener('change', window.handleEstudianteChange);
     
+    // 🔥🔥🔥 CORRECCIÓN: CARGAR PRIMER ESTUDIANTE CON async/await
     if (misEstudiantes.length > 0) {
         const primerId = parseInt(select.value) || parseInt(misEstudiantes[0].id);
         encargadoEstudianteActual = primerId;
-        window.actualizarInfoEstudiante(primerId);
+        // Usar setTimeout para asegurar que el DOM esté listo
+        setTimeout(async () => {
+            await window.actualizarInfoEstudiante(primerId);
+            console.log('✅ Estudiante inicial cargado con foto:', primerId);
+        }, 200);
     }
 }
 
 // =====================================================
-// 2. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (SIN SELECTOR DE INSTRUMENTOS)
+// 2. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE - CON FOTO DESDE FIREBASE
 // =====================================================
 
-window.actualizarInfoEstudiante = function(estudianteId) {
+window.actualizarInfoEstudiante = async function(estudianteId) {
     console.log('🔄 actualizarInfoEstudiante ID:', estudianteId);
     encargadoEstudianteActual = estudianteId;
     
     limpiarListenersEncargado();
     
+    // 🔥🔥🔥 INICIAR LISTENER EN TIEMPO REAL PARA ESTE ESTUDIANTE
+    iniciarListenerFotoEncargado(estudianteId);
+    
+    // 🔥 PRIMERO: INTENTAR CARGAR DESDE FIREBASE (CON FOTO)
     if (window.db) {
-        window.db.collection('inscripciones').doc(String(estudianteId)).get()
-            .then((doc) => {
-                if (doc.exists) {
-                    const estudiante = { id: doc.id, ...doc.data() };
-                    mostrarInfoEstudiante(estudiante);
-                    // Guardar lista de instrumentos (para el modal)
-                    const principal = estudiante.musical?.instrumentoPrincipal || '';
-                    const secundario = estudiante.musical?.instrumentoSecundario || '';
-                    encargadoInstrumentosLista = [principal];
-                    if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
-                        encargadoInstrumentosLista.push(secundario);
-                    }
-                    if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
-                        encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
-                    }
-                    if (encargadoInstrumentoSeleccionado) {
-                        const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
-                        aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
-                    }
-                    cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+        try {
+            console.log('☁️ Cargando estudiante desde Firebase para encargado...');
+            const doc = await window.db.collection('inscripciones').doc(String(estudianteId)).get();
+            if (doc.exists) {
+                const estudiante = { id: doc.id, ...doc.data() };
+                // 🔥 PASAR EL ESTUDIANTE COMPLETO (CON FOTO DE FIREBASE)
+                await mostrarInfoEstudiante(estudiante);
+                console.log('✅ Estudiante cargado desde Firebase con foto');
+                
+                // Guardar lista de instrumentos (para el modal)
+                const principal = estudiante.musical?.instrumentoPrincipal || '';
+                const secundario = estudiante.musical?.instrumentoSecundario || '';
+                encargadoInstrumentosLista = [principal];
+                if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+                    encargadoInstrumentosLista.push(secundario);
                 }
-            })
-            .catch(() => {
-                const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-                const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-                if (estudiante) {
-                    mostrarInfoEstudiante(estudiante);
-                    const principal = estudiante.musical?.instrumentoPrincipal || '';
-                    const secundario = estudiante.musical?.instrumentoSecundario || '';
-                    encargadoInstrumentosLista = [principal];
-                    if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
-                        encargadoInstrumentosLista.push(secundario);
-                    }
-                    if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
-                        encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
-                    }
-                    if (encargadoInstrumentoSeleccionado) {
-                        const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
-                        aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
-                    }
-                    cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+                if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+                    encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
                 }
-            });
+                if (encargadoInstrumentoSeleccionado) {
+                    const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+                    aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+                }
+                cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+                return; // ✅ SALIR SI FUE EXITOSO
+            } else {
+                console.warn('⚠️ Documento no existe en Firebase');
+            }
+        } catch (e) {
+            console.error('❌ Error cargando desde Firebase:', e);
+            // Si falla Firebase, continuar con el fallback
+        }
+    }
+    
+    // 🔥 SEGUNDO: FALLBACK - USAR LOCALSTORAGE SI FIREBASE FALLÓ
+    console.log('📦 Usando fallback: cargando desde localStorage...');
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+    
+    if (estudiante) {
+        // 🔥 PASAR EL ESTUDIANTE (PERO SIN FOTO, O CON LA QUE TENGA EN MEMORIA)
+        await mostrarInfoEstudiante(estudiante);
+        console.log('📦 Estudiante cargado desde localStorage (sin foto)');
+        
+        const principal = estudiante.musical?.instrumentoPrincipal || '';
+        const secundario = estudiante.musical?.instrumentoSecundario || '';
+        encargadoInstrumentosLista = [principal];
+        if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+            encargadoInstrumentosLista.push(secundario);
+        }
+        if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+            encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
+        }
+        if (encargadoInstrumentoSeleccionado) {
+            const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+            aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+        }
+        cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
     } else {
-        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-        if (estudiante) {
-            mostrarInfoEstudiante(estudiante);
-            const principal = estudiante.musical?.instrumentoPrincipal || '';
-            const secundario = estudiante.musical?.instrumentoSecundario || '';
-            encargadoInstrumentosLista = [principal];
-            if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
-                encargadoInstrumentosLista.push(secundario);
-            }
-            if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
-                encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
-            }
-            if (encargadoInstrumentoSeleccionado) {
-                const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
-                aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
-            }
-            cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+        console.error('❌ Estudiante no encontrado en ninguna fuente');
+        const infoDiv = document.getElementById('infoEstudianteEnc');
+        if (infoDiv) {
+            infoDiv.innerHTML = `<p style="color:red; text-align:center; padding:20px;">❌ No se encontró el estudiante con ID: ${estudianteId}</p>`;
         }
     }
 };
@@ -15916,10 +16002,9 @@ function cargarDatosEncargado(estudianteId, instrumento) {
 }
 
 // =====================================================
-// 3. MOSTRAR INFO DEL ESTUDIANTE
+// 3. MOSTRAR INFO DEL ESTUDIANTE - CON FOTO DESDE FIREBASE
 // =====================================================
-
-function mostrarInfoEstudiante(estudiante) {
+async function mostrarInfoEstudiante(estudiante) {
     const infoDiv = document.getElementById('infoEstudianteEnc');
     if (!infoDiv) return;
     
@@ -15931,9 +16016,46 @@ function mostrarInfoEstudiante(estudiante) {
     const dias = (estudiante.academico?.dias?.length) ? estudiante.academico.dias.join(', ') : 'No especificado';
     const encargadoNombre = estudiante.encargado?.nombre || 'No especificado';
     const telefono = estudiante.encargado?.telefono || 'No especificado';
-    const foto = estudiante.estudiante?.foto || null;
     
-    let fotoHtml = (foto && foto !== 'null') ? `<img src="${foto}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : `<i class="fas fa-user-circle" style="font-size:60px;color:#ccc;"></i>`;
+    // 🔥🔥🔥 OBTENER LA FOTO DIRECTAMENTE DE FIREBASE
+    let foto = null;
+    let fotoHtml = '';
+
+    if (window.db) {
+        try {
+            console.log('📸 Buscando foto en Firebase para encargado, ID:', estudiante.id);
+            const doc = await window.db.collection('inscripciones').doc(String(estudiante.id)).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.estudiante && data.estudiante.foto) {
+                    foto = data.estudiante.foto;
+                    console.log('📸 FOTO ENCONTRADA EN FIREBASE PARA ENCARGADO ✅');
+                } else {
+                    console.log('ℹ️ No hay foto en Firebase para este estudiante');
+                }
+            }
+        } catch (e) {
+            console.error('❌ Error al buscar foto en Firebase:', e);
+            // Si falla Firebase, usar la foto del objeto estudiante
+            if (estudiante.estudiante?.foto) {
+                foto = estudiante.estudiante.foto;
+                console.log('📸 Usando foto de memoria (fallback)');
+            }
+        }
+    } else {
+        // Si no hay Firebase, usar la foto de memoria
+        if (estudiante.estudiante?.foto) {
+            foto = estudiante.estudiante.foto;
+        }
+    }
+
+    // Generar HTML de la foto
+    if (foto && foto !== 'null' && foto !== '') {
+        fotoHtml = `<img src="${foto}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+        fotoHtml = `<i class="fas fa-user-circle" style="font-size:60px;color:#ccc;"></i>`;
+    }
+    
     const deuda = calcularDeudaEstudiante(estudiante.id);
     
     let deudaHtml = '';
@@ -15984,14 +16106,53 @@ function mostrarInfoEstudiante(estudiante) {
             </div>
         </div>
     `;
+    
+    console.log('✅ Info del estudiante actualizada con foto desde Firebase');
 }
 
+  // =====================================================
+// 🔥 TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
+// =====================================================
+function iniciarListenerFotoEncargado(estudianteId) {
+    // 🔥 LIMPIAR LISTENER ANTERIOR
+    if (listenerFotoEstudiante) {
+        listenerFotoEstudiante();
+        listenerFotoEstudiante = null;
+    }
+
+    if (!window.db || !estudianteId) return;
+
+    console.log('🔄 Iniciando listener en tiempo real para foto del estudiante:', estudianteId);
+
+    listenerFotoEstudiante = window.db.collection('inscripciones')
+        .doc(String(estudianteId))
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                console.log('📸 Cambio detectado en la foto del estudiante:', estudianteId);
+                
+                // 🔥 ACTUALIZAR LA INFO AUTOMÁTICAMENTE
+                const estudiante = { id: doc.id, ...data };
+                mostrarInfoEstudiante(estudiante);
+                
+                // También actualizar la foto en memoria
+                if (estudiante.estudiante?.foto) {
+                    window.fotoTemporalEncargado = estudiante.estudiante.foto;
+                    console.log('📸 Foto actualizada en tiempo real ✅');
+                }
+            }
+        }, (error) => {
+            console.error('❌ Error en listener de foto:', error);
+        });
+}
+  
 // =====================================================
 // 4. LIMPIAR LISTENERS
 // =====================================================
 
 function limpiarListenersEncargado() {
     const keys = ['pagos', 'asistencia', 'clases', 'grabaciones', 'temario', 'tareas', 'notas', 'inscripciones', 'temarioHistorial'];
+    
     keys.forEach(key => {
         if (encargadoListeners[key]) {
             try {
@@ -16000,6 +16161,15 @@ function limpiarListenersEncargado() {
             encargadoListeners[key] = null;
         }
     });
+    
+    // 🔥 LIMPIAR LISTENER DE FOTO
+    if (listenerFotoEstudiante) {
+        try {
+            listenerFotoEstudiante();
+        } catch(e) {}
+        listenerFotoEstudiante = null;
+        console.log('🧹 Listener de foto limpiado');
+    }
 }
 
 // =====================================================
@@ -17572,53 +17742,59 @@ function calcularFechaVencimiento(fechaInicio) {
 }
 
 // =====================================================
-// GENERAR CARNET
+// 🔥 GENERAR CARNET - SIEMPRE CONSULTA FIREBASE PARA LA FOTO
 // =====================================================
-
-function generarCarnetEstudiante(id) {
+async function generarCarnetEstudiante(id) {
     console.log("🎫 GENERANDO CARNET PARA ID:", id);
+    console.log("📸 BUSCANDO FOTO DIRECTAMENTE EN FIREBASE");
 
-    let inscriptions = [];
-    const localData = localStorage.getItem('inscriptions');
-    if (localData) {
-        try {
-            const parsed = JSON.parse(localData);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                inscriptions = parsed;
-            }
-        } catch(e) {}
-    }
-    if (inscriptions.length === 0 && window.inscriptions && Array.isArray(window.inscriptions)) {
-        inscriptions = window.inscriptions;
-    }
-    if (inscriptions.length === 0 && window.db) {
-        window.db.collection('inscripciones').get().then((snapshot) => {
-            const firebaseData = [];
-            snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
-            if (firebaseData.length > 0) {
-                localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
-                window.inscriptions = firebaseData;
-                generarCarnetEstudiante(id);
-                return;
-            }
-        }).catch(err => console.error('Error cargando desde Firebase:', err));
-        if (inscriptions.length === 0) {
-            alert('⚠️ No se encontraron inscripciones en el sistema.');
-            return;
-        }
-    }
-    if (inscriptions.length === 0) {
-        alert('⚠️ No se encontraron inscripciones. Por favor, recarga la página.');
+    let inscripcion = null;
+    let foto = null;
+
+    // 🔥 PASO 1: SIEMPRE CONSULTAR FIREBASE PRIMERO
+    if (!window.db) {
+        alert('❌ Firebase no está disponible. No se puede generar el carnet.');
         return;
     }
-    const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
+
+    try {
+        console.log('☁️ Consultando Firebase para el carnet...');
+        const doc = await window.db.collection('inscripciones').doc(String(id)).get();
+        
+        if (doc.exists) {
+            inscripcion = { id: doc.id, ...doc.data() };
+            console.log('✅ Datos obtenidos DIRECTAMENTE de Firebase para carnet');
+            
+            // 🔥 OBTENER LA FOTO DIRECTAMENTE DE FIREBASE
+            if (inscripcion.estudiante && inscripcion.estudiante.foto) {
+                foto = inscripcion.estudiante.foto;
+                console.log('📸 FOTO ENCONTRADA EN FIREBASE PARA CARNET ✅');
+                showToast('📸 Foto cargada desde Firebase para el carnet', 'success');
+            } else {
+                foto = null;
+                console.log('ℹ️ No hay foto en Firebase para este estudiante');
+                showToast('ℹ️ Este estudiante no tiene foto', 'info');
+            }
+        } else {
+            alert('❌ No se encontró el estudiante con ID: ' + id + ' en Firebase');
+            return;
+        }
+    } catch (e) {
+        console.error('❌ Error cargando desde Firebase:', e);
+        alert('Error al cargar los datos desde Firebase: ' + e.message);
+        return;
+    }
+
+    // Si no hay inscripción, error
     if (!inscripcion) {
         alert('No se encontró el estudiante con ID: ' + id);
         return;
     }
+
     console.log('✅ Estudiante encontrado:', inscripcion.estudiante.nombre);
     window.carnetActualId = id;
 
+    // Dividir nombre
     function dividirNombre(nombreCompleto) {
         const partes = nombreCompleto.trim().split(' ');
         if (partes.length <= 1) {
@@ -17639,319 +17815,314 @@ function generarCarnetEstudiante(id) {
     const previewContainer = document.getElementById('carnetPreviewContainer');
     const fechaVencimiento = calcularFechaVencimiento(inscripcion.academico.fechaInicio);
 
+    // 🔥 USAR LA FOTO OBTENIDA DE FIREBASE
+    let fotoHtml = (foto && foto !== 'null' && foto !== '') 
+        ? `<img src="${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` 
+        : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 50%;">
+            <i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>
+           </div>`;
+
     // =====================================================
-    // DISEÑO - CON "VÁLIDO" PEGADO AL MARGEN INFERIOR
+    // DISEÑO DEL CARNET - CON FOTO DESDE FIREBASE
     // =====================================================
     previewContainer.innerHTML = `
-        <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
-
-            <!-- ============ CARNET FRONTAL ============ -->
-            <div class="carnet-frontal" style="
-                width: 280px !important;
-                height: 440px !important;
-                background: #ffffff !important;
-                border-radius: 16px !important;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-                overflow: hidden !important;
+    <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+        <!-- ============ CARNET FRONTAL ============ -->
+        <div class="carnet-frontal" style="
+            width: 280px !important;
+            height: 440px !important;
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+            border: 2px solid #E63946 !important;
+            position: relative !important;
+        ">
+            <!-- Franja superior ROJA -->
+            <div style="
+                background: #E63946 !important;
+                padding: 16px 12px 12px 12px !important;
                 display: flex !important;
-                flex-direction: column !important;
-                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-                border: 2px solid #E63946 !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 12px !important;
+                flex-shrink: 0 !important;
                 position: relative !important;
+                z-index: 1 !important;
+                border-bottom: 3px solid #C1121F !important;
             ">
-                <!-- Franja superior ROJA -->
                 <div style="
-                    background: #E63946 !important;
-                    padding: 16px 12px 12px 12px !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    gap: 12px !important;
-                    flex-shrink: 0 !important;
-                    position: relative !important;
-                    z-index: 1 !important;
-                    border-bottom: 3px solid #C1121F !important;
+                    position: absolute !important;
+                    left: 50% !important;
+                    top: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    opacity: 0.08 !important;
+                    pointer-events: none !important;
                 ">
-                    <div style="
-                        position: absolute !important;
-                        left: 50% !important;
-                        top: 50% !important;
-                        transform: translate(-50%, -50%) !important;
-                        opacity: 0.08 !important;
-                        pointer-events: none !important;
-                    ">
-                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
-                    </div>
-                    
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                    <div style="text-align: center; position: relative; z-index: 1;">
-                        <div style="font-size: 15px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
-                        <div style="font-size: 10px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 2px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
-                    </div>
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
                 </div>
-
-                <!-- Cuerpo frontal -->
-                <div style="
-                    flex: 1 !important;
-                    padding: 4px 10px 3px 10px !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 4px !important;
-                    position: relative !important;
-                    z-index: 1 !important;
-                    background: #ffffff !important;
-                ">
-                    <!-- FOTO -->
-                    <div style="display: flex; justify-content: center; margin-top: -18px;">
-                        <div style="
-                            width: 100px !important;
-                            height: 100px !important;
-                            border-radius: 50% !important;
-                            border: 3px solid #E63946 !important;
-                            overflow: hidden !important;
-                            background: #f5f5f5 !important;
-                            box-shadow: 0 0 25px rgba(230, 57, 70, 0.3), 0 4px 20px rgba(230, 57, 70, 0.15) !important;
-                        ">
-                            ${inscripcion.estudiante.foto ?
-                                `<img src="${inscripcion.estudiante.foto}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5;">
-                                    <i class="fas fa-user" style="font-size: 34px; color: #ccc;"></i>
-                                </div>`
-                            }
-                        </div>
-                    </div>
-
-                    <!-- NOMBRE -->
-                    <div style="text-align: center;">
-                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
-                        ${apellidos ? `<div style="font-size: 11px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.1 !important; margin-top: 0px !important;">${apellidos}</div>` : ''}
-                        <div style="font-size: 10px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
-                    </div>
-
-                    <!-- CUADROS -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
-                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Edad</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.edad}</div>
-                        </div>
-                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Nivel</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.nivel}</div>
-                        </div>
-                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Plan</div>
-                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.plan}</div>
-                        </div>
-                    </div>
-
-                    <!-- INSTRUMENTO -->
-                    <div style="
-                        background: #ffd9d9 !important;
-                        padding: 5px 8px !important;
-                        border-radius: 6px !important;
-                        border: 3px solid #E63946 !important;
-                        text-align: center !important;
-                        min-height: 50px !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                        justify-content: center !important;
-                        gap: 5px !important;
-                        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.2) !important;
-                    ">
-                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">Instrumento</div>
-                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.3 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
-                    </div>
-
-                    <!-- HORARIO Y GÉNERO -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Horario</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.horario || 'N/A'}</div>
-                        </div>
-                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Género</div>
-                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
-                        </div>
-                    </div>
-
-                    <!-- VÁLIDO HASTA - PEGADO AL MARGEN INFERIOR -->
-                    <div style="
-                        display: flex !important;
-                        justify-content: space-between !important;
-                        align-items: center !important;
-                        background: #f0f0f0 !important;
-                        padding: 3px 12px !important;
-                        border-radius: 6px !important;
-                        border: 2px solid #ccc !important;
-                        margin-top: 2px !important;
-                        min-height: 32px !important;
-                        margin-bottom: 0px !important;
-                    ">
-                        <div style="white-space: nowrap !important;">
-                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">VÁLIDO HASTA</div>
-                            <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.3 !important;">${fechaVencimiento}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap !important; padding-left: 2px !important;">
-                            <div style="width: 7px; height: 7px; background: #4CAF50; border-radius: 50%;"></div>
-                            <span style="font-size: 7.5px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
-                        </div>
-                    </div>
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                <div style="text-align: center; position: relative; z-index: 1;">
+                    <div style="font-size: 15px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
+                    <div style="font-size: 10px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 2px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
                 </div>
             </div>
 
-            <!-- ============ CARNET DORSO ============ -->
-            <div class="carnet-dorso" style="
-                width: 280px !important;
-                height: 440px !important;
-                background: #ffffff !important;
-                border-radius: 16px !important;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-                overflow: hidden !important;
+            <!-- Cuerpo frontal -->
+            <div style="
+                flex: 1 !important;
+                padding: 4px 10px 3px 10px !important;
                 display: flex !important;
                 flex-direction: column !important;
-                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-                border: 2px solid #E63946 !important;
+                gap: 4px !important;
                 position: relative !important;
+                z-index: 1 !important;
+                background: #ffffff !important;
             ">
-                <!-- Franja superior NEGRA -->
-                <div style="
-                    background: #1a1a2e !important;
-                    padding: 16px 12px 12px 12px !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    gap: 12px !important;
-                    border-bottom: 3px solid #E63946 !important;
-                    flex-shrink: 0 !important;
-                    position: relative !important;
-                    z-index: 1 !important;
-                ">
+                <!-- FOTO -->
+                <div style="display: flex; justify-content: center; margin-top: -18px;">
                     <div style="
-                        position: absolute !important;
-                        left: 50% !important;
-                        top: 50% !important;
-                        transform: translate(-50%, -50%) !important;
-                        opacity: 0.08 !important;
-                        pointer-events: none !important;
-                    ">
-                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
-                    </div>
-                    
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                    <span style="font-size: 13px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.3 !important;">Código de Verificación</span>
-                </div>
-
-                <!-- Cuerpo dorso -->
-                <div style="
-                    flex: 1 !important;
-                    padding: 4px 6px 4px 6px !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    gap: 3px !important;
-                    position: relative !important;
-                    z-index: 1 !important;
-                    background: #ffffff !important;
-                ">
-                    <!-- QR -->
-                    <div id="qr-code-container" style="
-                        width: 225px !important;
-                        height: 225px !important;
-                        background: white !important;
-                        border-radius: 14px !important;
-                        padding: 3px !important;
+                        width: 100px !important;
+                        height: 100px !important;
+                        border-radius: 50% !important;
                         border: 3px solid #E63946 !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15) !important;
-                    ">
-                        <div style="text-align: center;">
-                            <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 18px;"></i>
-                        </div>
-                    </div>
-
-                    <div style="
-                        font-size: 6px !important;
-                        color: #666 !important;
-                        text-align: center !important;
-                        font-weight: 500 !important;
-                        margin-top: 1px !important;
-                        margin-bottom: 1px !important;
-                        line-height: 1.3 !important;
-                    ">Escanear para verificar identidad</div>
-
-                    <!-- CONTACTO -->
-                    <div style="
-                        background: #e8e8e8 !important;
-                        padding: 5px 12px !important;
-                        border-radius: 6px !important;
-                        text-align: center !important;
-                        width: 100% !important;
-                        border: 2px solid #ccc !important;
-                        box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12) !important;
-                    ">
-                        <div style="
-                            font-size: 6.5px !important;
-                            color: #E63946 !important;
-                            font-weight: 700 !important;
-                            letter-spacing: 0.5px !important;
-                            margin-bottom: 3px !important;
-                            line-height: 1.3 !important;
-                        ">CONTACTO</div>
-                        
-                        <div style="
-                            display: flex !important;
-                            justify-content: center !important;
-                            align-items: center !important;
-                            gap: 10px !important;
-                            font-size: 6px !important;
-                            font-weight: 600 !important;
-                            color: #1a1a1a !important;
-                            margin-bottom: 3px !important;
-                            line-height: 1.3 !important;
-                        ">
-                            <span>📞 37418036</span>
-                            <span style="color: #ccc !important;">|</span>
-                            <span>📞 38514409</span>
-                        </div>
-                        
-                        <div style="
-                            font-size: 5.5px !important;
-                            color: #555 !important;
-                            font-weight: 500 !important;
-                            display: flex !important;
-                            justify-content: center !important;
-                            align-items: center !important;
-                            gap: 4px !important;
-                            line-height: 1.3 !important;
-                        ">
-                            <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 6px;"></i>
-                            <span>08 Calle c 10-72 Zona 3 San Marcos</span>
-                        </div>
-                    </div>
-
-                    <!-- www -->
-                    <div style="
-                        font-size: 10px !important;
-                        color: #1a1a2e !important;
-                        font-weight: 700 !important;
-                        text-align: center !important;
-                        margin-top: 3px !important;
-                        line-height: 1.3 !important;
-                        white-space: nowrap !important;
                         overflow: hidden !important;
-                        text-overflow: ellipsis !important;
-                        max-width: 100% !important;
-                    ">www.expressionmusical.com</div>
+                        background: #f5f5f5 !important;
+                        box-shadow: 0 0 25px rgba(230, 57, 70, 0.3), 0 4px 20px rgba(230, 57, 70, 0.15) !important;
+                    ">
+                        ${fotoHtml}
+                    </div>
+                </div>
+
+                <!-- NOMBRE -->
+                <div style="text-align: center;">
+                    <div style="font-size: 15px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
+                    ${apellidos ? `<div style="font-size: 11px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.1 !important; margin-top: 0px !important;">${apellidos}</div>` : ''}
+                    <div style="font-size: 10px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
+                </div>
+
+                <!-- CUADROS -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
+                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Edad</div>
+                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.edad}</div>
+                    </div>
+                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Nivel</div>
+                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.nivel}</div>
+                    </div>
+                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Plan</div>
+                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.plan}</div>
+                    </div>
+                </div>
+
+                <!-- INSTRUMENTO -->
+                <div style="
+                    background: #ffd9d9 !important;
+                    padding: 5px 8px !important;
+                    border-radius: 6px !important;
+                    border: 3px solid #E63946 !important;
+                    text-align: center !important;
+                    min-height: 50px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    justify-content: center !important;
+                    gap: 5px !important;
+                    box-shadow: 0 4px 16px rgba(230, 57, 70, 0.2) !important;
+                ">
+                    <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">Instrumento</div>
+                    <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.3 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
+                </div>
+
+                <!-- HORARIO Y GÉNERO -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Horario</div>
+                        <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.horario || 'N/A'}</div>
+                    </div>
+                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Género</div>
+                        <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
+                    </div>
+                </div>
+
+                <!-- VÁLIDO HASTA -->
+                <div style="
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    background: #f0f0f0 !important;
+                    padding: 3px 12px !important;
+                    border-radius: 6px !important;
+                    border: 2px solid #ccc !important;
+                    margin-top: 2px !important;
+                    min-height: 32px !important;
+                    margin-bottom: 0px !important;
+                ">
+                    <div style="white-space: nowrap !important;">
+                        <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">VÁLIDO HASTA</div>
+                        <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.3 !important;">${fechaVencimiento}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap !important; padding-left: 2px !important;">
+                        <div style="width: 7px; height: 7px; background: #4CAF50; border-radius: 50%;"></div>
+                        <span style="font-size: 7.5px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div style="text-align: center; margin-top: 8px;">
-            <span style="font-size: 11px; color: #999; background: #f5f5f5; padding: 4px 16px; border-radius: 14px;">8.4 x 5.4 cm</span>
+        <!-- ============ CARNET DORSO ============ -->
+        <div class="carnet-dorso" style="
+            width: 280px !important;
+            height: 440px !important;
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+            border: 2px solid #E63946 !important;
+            position: relative !important;
+        ">
+            <!-- Franja superior NEGRA -->
+            <div style="
+                background: #1a1a2e !important;
+                padding: 16px 12px 12px 12px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 12px !important;
+                border-bottom: 3px solid #E63946 !important;
+                flex-shrink: 0 !important;
+                position: relative !important;
+                z-index: 1 !important;
+            ">
+                <div style="
+                    position: absolute !important;
+                    left: 50% !important;
+                    top: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    opacity: 0.08 !important;
+                    pointer-events: none !important;
+                ">
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
+                </div>
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                <span style="font-size: 13px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.3 !important;">Código de Verificación</span>
+            </div>
+
+            <!-- Cuerpo dorso -->
+            <div style="
+                flex: 1 !important;
+                padding: 4px 6px 4px 6px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 3px !important;
+                position: relative !important;
+                z-index: 1 !important;
+                background: #ffffff !important;
+            ">
+                <!-- QR -->
+                <div id="qr-code-container" style="
+                    width: 225px !important;
+                    height: 225px !important;
+                    background: white !important;
+                    border-radius: 14px !important;
+                    padding: 3px !important;
+                    border: 3px solid #E63946 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15) !important;
+                ">
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 18px;"></i>
+                    </div>
+                </div>
+                <div style="
+                    font-size: 6px !important;
+                    color: #666 !important;
+                    text-align: center !important;
+                    font-weight: 500 !important;
+                    margin-top: 1px !important;
+                    margin-bottom: 1px !important;
+                    line-height: 1.3 !important;
+                ">Escanear para verificar identidad</div>
+
+                <!-- CONTACTO -->
+                <div style="
+                    background: #e8e8e8 !important;
+                    padding: 5px 12px !important;
+                    border-radius: 6px !important;
+                    text-align: center !important;
+                    width: 100% !important;
+                    border: 2px solid #ccc !important;
+                    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12) !important;
+                ">
+                    <div style="
+                        font-size: 6.5px !important;
+                        color: #E63946 !important;
+                        font-weight: 700 !important;
+                        letter-spacing: 0.5px !important;
+                        margin-bottom: 3px !important;
+                        line-height: 1.3 !important;
+                    ">CONTACTO</div>
+                    <div style="
+                        display: flex !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        gap: 10px !important;
+                        font-size: 6px !important;
+                        font-weight: 600 !important;
+                        color: #1a1a1a !important;
+                        margin-bottom: 3px !important;
+                        line-height: 1.3 !important;
+                    ">
+                        <span>📞 37418036</span>
+                        <span style="color: #ccc !important;">|</span>
+                        <span>📞 38514409</span>
+                    </div>
+                    <div style="
+                        font-size: 5.5px !important;
+                        color: #555 !important;
+                        font-weight: 500 !important;
+                        display: flex !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        gap: 4px !important;
+                        line-height: 1.3 !important;
+                    ">
+                        <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 6px;"></i>
+                        <span>08 Calle c 10-72 Zona 3 San Marcos</span>
+                    </div>
+                </div>
+
+                <!-- www -->
+                <div style="
+                    font-size: 10px !important;
+                    color: #1a1a2e !important;
+                    font-weight: 700 !important;
+                    text-align: center !important;
+                    margin-top: 3px !important;
+                    line-height: 1.3 !important;
+                    white-space: nowrap !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    max-width: 100% !important;
+                ">www.expressionmusical.com</div>
+            </div>
         </div>
+    </div>
+    <div style="text-align: center; margin-top: 8px;">
+        <span style="font-size: 11px; color: #999; background: #f5f5f5; padding: 4px 16px; border-radius: 14px;">8.4 x 5.4 cm</span>
+    </div>
     `;
 
     // =====================================================
@@ -17966,10 +18137,9 @@ ESTUDIANTE: ${inscripcion.estudiante.nombre}
 INSTRUMENTO: ${inscripcion.musical.instrumentoPrincipal}
 NIVEL: ${inscripcion.estudiante.nivel}
 VÁLIDO HASTA: ${fechaVencimiento}
-`.trim();
+        `.trim();
 
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(textoQR)}&size=400x400&margin=8&format=png&color=000000&bgcolor=ffffff`;
-
         const img = new Image();
         img.onload = function() {
             qrContainer.innerHTML = `<img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain;">`;
@@ -17994,6 +18164,7 @@ VÁLIDO HASTA: ${fechaVencimiento}
     }
 
     document.getElementById('carnetModal').style.display = 'block';
+    console.log('✅ Carnet generado correctamente con foto desde Firebase');
 }
 
 // =====================================================
@@ -18618,11 +18789,11 @@ window.sincronizarAhora = function() {
 };
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - VERSIÓN CORREGIDA
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA (MANTIENE FOTOS EN MEMORIA)
 // =====================================================
 
 if (window.db) {
-    console.log('🔄 Iniciando listener de inscripciones (SOLO LECTURA)...');
+    console.log('🔄 Iniciando listener de inscripciones...');
     
     window.db.collection('inscripciones').onSnapshot((snapshot) => {
         const cambios = snapshot.docChanges();
@@ -18636,15 +18807,22 @@ if (window.db) {
             firestoreData.push({ id: doc.id, ...doc.data() });
         });
         
-        // 🔥 ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE
+        // 🔥 ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTOS)
+        // ⚠️ IMPORTANTE: MANTENER LAS FOTOS EN MEMORIA
         inscriptions = firestoreData;
         window.inscriptions = firestoreData;
         
         // 🔥 GUARDAR EN LOCALSTORAGE PERO SIN FOTOS (para no saturar)
-        const datosSinFotos = quitarFotosDeDatos(firestoreData);
+        const datosSinFotos = firestoreData.map(item => {
+            const copia = JSON.parse(JSON.stringify(item));
+            if (copia.estudiante) {
+                delete copia.estudiante.foto;
+            }
+            return copia;
+        });
         localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
         
-        console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase`);
+        console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase (CON FOTOS en memoria)`);
         
         // ✅ ACTUALIZAR VISTAS SI ESTÁN VISIBLES
         const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
