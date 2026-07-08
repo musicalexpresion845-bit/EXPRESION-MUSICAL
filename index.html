@@ -18550,30 +18550,72 @@ async function sincronizarTodoConFirebase() {
     }
 }
 
-// Interceptar funciones clave para sincronización automática
-const originalGuardarInscripcion = window.guardarInscripcion || function(inscripcion) {
-    let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const index = inscripciones.findIndex(i => i.id == inscripcion.id);
-    if (index !== -1) inscripciones[index] = inscripcion;
-    else inscripciones.push(inscripcion);
-    localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
-    return inscripcion.id;
-};
+// =====================================================
+// 🔥 FUNCIONES DE SINCRONIZACIÓN - CORREGIDAS (SIN SOBRESCRIBIR)
+// =====================================================
 
-window.guardarInscripcion = function(inscripcion) {
-    const id = originalGuardarInscripcion(inscripcion);
-    if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
-    sincronizarTodoConFirebase();
-    return id;
-};
+// Esta función SOLO sincroniza, NO SOBRESCRIBE las funciones originales
+function sincronizarDatosConFirebase() {
+    if (!window.db) return;
+    
+    try {
+        // Sincronizar inscripciones (solo las que existen en localStorage)
+        let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        for (let ins of inscripciones) {
+            if (ins && ins.id) {
+                window.db.collection('inscripciones').doc(String(ins.id)).set(ins, { merge: true })
+                    .catch(e => console.error('Error sincronizando inscripción:', e));
+            }
+        }
+        console.log(`✅ Sincronizadas ${inscripciones.length} inscripciones`);
 
-const originalEliminarInscripcion = window.eliminarInscripcion;
-if (originalEliminarInscripcion) {
-    window.eliminarInscripcion = function(id) {
-        originalEliminarInscripcion(id);
-        sincronizarTodoConFirebase();
-    };
+        // Sincronizar pagos
+        let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
+        window.db.collection('pagos').doc('global').set(pagosData, { merge: true })
+            .catch(e => console.error('Error sincronizando pagos:', e));
+        console.log("✅ Sincronizados pagos");
+
+        // Sincronizar asistencia
+        let asistencia = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        for (let reg of asistencia) {
+            if (reg && reg.id) {
+                window.db.collection('asistencia').doc(String(reg.id)).set(reg, { merge: true })
+                    .catch(e => console.error('Error sincronizando asistencia:', e));
+            }
+        }
+        console.log(`✅ Sincronizados ${asistencia.length} registros de asistencia`);
+
+    } catch (e) {
+        console.error("Error en sincronización:", e);
+    }
 }
+
+// ✅ ESCUCHAR EVENTOS DE CAMBIO EN LUGAR DE SOBRESCRIBIR FUNCIONES
+document.addEventListener('inscripciones-actualizadas', function(e) {
+    // Cuando se guarda o actualiza una inscripción, sincronizar
+    setTimeout(sincronizarDatosConFirebase, 500);
+});
+
+// ✅ OBSERVAR CAMBIOS EN LA TABLA PARA DETECTAR ELIMINACIONES
+const observerEliminar = new MutationObserver(() => {
+    // Verificar si la tabla cambió (posible eliminación)
+    const tableBody = document.querySelector('#inscriptionsTable tbody');
+    if (tableBody) {
+        setTimeout(sincronizarDatosConFirebase, 500);
+    }
+});
+
+// Observar cambios en la tabla
+const table = document.getElementById('inscriptionsTable');
+if (table) {
+    observerEliminar.observe(table, { childList: true, subtree: true });
+}
+
+// ✅ FUNCIÓN DE RESPALDO PARA SINCRONIZAR MANUALMENTE SI ES NECESARIO
+window.sincronizarAhora = function() {
+    sincronizarDatosConFirebase();
+    console.log('🔄 Sincronización manual ejecutada');
+};
 
 // =====================================================
 // 🔥 SINCRONIZACIÓN EN TIEMPO REAL - VERSIÓN CORREGIDA
