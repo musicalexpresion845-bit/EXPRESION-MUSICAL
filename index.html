@@ -10169,7 +10169,8 @@ function resetForm() {
     document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
     
-    window.fotoTemporal = null;
+    // 🔥 IMPORTANTE: NO BORRAR window.fotoTemporal AQUÍ
+    // window.fotoTemporal se limpia en guardarInscripcion después de guardar
     const preview = document.getElementById('fotoPreview');
     if (preview) {
         preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
@@ -10407,6 +10408,7 @@ async function handleFormSubmit(e) {
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
+        // ✅ LIMPIAR FOTO SOLO DESPUÉS DE GUARDAR
         window.fotoTemporal = null;
         const preview = document.getElementById('fotoPreview');
         if (preview) {
@@ -10513,7 +10515,8 @@ function iniciarManejadorFoto() {
     const fotoPreview = document.getElementById('fotoPreview');
 
     if (!fotoInput) {
-        console.warn('⚠️ No se encontró el input de foto');
+        console.warn('⚠️ No se encontró el input de foto, reintentando en 500ms...');
+        setTimeout(iniciarManejadorFoto, 500);
         return;
     }
 
@@ -10656,7 +10659,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('formTitle').textContent = "Nueva Inscripción";
             document.getElementById('submitBtnText').textContent = "Completar Inscripción";
             
-            // 🔥 AQUÍ ESTÁ LA SOLUCIÓN - EJECUTAR EL MANEJADOR DE FOTO AL ABRIR EL FORMULARIO
+            // 🔥 EJECUTAR EL MANEJADOR DE FOTO AL ABRIR EL FORMULARIO
             setTimeout(iniciarManejadorFoto, 300);
         });
     }
@@ -10909,6 +10912,7 @@ function guardarInscripcion() {
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
+        // ✅ LIMPIAR FOTO SOLO DESPUÉS DE GUARDAR
         window.fotoTemporal = null;
         const preview = document.getElementById('fotoPreview');
         if (preview) {
