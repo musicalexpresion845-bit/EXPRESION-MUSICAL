@@ -18580,64 +18580,56 @@ if (originalEliminarInscripcion) {
 // =====================================================
 
 if (window.db) {
-    console.log('🔄 Iniciando listener de inscripciones...');
+    console.log('🔄 Iniciando listener de inscripciones (SOLO LECTURA)...');
+    
     window.db.collection('inscripciones').onSnapshot((snapshot) => {
         const cambios = snapshot.docChanges();
         if (cambios.length === 0) return;
+        
         console.log(`🔄 ${cambios.length} cambio(s) detectado(s)`);
-
-        let datosLocales = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        cambios.forEach(change => {
-            const docData = { id: change.doc.id, ...change.doc.data() };
-            switch (change.type) {
-                case 'added':
-                    const exists = datosLocales.some(ins => String(ins.id) === String(docData.id));
-                    if (!exists) {
-                        datosLocales.push(docData);
-                        console.log('✅ Añadido localmente:', docData.id);
-                    }
-                    break;
-                case 'modified':
-                    const index = datosLocales.findIndex(ins => String(ins.id) === String(docData.id));
-                    if (index !== -1) {
-                        datosLocales[index] = docData;
-                        console.log('✅ Actualizado localmente:', docData.id);
-                    } else {
-                        datosLocales.push(docData);
-                        console.log('✅ Agregado (no existía):', docData.id);
-                    }
-                    break;
-                case 'removed':
-                    datosLocales = datosLocales.filter(ins => String(ins.id) !== String(docData.id));
-                    console.log('✅ Eliminado localmente:', docData.id);
-                    break;
-            }
+        
+        // 🔥 LEER TODOS LOS DATOS DE FIREBASE (CON FOTOS)
+        let firestoreData = [];
+        snapshot.forEach(doc => {
+            firestoreData.push({ id: doc.id, ...doc.data() });
         });
-
-        localStorage.setItem('inscriptions', JSON.stringify(datosLocales));
-        window.inscriptions = datosLocales;
-        inscriptions = datosLocales;
-
+        
+        // 🔥 ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE
+        inscriptions = firestoreData;
+        window.inscriptions = firestoreData;
+        
+        // 🔥 GUARDAR EN LOCALSTORAGE PERO SIN FOTOS (para no saturar)
+        const datosSinFotos = quitarFotosDeDatos(firestoreData);
+        localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+        
+        console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase`);
+        
+        // ✅ ACTUALIZAR VISTAS SI ESTÁN VISIBLES
         const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
         const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
-
+        
         if (dataTableVisible && typeof renderTable === 'function') {
             renderTable();
             console.log('🔄 Tabla actualizada');
         }
+        
         if (pagosVisible && typeof sincronizarPagosConInscripciones === 'function') {
             sincronizarPagosConInscripciones();
             console.log('🔄 Pagos actualizados');
         }
+        
         if (typeof actualizarListaEncargados === 'function') {
             actualizarListaEncargados();
         }
+        
         if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
             asistenciaApp.cargarEstudiantesAutomaticamente();
         }
+        
         window.dispatchEvent(new CustomEvent('inscripciones-actualizadas', {
-            detail: datosLocales
+            detail: firestoreData
         }));
+        
     }, (error) => {
         console.error("❌ Error en listener de inscripciones:", error);
     });
