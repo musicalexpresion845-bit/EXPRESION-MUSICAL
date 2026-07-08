@@ -9552,7 +9552,7 @@ console.log("✅ Bloque 1 cargado: Sistema de usuarios y login (optimizado para 
 
 <!-- ============================================ -->
 <!-- BLOQUE 2: PANEL DE SECRETARÍA (Inscripciones y CRUD) -->
-<!-- VERSIÓN COMPLETA - CON CARGA DE FOTOS DESDE FIREBASE -->
+<!-- VERSIÓN COMPLETA - FOTOS SOLO EN FIREBASE -->
 <!-- ============================================ -->
 
 <script>
@@ -9566,7 +9566,7 @@ let currentEditId = null;
 let currentPageForm = 1;
 
 // =====================================================
-// 🔥 FUNCIÓN PARA COMPRIMIR IMÁGENES (NUEVA)
+// 🔥 FUNCIÓN PARA COMPRIMIR IMÁGENES
 // =====================================================
 
 function comprimirImagen(dataUrl, maxWidth = 400, maxHeight = 400, calidad = 0.7) {
@@ -9619,7 +9619,7 @@ function quitarFotosDeDatos(datos) {
 }
 
 // =====================================================
-// 🔥 FUNCIÓN PARA CARGAR FOTO DESDE FIREBASE
+// 🔥 FUNCIÓN PARA CARGAR FOTO SOLO DESDE FIREBASE
 // =====================================================
 
 async function cargarFotoDesdeFirebase(id) {
@@ -9640,7 +9640,7 @@ async function cargarFotoDesdeFirebase(id) {
 }
 
 // =====================================================
-// CARGAR DATOS DESDE FIRESTORE O LOCALSTORAGE
+// 🔥 CARGAR DATOS - FOTOS SOLO EN MEMORIA, NO EN LOCALSTORAGE
 // =====================================================
 
 async function loadAllData() {
@@ -9652,7 +9652,7 @@ async function loadAllData() {
     }
 
     if (!window.db) {
-        console.warn('⚠️ Firebase no disponible, usando localStorage');
+        console.warn('⚠️ Firebase no disponible, usando localStorage (sin fotos)');
         const stored = localStorage.getItem('inscriptions');
         inscriptions = (stored && stored !== '[]') ? JSON.parse(stored) : [];
         if (typeof renderTable === 'function') renderTable();
@@ -9670,8 +9670,10 @@ async function loadAllData() {
         });
 
         if (firestoreData.length > 0) {
+            // ✅ Guardar COMPLETO (con fotos) en memoria
             inscriptions = firestoreData;
-            // Guardar SIN FOTOS en localStorage para no saturar
+            
+            // 🔥 Guardar SIN FOTOS en localStorage para no saturar
             const datosSinFotos = quitarFotosDeDatos(inscriptions);
             try {
                 localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
@@ -9679,11 +9681,11 @@ async function loadAllData() {
             } catch (e) {
                 console.warn('⚠️ Error al guardar en localStorage:', e.message);
             }
-            console.log(`✅ Cargados ${inscriptions.length} desde Firestore`);
+            console.log(`✅ Cargados ${inscriptions.length} desde Firestore CON FOTOS en memoria`);
         } else {
             const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             inscriptions = localData;
-            console.log(`📦 Cargados ${inscriptions.length} desde localStorage`);
+            console.log(`📦 Cargados ${inscriptions.length} desde localStorage (sin fotos)`);
         }
 
         if (typeof renderTable === 'function') renderTable();
@@ -9703,75 +9705,155 @@ async function loadAllData() {
 }
 
 // =====================================================
-// GUARDAR INSCRIPCIÓN (NUEVA O EDICIÓN) - CORREGIDO
+// 🔥 GUARDAR INSCRIPCIÓN - SOLO FOTO EN FIREBASE
 // =====================================================
 
-async function guardarInscripcionEnBaseDeDatos(nuevaInscripcion, isEditing = false, currentEditId = null) {
-    console.log('💾 Guardando inscripción...');
-    try {
-        let newId;
+function guardarInscripcion() {
+    console.log('🟢 Click en GUARDAR');
+    console.log('📸 FOTO ACTUAL:', window.fotoTemporal ? 'TIENE FOTO' : 'NO TIENE FOTO');
 
+    const formPages = document.querySelectorAll('.form-page');
+    let allValid = true;
+    for (let i = 1; i <= formPages.length; i++) {
+        if (!validatePage(i)) {
+            allValid = false;
+            currentPageForm = i;
+            updateFormNavigation();
+            console.log('❌ Error en página', i);
+            break;
+        }
+    }
+
+    if (!allValid) {
+        showToast('⚠️ Complete todos los campos requeridos', 'error');
+        return;
+    }
+
+    const diasEstudio = [];
+    document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(checkbox => {
+        diasEstudio.push(checkbox.value);
+    });
+
+    const getValue = (id) => document.getElementById(id)?.value || '';
+
+    // Crear el objeto de inscripción CON LA FOTO
+    const nuevaInscripcion = {
+        encargado: {
+            nombre: getValue('encargadoNombre'),
+            dpi: getValue('encargadoDPI'),
+            telefono: getValue('encargadoTelefono'),
+            direccion: getValue('encargadoDireccion')
+        },
+        estudiante: {
+            nombre: getValue('estudianteNombre'),
+            edad: getValue('estudianteEdad'),
+            genero: getValue('estudianteGenero'),
+            nivel: getValue('estudianteNivel'),
+            password: getValue('generatedPassword'),
+            foto: window.fotoTemporal || null  // ✅ LA FOTO SOLO AQUÍ
+        },
+        academico: {
+            plan: getValue('planEstudio'),
+            dias: diasEstudio,
+            horario: getValue('horario'),
+            fechaInicio: getValue('fechaInicio')
+        },
+        musical: {
+            instrumentoPrincipal: getValue('instrumentoPrincipal'),
+            instrumentoSecundario: getValue('instrumentoSecundario') || 'Ninguno'
+        }
+    };
+
+    console.log('📝 Datos CON FOTO:', nuevaInscripcion.estudiante.foto ? 'SÍ' : 'NO');
+
+    try {
+        // 🔥 1. CREAR VERSIÓN SIN FOTO PARA LOCALSTORAGE
+        const datosSinFoto = {
+            ...nuevaInscripcion,
+            estudiante: {
+                ...nuevaInscripcion.estudiante,
+                foto: null  // ❌ Eliminar foto para localStorage
+            }
+        };
+        
         if (isEditing && currentEditId) {
+            console.log('✏️ GUARDANDO EDICIÓN ID:', currentEditId);
             nuevaInscripcion.id = currentEditId;
-            newId = currentEditId;
+            datosSinFoto.id = currentEditId;
+            
             const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
             if (index !== -1) {
-                inscriptions[index] = nuevaInscripcion;
-                console.log('📝 Actualizando inscripción existente ID:', currentEditId);
+                inscriptions[index] = datosSinFoto;  // Guardar SIN foto en el array
+                console.log('✅ Actualizado en array (sin foto)');
             } else {
-                inscriptions.push(nuevaInscripcion);
-                console.log('➕ Agregando inscripción (no existía) ID:', currentEditId);
+                inscriptions.push(datosSinFoto);
+                console.log('➕ Agregado (no existía)');
             }
-        } else {
-            newId = Date.now() + Math.floor(Math.random() * 10000);
-            nuevaInscripcion.id = newId;
-            const exists = inscriptions.some(ins => String(ins.id) === String(newId));
-            if (exists) {
-                console.warn('⚠️ ID duplicado, generando otro...');
-                newId = Date.now() + Math.floor(Math.random() * 99999);
-                nuevaInscripcion.id = newId;
-            }
-            inscriptions.push(nuevaInscripcion);
-            console.log('➕ Nueva inscripción ID:', newId);
-        }
 
-        // ✅ Guardar COMPLETO (CON FOTO) en localStorage
-        try {
+            // Guardar SIN FOTO en localStorage
             localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
-            console.log('💾 Guardado en localStorage CON FOTO');
-        } catch (e) {
-            console.warn('⚠️ Error al guardar en localStorage:', e.message);
-            // Fallback: guardar sin fotos
-            const datosSinFotos = quitarFotosDeDatos(inscriptions);
-            localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
-            console.log('💾 Guardado en localStorage SIN FOTOS (fallback)');
-        }
+            console.log('💾 Guardado en localStorage SIN FOTO');
 
-        // ✅ Guardar COMPLETO (CON FOTO) en Firestore
-        if (window.db) {
-            try {
-                await window.db.collection('inscripciones').doc(String(nuevaInscripcion.id)).set(nuevaInscripcion);
-                console.log('☁️ Guardado en Firestore CON FOTO');
-            } catch (firestoreError) {
-                console.error('❌ Error en Firestore:', firestoreError);
+            // ✅ Guardar CON FOTO SOLO en Firestore
+            if (window.db) {
+                window.db.collection('inscripciones').doc(String(currentEditId)).set(nuevaInscripcion)
+                    .then(() => console.log('☁️ Guardado en Firestore CON FOTO'))
+                    .catch(e => console.error('❌ Error Firestore:', e));
             }
+
+            showToast('✅ ¡Inscripción actualizada correctamente!', 'success');
+            isEditing = false;
+            currentEditId = null;
+
+        } else {
+            console.log('➕ NUEVA INSCRIPCIÓN');
+            const newId = Date.now() + Math.floor(Math.random() * 10000);
+            nuevaInscripcion.id = newId;
+            datosSinFoto.id = newId;
+            
+            inscriptions.push(datosSinFoto);  // Guardar SIN foto en el array
+            
+            // Guardar SIN FOTO en localStorage
+            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+            console.log('💾 Guardado en localStorage SIN FOTO');
+
+            // ✅ Guardar CON FOTO SOLO en Firestore
+            if (window.db) {
+                window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
+                    .then(() => console.log('☁️ Guardado en Firestore CON FOTO'))
+                    .catch(e => console.error('❌ Error Firestore:', e));
+            }
+
+            showToast('✅ ¡Inscripción exitosa!', 'success');
+            if (typeof generateContract === 'function') generateContract(newId);
         }
 
         if (typeof renderTable === 'function') renderTable();
         if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
         if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 
-        console.log('✅ Guardado completado ID:', newId);
-        return newId;
+        // ✅ LIMPIAR FOTO TEMPORAL
+        window.fotoTemporal = null;
+        const preview = document.getElementById('fotoPreview');
+        if (preview) {
+            preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
+        }
+        const fileInput = document.getElementById('fotoEstudiante');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+
+        resetForm();
+        document.getElementById('btnInicio')?.click();
 
     } catch (error) {
-        console.error('❌ Error en guardado:', error);
-        throw error;
+        console.error('❌ Error:', error);
+        showToast('❌ Error: ' + error.message, 'error');
     }
 }
 
 // =====================================================
-// ELIMINAR INSCRIPCIÓN
+// 🔥 ELIMINAR INSCRIPCIÓN
 // =====================================================
 
 async function eliminarInscripcion(id) {
@@ -9814,6 +9896,7 @@ async function eliminarInscripcion(id) {
     console.log(`🔍 Eliminando a: ${nombreEstudiante} (ID Firebase: ${firestoreId})`);
 
     try {
+        // ✅ Eliminar de Firestore
         if (window.db) {
             console.log('☁️ Intentando eliminar de Firestore...');
             const docRef = window.db.collection('inscripciones').doc(firestoreId);
@@ -9826,6 +9909,7 @@ async function eliminarInscripcion(id) {
             }
         }
 
+        // ✅ Eliminar de localStorage
         const nuevasInscripciones = datosLocales.filter(ins => String(ins.id).trim() !== firestoreId);
         localStorage.setItem('inscriptions', JSON.stringify(nuevasInscripciones));
         inscriptions = nuevasInscripciones;
@@ -9907,12 +9991,32 @@ async function eliminarInscripcion(id) {
 }
 
 // =====================================================
-// 🔥 EDITAR INSCRIPCIÓN - CARGA FOTO DE FIREBASE
+// 🔥 EDITAR INSCRIPCIÓN - CARGA FOTO SOLO DE FIREBASE
 // =====================================================
 
 async function editarInscripcion(id) {
     console.log("🔄 EDITANDO ID:", id);
-    const inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
+    
+    // Buscar en Firestore para tener los datos completos
+    let inscripcion = null;
+    
+    if (window.db) {
+        try {
+            const doc = await window.db.collection('inscripciones').doc(String(id)).get();
+            if (doc.exists) {
+                inscripcion = { id: doc.id, ...doc.data() };
+                console.log('✅ Datos cargados desde Firebase');
+            }
+        } catch(e) {
+            console.error('❌ Error cargando desde Firebase:', e);
+        }
+    }
+    
+    // Si no se encontró en Firebase, buscar en localStorage
+    if (!inscripcion) {
+        inscripcion = inscriptions.find(ins => String(ins.id) === String(id));
+    }
+    
     if (!inscripcion) {
         alert('Error: No se encontró la inscripción');
         return;
@@ -9933,37 +10037,38 @@ async function editarInscripcion(id) {
     document.getElementById('formTitle').textContent = "Editar Inscripción";
     document.getElementById('submitBtnText').textContent = "Guardar Cambios";
 
-    document.getElementById('encargadoNombre').value = inscripcion.encargado.nombre || '';
-    document.getElementById('encargadoDPI').value = inscripcion.encargado.dpi || '';
-    document.getElementById('encargadoTelefono').value = inscripcion.encargado.telefono || '';
-    document.getElementById('encargadoDireccion').value = inscripcion.encargado.direccion || '';
+    document.getElementById('encargadoNombre').value = inscripcion.encargado?.nombre || '';
+    document.getElementById('encargadoDPI').value = inscripcion.encargado?.dpi || '';
+    document.getElementById('encargadoTelefono').value = inscripcion.encargado?.telefono || '';
+    document.getElementById('encargadoDireccion').value = inscripcion.encargado?.direccion || '';
 
-    document.getElementById('estudianteNombre').value = inscripcion.estudiante.nombre || '';
-    document.getElementById('estudianteEdad').value = inscripcion.estudiante.edad || '';
-    document.getElementById('estudianteGenero').value = inscripcion.estudiante.genero || '';
-    document.getElementById('estudianteNivel').value = inscripcion.estudiante.nivel || '';
+    document.getElementById('estudianteNombre').value = inscripcion.estudiante?.nombre || '';
+    document.getElementById('estudianteEdad').value = inscripcion.estudiante?.edad || '';
+    document.getElementById('estudianteGenero').value = inscripcion.estudiante?.genero || '';
+    document.getElementById('estudianteNivel').value = inscripcion.estudiante?.nivel || '';
 
-    document.getElementById('planEstudio').value = inscripcion.academico.plan || '';
+    document.getElementById('planEstudio').value = inscripcion.academico?.plan || '';
 
     document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
-    if (inscripcion.academico.dias) {
+    if (inscripcion.academico?.dias) {
         inscripcion.academico.dias.forEach(dia => {
             const cb = document.querySelector(`input[name="diasEstudio"][value="${dia}"]`);
             if (cb) cb.checked = true;
         });
     }
 
-    document.getElementById('horario').value = inscripcion.academico.horario || '';
-    document.getElementById('fechaInicio').value = inscripcion.academico.fechaInicio || '';
+    document.getElementById('horario').value = inscripcion.academico?.horario || '';
+    document.getElementById('fechaInicio').value = inscripcion.academico?.fechaInicio || '';
 
-    document.getElementById('instrumentoPrincipal').value = inscripcion.musical.instrumentoPrincipal || '';
-    document.getElementById('instrumentoSecundario').value = inscripcion.musical.instrumentoSecundario || '';
+    document.getElementById('instrumentoPrincipal').value = inscripcion.musical?.instrumentoPrincipal || '';
+    document.getElementById('instrumentoSecundario').value = inscripcion.musical?.instrumentoSecundario || '';
 
-    document.getElementById('generatedPassword').value = inscripcion.estudiante.password || '';
+    document.getElementById('generatedPassword').value = inscripcion.estudiante?.password || '';
 
     const fotoPreview = document.getElementById('fotoPreview');
     fotoPreview.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 30px; color: #E63946;"></i>`;
 
+    // 🔥 Cargar foto SOLO desde Firebase
     try {
         const fotoUrl = await cargarFotoDesdeFirebase(id);
         if (fotoUrl) {
@@ -10002,7 +10107,7 @@ async function editarInscripcion(id) {
 }
 
 // =====================================================
-// RENDERIZAR TABLA DE INSCRIPCIONES
+// 🔥 RENDERIZAR TABLA - INDICADOR DE FOTO
 // =====================================================
 
 function renderTable(filter = '') {
@@ -10046,8 +10151,9 @@ function renderTable(filter = '') {
         const estado = inscripcion.estado || 'activo';
         const esActivo = estado === 'activo';
 
-        // Verificar si tiene foto para mostrar un indicador
-        const tieneFoto = inscripcion.estudiante?.foto ? true : false;
+        // 🔥 Verificar si tiene foto (buscamos en el array de Firestore)
+        const inscripcionCompleta = inscriptions.find(ins => String(ins.id) === String(inscripcion.id));
+        const tieneFoto = inscripcionCompleta?.estudiante?.foto ? true : false;
 
         row.innerHTML = `
             <td>${inscripcion.id}</td>
@@ -10299,143 +10405,6 @@ function updateFormNavigation() {
 }
 
 // =====================================================
-// 🔥 GUARDAR INSCRIPCIÓN - VERSIÓN CORREGIDA CON COMPRESIÓN
-// =====================================================
-
-function guardarInscripcion() {
-    console.log('🟢 Click en GUARDAR');
-    console.log('📸 FOTO ACTUAL:', window.fotoTemporal ? 'TIENE FOTO' : 'NO TIENE FOTO');
-
-    const formPages = document.querySelectorAll('.form-page');
-    let allValid = true;
-    for (let i = 1; i <= formPages.length; i++) {
-        if (!validatePage(i)) {
-            allValid = false;
-            currentPageForm = i;
-            updateFormNavigation();
-            console.log('❌ Error en página', i);
-            break;
-        }
-    }
-
-    if (!allValid) {
-        showToast('⚠️ Complete todos los campos requeridos', 'error');
-        return;
-    }
-
-    const diasEstudio = [];
-    document.querySelectorAll('input[name="diasEstudio"]:checked').forEach(checkbox => {
-        diasEstudio.push(checkbox.value);
-    });
-
-    const getValue = (id) => document.getElementById(id)?.value || '';
-
-    // Crear el objeto de inscripción CON LA FOTO
-    const nuevaInscripcion = {
-        encargado: {
-            nombre: getValue('encargadoNombre'),
-            dpi: getValue('encargadoDPI'),
-            telefono: getValue('encargadoTelefono'),
-            direccion: getValue('encargadoDireccion')
-        },
-        estudiante: {
-            nombre: getValue('estudianteNombre'),
-            edad: getValue('estudianteEdad'),
-            genero: getValue('estudianteGenero'),
-            nivel: getValue('estudianteNivel'),
-            password: getValue('generatedPassword'),
-            foto: window.fotoTemporal || null  // ✅ INCLUIR LA FOTO AQUÍ
-        },
-        academico: {
-            plan: getValue('planEstudio'),
-            dias: diasEstudio,
-            horario: getValue('horario'),
-            fechaInicio: getValue('fechaInicio')
-        },
-        musical: {
-            instrumentoPrincipal: getValue('instrumentoPrincipal'),
-            instrumentoSecundario: getValue('instrumentoSecundario') || 'Ninguno'
-        }
-    };
-
-    console.log('📝 Datos CON FOTO:', nuevaInscripcion.estudiante.foto ? 'SÍ' : 'NO');
-
-    try {
-        if (isEditing && currentEditId) {
-            console.log('✏️ GUARDANDO EDICIÓN ID:', currentEditId);
-            nuevaInscripcion.id = currentEditId;
-            
-            const index = inscriptions.findIndex(ins => String(ins.id) === String(currentEditId));
-            if (index !== -1) {
-                inscriptions[index] = nuevaInscripcion;
-                console.log('✅ Actualizado en array');
-            } else {
-                inscriptions.push(nuevaInscripcion);
-                console.log('➕ Agregado (no existía)');
-            }
-
-            // ✅ Guardar COMPLETO en localStorage
-            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
-            console.log('💾 Guardado en localStorage CON FOTO');
-
-            // ✅ Guardar COMPLETO en Firestore
-            if (window.db) {
-                window.db.collection('inscripciones').doc(String(currentEditId)).set(nuevaInscripcion)
-                    .then(() => console.log('☁️ Guardado en Firestore CON FOTO'))
-                    .catch(e => console.error('❌ Error Firestore:', e));
-            }
-
-            showToast('✅ ¡Inscripción actualizada correctamente!', 'success');
-            isEditing = false;
-            currentEditId = null;
-
-        } else {
-            console.log('➕ NUEVA INSCRIPCIÓN');
-            const newId = Date.now() + Math.floor(Math.random() * 10000);
-            nuevaInscripcion.id = newId;
-            
-            inscriptions.push(nuevaInscripcion);
-            
-            // ✅ Guardar COMPLETO en localStorage
-            localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
-            console.log('💾 Guardado en localStorage CON FOTO');
-
-            // ✅ Guardar COMPLETO en Firestore
-            if (window.db) {
-                window.db.collection('inscripciones').doc(String(newId)).set(nuevaInscripcion)
-                    .then(() => console.log('☁️ Guardado en Firestore CON FOTO'))
-                    .catch(e => console.error('❌ Error Firestore:', e));
-            }
-
-            showToast('✅ ¡Inscripción exitosa!', 'success');
-            if (typeof generateContract === 'function') generateContract(newId);
-        }
-
-        if (typeof renderTable === 'function') renderTable();
-        if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
-        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-
-        // ✅ LIMPIAR FOTO SOLO DESPUÉS DE GUARDAR
-        window.fotoTemporal = null;
-        const preview = document.getElementById('fotoPreview');
-        if (preview) {
-            preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
-        }
-        const fileInput = document.getElementById('fotoEstudiante');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-
-        resetForm();
-        document.getElementById('btnInicio')?.click();
-
-    } catch (error) {
-        console.error('❌ Error:', error);
-        showToast('❌ Error: ' + error.message, 'error');
-    }
-}
-
-// =====================================================
 // LISTA DE ENCARGADOS PARA RECIBOS
 // =====================================================
 
@@ -10503,7 +10472,7 @@ function showToast(message, type = 'success') {
 }
 
 // =====================================================
-// 🔥 MANEJADOR DE FOTO - CORREGIDO CON COMPRESIÓN
+// 🔥 MANEJADOR DE FOTO - CON COMPRESIÓN
 // =====================================================
 
 // Variable global para la foto
@@ -10855,8 +10824,12 @@ document.addEventListener('click', function(e) {
 // Ejecutar recuperar pagos al cargar
 setTimeout(recuperarPagos, 1000);
 
-console.log("✅ Bloque 2 cargado: Panel de Secretaría (Inscripciones y CRUD) - CORREGIDO");
+console.log("✅ Bloque 2 cargado: Panel de Secretaría (Fotos SOLO en Firebase) - CORREGIDO");
 </script>
+
+<!-- ============================================ -->
+<!-- BLOQUE 3: SISTEMA DE PAGOS -->
+<!-- ============================================ -->
   
 <!-- ============================================ -->
 <!-- BLOQUE 3: SISTEMA DE PAGOS -->
