@@ -17548,11 +17548,11 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
   
   // =====================================================
-// 🔥 ARREGLAR SWIPE DEL ENCARGADO (deslizar entre pantallas)
+// 🔥 SWIPE SOLO HORIZONTAL (izquierda/derecha) - SIN AFECTAR SCROLL
 // =====================================================
 
 function activarSwipeEncargado() {
-    console.log('🔄 Activando swipe del encargado...');
+    console.log('🔄 Activando swipe horizontal del encargado...');
     
     const panel = document.getElementById('encargadoPanel');
     if (!panel) return;
@@ -17585,9 +17585,8 @@ function activarSwipeEncargado() {
         
         if (nuevoIdx !== idx) {
             const nuevaPantalla = pantallasConSwipe[nuevoIdx];
-            console.log('👆 Swipe a:', nuevaPantalla);
+            console.log('👆 Swipe horizontal a:', nuevaPantalla);
             
-            // Buscar el botón del menú correspondiente y hacer click
             const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
             items.forEach(function(item) {
                 if (item.getAttribute('data-pantalla') === nuevaPantalla) {
@@ -17597,11 +17596,11 @@ function activarSwipeEncargado() {
         }
     }
     
-    // Eliminar eventos anteriores si existen
+    // Eliminar eventos anteriores
     panel.removeEventListener('touchstart', window._swipeStartHandler);
     panel.removeEventListener('touchend', window._swipeEndHandler);
     
-    // Asignar nuevos eventos
+    // 🔥 NUEVOS EVENTOS: SOLO HORIZONTAL
     window._swipeStartHandler = function(e) {
         touchStartX = e.changedTouches[0].screenX;
     };
@@ -17609,11 +17608,13 @@ function activarSwipeEncargado() {
     window._swipeEndHandler = function(e) {
         touchEndX = e.changedTouches[0].screenX;
         const diffX = touchStartX - touchEndX;
+        
+        // 🔥 SOLO cambiar si movimiento horizontal > 40px
         if (Math.abs(diffX) > 40) {
             if (diffX > 0) {
-                cambiarPantalla(1);  // Deslizar a la izquierda → siguiente
+                cambiarPantalla(1);  // → Siguiente
             } else {
-                cambiarPantalla(-1); // Deslizar a la derecha → anterior
+                cambiarPantalla(-1); // ← Anterior
             }
         }
     };
@@ -17621,7 +17622,7 @@ function activarSwipeEncargado() {
     panel.addEventListener('touchstart', window._swipeStartHandler, { passive: true });
     panel.addEventListener('touchend', window._swipeEndHandler, { passive: true });
     
-    console.log('✅ Swipe del encargado activado');
+    console.log('✅ Swipe horizontal del encargado activado');
 }
 
 // =====================================================
@@ -17635,7 +17636,7 @@ if (panelEncSwipe) {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                 if (panelEncSwipe.style.display !== 'none') {
-                    console.log('📱 Panel encargado visible, activando swipe...');
+                    console.log('📱 Panel encargado visible, activando swipe horizontal...');
                     setTimeout(activarSwipeEncargado, 500);
                 }
             }
@@ -17644,7 +17645,7 @@ if (panelEncSwipe) {
     observerSwipe.observe(panelEncSwipe, { attributes: true });
 }
 
-// 2. Cuando se cambia de estudiante (por si acaso)
+// 2. Cuando se cambia de estudiante
 document.addEventListener('DOMContentLoaded', function() {
     const select = document.getElementById('selectorEstudianteEnc');
     if (select) {
@@ -17661,12 +17662,12 @@ document.addEventListener('DOMContentLoaded', function() {
 setTimeout(function() {
     const panel = document.getElementById('encargadoPanel');
     if (panel && panel.style.display !== 'none') {
-        console.log('📱 Panel encargado ya visible, activando swipe...');
+        console.log('📱 Panel encargado ya visible, activando swipe horizontal...');
         setTimeout(activarSwipeEncargado, 600);
     }
 }, 1200);
 
-console.log('✅ Sistema de swipe del encargado ACTIVADO');
+console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
   
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
