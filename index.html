@@ -17397,65 +17397,67 @@ setInterval(function() {
 function reiniciarMenusEncargado() {
     console.log('🔄 Reiniciando TODOS los menús del encargado...');
     
-    // ============================================
-    // 1. REINICIAR MENÚ INFERIOR (los 6 botones de abajo)
-    // ============================================
-    const menuItems = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
+   // ============================================
+// 1. REINICIAR MENÚ INFERIOR (los 6 botones de abajo) - CON HISTORIAL MEJORADO
+// ============================================
+const menuItems = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
+
+menuItems.forEach(function(item) {
+    const pantalla = item.getAttribute('data-pantalla');
+    if (!pantalla) return;
     
-    menuItems.forEach(function(item) {
-        const pantalla = item.getAttribute('data-pantalla');
-        if (!pantalla) return;
+    const nuevoItem = item.cloneNode(true);
+    item.parentNode.replaceChild(nuevoItem, item);
+    
+    nuevoItem.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        const nuevoItem = item.cloneNode(true);
-        item.parentNode.replaceChild(nuevoItem, item);
+        console.log('🔘 Menú inferior click:', pantalla);
         
-        nuevoItem.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('🔘 Menú inferior click:', pantalla);
-            
-            const target = document.getElementById('pantalla-' + pantalla);
-            if (!target) return;
-            
-            // Ocultar todas las pantallas
-            document.querySelectorAll('#encargadoPanel .pantalla').forEach(function(p) {
-                p.classList.remove('active');
-            });
-            target.classList.add('active');
-            
-            // Actualizar estilo de los botones
-            document.querySelectorAll('#encargadoPanel .menu-item').forEach(function(m) {
-                m.classList.remove('active');
-                m.style.color = '#777';
-                m.style.background = 'transparent';
-            });
-            
-            this.classList.add('active');
-            const esPrincipal = encargadoTemaActual === 'principal';
-            const color = esPrincipal ? '#E63946' : '#1976D2';
-            this.style.color = color;
-            this.style.background = color + '22';
-            
-            // Cargar datos específicos
-            const select = document.getElementById('selectorEstudianteEnc');
-            if (select && select.value) {
-                const estudianteId = parseInt(select.value);
-                if (pantalla === 'claseactual' && typeof iniciarTemarioTiempoReal === 'function') {
-                    iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
-                }
-                if (pantalla === 'tarea' && typeof iniciarInfoTareaTiempoReal === 'function') {
-                    iniciarInfoTareaTiempoReal(estudianteId);
-                }
-                if (pantalla === 'notas' && typeof iniciarTareasTiempoReal === 'function') {
-                    iniciarTareasTiempoReal(estudianteId);
-                }
-                if (pantalla === 'historial' && typeof cargarHistorialCompleto === 'function') {
-                    cargarHistorialCompleto(estudianteId);
-                }
-            }
+        const target = document.getElementById('pantalla-' + pantalla);
+        if (!target) return;
+        
+        // Ocultar todas las pantallas
+        document.querySelectorAll('#encargadoPanel .pantalla').forEach(function(p) {
+            p.classList.remove('active');
         });
+        target.classList.add('active');
+        
+        // Actualizar estilo de los botones
+        document.querySelectorAll('#encargadoPanel .menu-item').forEach(function(m) {
+            m.classList.remove('active');
+            m.style.color = '#777';
+            m.style.background = 'transparent';
+        });
+        
+        this.classList.add('active');
+        const esPrincipal = encargadoTemaActual === 'principal';
+        const color = esPrincipal ? '#E63946' : '#1976D2';
+        this.style.color = color;
+        this.style.background = color + '22';
+        
+        // Cargar datos específicos
+        const select = document.getElementById('selectorEstudianteEnc');
+        if (select && select.value) {
+            const estudianteId = parseInt(select.value);
+            if (pantalla === 'claseactual' && typeof iniciarTemarioTiempoReal === 'function') {
+                iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
+            }
+            if (pantalla === 'tarea' && typeof iniciarInfoTareaTiempoReal === 'function') {
+                iniciarInfoTareaTiempoReal(estudianteId);
+            }
+            if (pantalla === 'notas' && typeof iniciarTareasTiempoReal === 'function') {
+                iniciarTareasTiempoReal(estudianteId);
+            }
+            // 🔥🔥🔥 NUEVO: Si es historial, forzar recarga
+            if (pantalla === 'historial' && typeof cargarHistorialCompleto === 'function') {
+                console.log('📜 Recargando historial para estudiante:', estudianteId);
+                cargarHistorialCompleto(estudianteId);
+            }
+        }
     });
+});
     
     // ============================================
     // 2. REINICIAR MENÚ HAMBURGUESA
@@ -17637,6 +17639,53 @@ setTimeout(function() {
 }, 800);
 
 console.log('✅ Sistema de menús del encargado activado (inferior + hamburguesa)');
+  
+  // =====================================================
+// 🔥 PARCHE 2: ACTUALIZAR HISTORIAL AUTOMÁTICAMENTE
+// =====================================================
+
+// Esta función se ejecuta CADA VEZ que cambia el estudiante
+function forzarActualizacionHistorial(estudianteId) {
+    // Verificar si la pantalla de historial está activa
+    const historialPantalla = document.getElementById('pantalla-historial');
+    if (historialPantalla && historialPantalla.classList.contains('active')) {
+        console.log('📜 Historial visible, actualizando para estudiante:', estudianteId);
+        if (typeof cargarHistorialCompleto === 'function') {
+            setTimeout(function() {
+                cargarHistorialCompleto(estudianteId);
+            }, 300);
+        }
+    }
+}
+
+// Interceptar el cambio de estudiante (sin romper nada)
+const originalActualizarInfo = window.actualizarInfoEstudiante;
+
+window.actualizarInfoEstudiante = function(estudianteId) {
+    // Ejecutar la función original
+    if (typeof originalActualizarInfo === 'function') {
+        originalActualizarInfo(estudianteId);
+    }
+    // Forzar actualización del historial
+    forzarActualizacionHistorial(estudianteId);
+};
+
+// Escuchar cambios en el selector
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('selectorEstudianteEnc');
+    if (select) {
+        select.addEventListener('change', function() {
+            const id = parseInt(this.value);
+            if (id) {
+                setTimeout(function() {
+                    forzarActualizacionHistorial(id);
+                }, 500);
+            }
+        });
+    }
+});
+
+console.log('✅ PARCHE 2: Historial automático ACTIVADO');
   
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
