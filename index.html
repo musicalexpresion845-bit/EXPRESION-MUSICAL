@@ -17547,6 +17547,127 @@ document.addEventListener('DOMContentLoaded', function() {
 
 console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
   
+  // =====================================================
+// 🔥 ARREGLAR SWIPE DEL ENCARGADO (deslizar entre pantallas)
+// =====================================================
+
+function activarSwipeEncargado() {
+    console.log('🔄 Activando swipe del encargado...');
+    
+    const panel = document.getElementById('encargadoPanel');
+    if (!panel) return;
+    
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    // Lista de pantallas que tienen swipe (en orden)
+    const pantallasConSwipe = ['info', 'claseactual', 'tarea', 'notas', 'historial'];
+    
+    function getIndiceActual() {
+        const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
+        let activo = 'info';
+        items.forEach(function(item) {
+            if (item.classList.contains('active')) {
+                const pantalla = item.getAttribute('data-pantalla');
+                if (pantalla) activo = pantalla;
+            }
+        });
+        const index = pantallasConSwipe.indexOf(activo);
+        return index !== -1 ? index : 0;
+    }
+    
+    function cambiarPantalla(direccion) {
+        const idx = getIndiceActual();
+        let nuevoIdx = idx + direccion;
+        
+        if (nuevoIdx < 0) nuevoIdx = 0;
+        if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
+        
+        if (nuevoIdx !== idx) {
+            const nuevaPantalla = pantallasConSwipe[nuevoIdx];
+            console.log('👆 Swipe a:', nuevaPantalla);
+            
+            // Buscar el botón del menú correspondiente y hacer click
+            const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
+            items.forEach(function(item) {
+                if (item.getAttribute('data-pantalla') === nuevaPantalla) {
+                    item.click();
+                }
+            });
+        }
+    }
+    
+    // Eliminar eventos anteriores si existen
+    panel.removeEventListener('touchstart', window._swipeStartHandler);
+    panel.removeEventListener('touchend', window._swipeEndHandler);
+    
+    // Asignar nuevos eventos
+    window._swipeStartHandler = function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    };
+    
+    window._swipeEndHandler = function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        const diffX = touchStartX - touchEndX;
+        if (Math.abs(diffX) > 40) {
+            if (diffX > 0) {
+                cambiarPantalla(1);  // Deslizar a la izquierda → siguiente
+            } else {
+                cambiarPantalla(-1); // Deslizar a la derecha → anterior
+            }
+        }
+    };
+    
+    panel.addEventListener('touchstart', window._swipeStartHandler, { passive: true });
+    panel.addEventListener('touchend', window._swipeEndHandler, { passive: true });
+    
+    console.log('✅ Swipe del encargado activado');
+}
+
+// =====================================================
+// 🔥 EJECUTAR SWIPE CUANDO EL PANEL ENCARGADO SE MUESTRA
+// =====================================================
+
+// 1. Cuando el panel se hace visible
+const panelEncSwipe = document.getElementById('encargadoPanel');
+if (panelEncSwipe) {
+    const observerSwipe = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                if (panelEncSwipe.style.display !== 'none') {
+                    console.log('📱 Panel encargado visible, activando swipe...');
+                    setTimeout(activarSwipeEncargado, 500);
+                }
+            }
+        });
+    });
+    observerSwipe.observe(panelEncSwipe, { attributes: true });
+}
+
+// 2. Cuando se cambia de estudiante (por si acaso)
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('selectorEstudianteEnc');
+    if (select) {
+        select.addEventListener('change', function() {
+            const panel = document.getElementById('encargadoPanel');
+            if (panel && panel.style.display !== 'none') {
+                setTimeout(activarSwipeEncargado, 600);
+            }
+        });
+    }
+});
+
+// 3. Si el panel ya está visible al cargar
+setTimeout(function() {
+    const panel = document.getElementById('encargadoPanel');
+    if (panel && panel.style.display !== 'none') {
+        console.log('📱 Panel encargado ya visible, activando swipe...');
+        setTimeout(activarSwipeEncargado, 600);
+    }
+}, 1200);
+
+console.log('✅ Sistema de swipe del encargado ACTIVADO');
+  
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
 <!-- ============================================ -->
