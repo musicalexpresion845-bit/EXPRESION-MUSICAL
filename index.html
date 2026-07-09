@@ -16047,8 +16047,6 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
     encargadoEstudianteActual = estudianteId;
     
     limpiarListenersEncargado();
-    
-    // 🔥🔥🔥 INICIAR LISTENER EN TIEMPO REAL PARA ESTE ESTUDIANTE
     iniciarListenerFotoEncargado(estudianteId);
     
     // 🔥 PRIMERO: INTENTAR CARGAR DESDE FIREBASE (CON FOTO)
@@ -16058,11 +16056,9 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
             const doc = await window.db.collection('inscripciones').doc(String(estudianteId)).get();
             if (doc.exists) {
                 const estudiante = { id: doc.id, ...doc.data() };
-                // 🔥 PASAR EL ESTUDIANTE COMPLETO (CON FOTO DE FIREBASE)
                 await mostrarInfoEstudiante(estudiante);
                 console.log('✅ Estudiante cargado desde Firebase con foto');
                 
-                // Guardar lista de instrumentos (para el modal)
                 const principal = estudiante.musical?.instrumentoPrincipal || '';
                 const secundario = estudiante.musical?.instrumentoSecundario || '';
                 encargadoInstrumentosLista = [principal];
@@ -16077,25 +16073,72 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
                     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
                 }
                 cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+                
+                // =====================================================
+                // 🔥🔥🔥 NUEVO: ACTUALIZAR LA PESTAÑA QUE ESTÁ VISIBLE
+                // =====================================================
+                setTimeout(function() {
+                    const pantallaActiva = document.querySelector('.pantalla.active');
+                    if (pantallaActiva) {
+                        const idPantalla = pantallaActiva.id.replace('pantalla-', '');
+                        console.log('📱 Pestaña activa detectada:', idPantalla);
+                        
+                        const select = document.getElementById('selectorEstudianteEnc');
+                        const id = parseInt(select?.value);
+                        
+                        switch(idPantalla) {
+                            case 'historial':
+                                if (typeof cargarHistorialCompleto === 'function') {
+                                    console.log('📜 Recargando historial para:', id);
+                                    cargarHistorialCompleto(id);
+                                }
+                                break;
+                            case 'claseactual':
+                                if (typeof iniciarTemarioTiempoReal === 'function') {
+                                    iniciarTemarioTiempoReal(id, encargadoInstrumentoSeleccionado);
+                                }
+                                break;
+                            case 'tarea':
+                                if (typeof iniciarInfoTareaTiempoReal === 'function') {
+                                    iniciarInfoTareaTiempoReal(id);
+                                }
+                                break;
+                            case 'notas':
+                                if (typeof iniciarTareasTiempoReal === 'function') {
+                                    iniciarTareasTiempoReal(id);
+                                }
+                                break;
+                            case 'pagos':
+                                if (typeof iniciarPagosTiempoReal === 'function') {
+                                    iniciarPagosTiempoReal(id);
+                                }
+                                break;
+                            case 'asistencia':
+                                if (typeof iniciarAsistenciaTiempoReal === 'function') {
+                                    iniciarAsistenciaTiempoReal(id);
+                                }
+                                break;
+                            default:
+                                console.log('ℹ️ Pestaña sin actualización automática:', idPantalla);
+                        }
+                    }
+                }, 400);
+                
                 return; // ✅ SALIR SI FUE EXITOSO
-            } else {
-                console.warn('⚠️ Documento no existe en Firebase');
             }
         } catch (e) {
             console.error('❌ Error cargando desde Firebase:', e);
-            // Si falla Firebase, continuar con el fallback
         }
     }
     
-    // 🔥 SEGUNDO: FALLBACK - USAR LOCALSTORAGE SI FIREBASE FALLÓ
+    // 🔥 SEGUNDO: FALLBACK - USAR LOCALSTORAGE
     console.log('📦 Usando fallback: cargando desde localStorage...');
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     
     if (estudiante) {
-        // 🔥 PASAR EL ESTUDIANTE (PERO SIN FOTO, O CON LA QUE TENGA EN MEMORIA)
         await mostrarInfoEstudiante(estudiante);
-        console.log('📦 Estudiante cargado desde localStorage (sin foto)');
+        console.log('📦 Estudiante cargado desde localStorage');
         
         const principal = estudiante.musical?.instrumentoPrincipal || '';
         const secundario = estudiante.musical?.instrumentoSecundario || '';
@@ -16111,6 +16154,55 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
             aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
         }
         cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+        
+        // =====================================================
+        // 🔥🔥🔥 NUEVO: ACTUALIZAR LA PESTAÑA QUE ESTÁ VISIBLE
+        // =====================================================
+        setTimeout(function() {
+            const pantallaActiva = document.querySelector('.pantalla.active');
+            if (pantallaActiva) {
+                const idPantalla = pantallaActiva.id.replace('pantalla-', '');
+                console.log('📱 Pestaña activa detectada (fallback):', idPantalla);
+                
+                const select = document.getElementById('selectorEstudianteEnc');
+                const id = parseInt(select?.value);
+                
+                switch(idPantalla) {
+                    case 'historial':
+                        if (typeof cargarHistorialCompleto === 'function') {
+                            console.log('📜 Recargando historial para:', id);
+                            cargarHistorialCompleto(id);
+                        }
+                        break;
+                    case 'claseactual':
+                        if (typeof iniciarTemarioTiempoReal === 'function') {
+                            iniciarTemarioTiempoReal(id, encargadoInstrumentoSeleccionado);
+                        }
+                        break;
+                    case 'tarea':
+                        if (typeof iniciarInfoTareaTiempoReal === 'function') {
+                            iniciarInfoTareaTiempoReal(id);
+                        }
+                        break;
+                    case 'notas':
+                        if (typeof iniciarTareasTiempoReal === 'function') {
+                            iniciarTareasTiempoReal(id);
+                        }
+                        break;
+                    case 'pagos':
+                        if (typeof iniciarPagosTiempoReal === 'function') {
+                            iniciarPagosTiempoReal(id);
+                        }
+                        break;
+                    case 'asistencia':
+                        if (typeof iniciarAsistenciaTiempoReal === 'function') {
+                            iniciarAsistenciaTiempoReal(id);
+                        }
+                        break;
+                }
+            }
+        }, 400);
+        
     } else {
         console.error('❌ Estudiante no encontrado en ninguna fuente');
         const infoDiv = document.getElementById('infoEstudianteEnc');
@@ -17391,301 +17483,69 @@ setInterval(function() {
 }, 5000);
   
 // =====================================================
-// 🔥 REINICIAR TODOS LOS MENÚS DEL ENCARGADO (INFERIOR + HAMBURGUESA)
+// 🔥 CORRECCIÓN: FORZAR NAVEGACIÓN DEL ENCARGADO AL ENTRAR
 // =====================================================
 
-function reiniciarMenusEncargado() {
-    console.log('🔄 Reiniciando TODOS los menús del encargado...');
+// Esta función se ejecuta cuando el encargado inicia sesión
+function forzarNavegacionEncargado() {
+    console.log('🔄 Forzando navegación del encargado...');
     
-   // ============================================
-// 1. REINICIAR MENÚ INFERIOR (los 6 botones de abajo) - CON HISTORIAL MEJORADO
-// ============================================
-const menuItems = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
-
-menuItems.forEach(function(item) {
-    const pantalla = item.getAttribute('data-pantalla');
-    if (!pantalla) return;
-    
-    const nuevoItem = item.cloneNode(true);
-    item.parentNode.replaceChild(nuevoItem, item);
-    
-    nuevoItem.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('🔘 Menú inferior click:', pantalla);
-        
-        const target = document.getElementById('pantalla-' + pantalla);
-        if (!target) return;
-        
-        // Ocultar todas las pantallas
-        document.querySelectorAll('#encargadoPanel .pantalla').forEach(function(p) {
-            p.classList.remove('active');
-        });
-        target.classList.add('active');
-        
-        // Actualizar estilo de los botones
-        document.querySelectorAll('#encargadoPanel .menu-item').forEach(function(m) {
-            m.classList.remove('active');
-            m.style.color = '#777';
-            m.style.background = 'transparent';
-        });
-        
-        this.classList.add('active');
-        const esPrincipal = encargadoTemaActual === 'principal';
-        const color = esPrincipal ? '#E63946' : '#1976D2';
-        this.style.color = color;
-        this.style.background = color + '22';
-        
-        // Cargar datos específicos
-        const select = document.getElementById('selectorEstudianteEnc');
-        if (select && select.value) {
-            const estudianteId = parseInt(select.value);
-            if (pantalla === 'claseactual' && typeof iniciarTemarioTiempoReal === 'function') {
-                iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
+    // Esperar a que el DOM esté listo
+    setTimeout(function() {
+        // Buscar el panel del encargado
+        const panel = document.getElementById('encargadoPanel');
+        if (panel && panel.style.display !== 'none') {
+            console.log('📱 Panel encargado visible, iniciando navegación...');
+            
+            // Iniciar navegación
+            if (typeof iniciarNavegacionEncargado === 'function') {
+                iniciarNavegacionEncargado();
+                console.log('✅ Navegación del encargado forzada');
             }
-            if (pantalla === 'tarea' && typeof iniciarInfoTareaTiempoReal === 'function') {
-                iniciarInfoTareaTiempoReal(estudianteId);
-            }
-            if (pantalla === 'notas' && typeof iniciarTareasTiempoReal === 'function') {
-                iniciarTareasTiempoReal(estudianteId);
-            }
-            // 🔥🔥🔥 NUEVO: Si es historial, forzar recarga
-            if (pantalla === 'historial' && typeof cargarHistorialCompleto === 'function') {
-                console.log('📜 Recargando historial para estudiante:', estudianteId);
-                cargarHistorialCompleto(estudianteId);
+            
+            // También forzar el selector de estudiantes
+            if (typeof iniciarSelectorTiempoReal === 'function') {
+                setTimeout(iniciarSelectorTiempoReal, 300);
             }
         }
-    });
-});
-    
-    // ============================================
-    // 2. REINICIAR MENÚ HAMBURGUESA
-    // ============================================
-    
-    // 2a. Botón de 3 rayitas (abrir)
-    const btnMenu = document.getElementById('btnMenuHamburguesa');
-    if (btnMenu) {
-        const nuevoBtn = btnMenu.cloneNode(true);
-        btnMenu.parentNode.replaceChild(nuevoBtn, btnMenu);
-        
-        nuevoBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            console.log('🍔 Abriendo menú hamburguesa');
-            const overlay = document.getElementById('menuHamburguesaOverlay');
-            if (overlay) {
-                overlay.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    }
-    
-    // 2b. Botón cerrar (X)
-    const cerrarMenu = document.getElementById('cerrarMenuHamburguesa');
-    if (cerrarMenu) {
-        const nuevoCerrar = cerrarMenu.cloneNode(true);
-        cerrarMenu.parentNode.replaceChild(nuevoCerrar, cerrarMenu);
-        
-        nuevoCerrar.addEventListener('click', function() {
-            console.log('❌ Cerrando menú hamburguesa');
-            const overlay = document.getElementById('menuHamburguesaOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-                document.body.style.overflow = '';
-            }
-        });
-    }
-    
-    // 2c. Overlay (clic fuera para cerrar)
-    const overlay = document.getElementById('menuHamburguesaOverlay');
-    if (overlay) {
-        const nuevoOverlay = overlay.cloneNode(true);
-        overlay.parentNode.replaceChild(nuevoOverlay, overlay);
-        
-        nuevoOverlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-                console.log('🔘 Clic fuera del menú, cerrando');
-                this.style.display = 'none';
-                document.body.style.overflow = '';
-            }
-        });
-    }
-    
-    // 2d. Ítems del menú hamburguesa
-    const hamburguesaItems = document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item[data-pantalla]');
-    
-    hamburguesaItems.forEach(function(item) {
-        const pantalla = item.getAttribute('data-pantalla');
-        if (!pantalla) return;
-        
-        const nuevoItem = item.cloneNode(true);
-        item.parentNode.replaceChild(nuevoItem, item);
-        
-        nuevoItem.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('🍔 Ítem hamburguesa click:', pantalla);
-            
-            // Caso especial: Cambiar instrumento
-            if (pantalla === 'cambiarInstrumento') {
-                const overlay = document.getElementById('menuHamburguesaOverlay');
-                if (overlay) overlay.style.display = 'none';
-                document.body.style.overflow = '';
-                setTimeout(function() {
-                    if (typeof mostrarModalCambioInstrumento === 'function') {
-                        mostrarModalCambioInstrumento();
-                    }
-                }, 200);
-                return;
-            }
-            
-            // Caso especial: Editar perfil
-            if (pantalla === 'editarPerfil') {
-                const overlay = document.getElementById('menuHamburguesaOverlay');
-                if (overlay) overlay.style.display = 'none';
-                document.body.style.overflow = '';
-                setTimeout(function() {
-                    if (typeof mostrarModalEditarPerfil === 'function') {
-                        mostrarModalEditarPerfil();
-                    }
-                }, 200);
-                return;
-            }
-            
-            // Cerrar menú
-            const overlay = document.getElementById('menuHamburguesaOverlay');
-            if (overlay) overlay.style.display = 'none';
-            document.body.style.overflow = '';
-            
-            // Mostrar pantalla
-            setTimeout(function() {
-                const target = document.getElementById('pantalla-' + pantalla);
-                if (target) {
-                    // Ocultar todas las pantallas
-                    document.querySelectorAll('#encargadoPanel .pantalla').forEach(function(p) {
-                        p.classList.remove('active');
-                    });
-                    target.classList.add('active');
-                    
-                    // Actualizar menú inferior
-                    document.querySelectorAll('#encargadoPanel .menu-item').forEach(function(m) {
-                        m.classList.remove('active');
-                        m.style.color = '#777';
-                        m.style.background = 'transparent';
-                    });
-                    
-                    document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla="' + pantalla + '"]').forEach(function(m) {
-                        m.classList.add('active');
-                        const esPrincipal = encargadoTemaActual === 'principal';
-                        const color = esPrincipal ? '#E63946' : '#1976D2';
-                        m.style.color = color;
-                        m.style.background = color + '22';
-                    });
-                }
-            }, 200);
-        });
-    });
-    
-    console.log('✅ TODOS los menús del encargado reiniciados correctamente');
+    }, 500);
 }
 
-// =====================================================
-// 🔥 EJECUTAR AUTOMÁTICAMENTE CUANDO SE MUESTRA EL PANEL
-// =====================================================
-
-function activarMenusEncargado() {
-    console.log('🔄 Activando menús del encargado...');
-    setTimeout(reiniciarMenusEncargado, 300);
-}
-
-// 1. Observar cuando el panel se hace visible
-const panelEnc = document.getElementById('encargadoPanel');
-if (panelEnc) {
+// Escuchar cuando se muestra el panel del encargado
+const panelEncargado = document.getElementById('encargadoPanel');
+if (panelEncargado) {
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                if (panelEnc.style.display !== 'none') {
-                    console.log('📱 Panel encargado visible, activando menús...');
-                    activarMenusEncargado();
+                if (panelEncargado.style.display !== 'none') {
+                    console.log('📱 Panel encargado se hizo visible, forzando navegación...');
+                    forzarNavegacionEncargado();
                 }
             }
         });
     });
-    observer.observe(panelEnc, { attributes: true });
+    observer.observe(panelEncargado, { attributes: true });
 }
 
-// 2. Cuando se selecciona un estudiante
-document.addEventListener('DOMContentLoaded', function() {
-    const select = document.getElementById('selectorEstudianteEnc');
-    if (select) {
-        select.addEventListener('change', function() {
-            const panel = document.getElementById('encargadoPanel');
-            if (panel && panel.style.display !== 'none') {
-                setTimeout(reiniciarMenusEncargado, 400);
-            }
-        });
-    }
-});
-
-// 3. Si el panel ya está visible al cargar
+// También ejecutar al cargar la página por si ya está visible
 setTimeout(function() {
     const panel = document.getElementById('encargadoPanel');
     if (panel && panel.style.display !== 'none') {
-        console.log('📱 Panel encargado ya visible al cargar, activando menús...');
-        activarMenusEncargado();
+        console.log('📱 Panel encargado ya visible al cargar');
+        forzarNavegacionEncargado();
     }
-}, 800);
+}, 1000);
 
-console.log('✅ Sistema de menús del encargado activado (inferior + hamburguesa)');
-  
-  // =====================================================
-// 🔥 PARCHE 2: ACTUALIZAR HISTORIAL AUTOMÁTICAMENTE
-// =====================================================
-
-// Esta función se ejecuta CADA VEZ que cambia el estudiante
-function forzarActualizacionHistorial(estudianteId) {
-    // Verificar si la pantalla de historial está activa
-    const historialPantalla = document.getElementById('pantalla-historial');
-    if (historialPantalla && historialPantalla.classList.contains('active')) {
-        console.log('📜 Historial visible, actualizando para estudiante:', estudianteId);
-        if (typeof cargarHistorialCompleto === 'function') {
-            setTimeout(function() {
-                cargarHistorialCompleto(estudianteId);
-            }, 300);
-        }
-    }
-}
-
-// Interceptar el cambio de estudiante (sin romper nada)
-const originalActualizarInfo = window.actualizarInfoEstudiante;
-
-window.actualizarInfoEstudiante = function(estudianteId) {
-    // Ejecutar la función original
-    if (typeof originalActualizarInfo === 'function') {
-        originalActualizarInfo(estudianteId);
-    }
-    // Forzar actualización del historial
-    forzarActualizacionHistorial(estudianteId);
-};
-
-// Escuchar cambios en el selector
+// 🔥 NUEVO: También forzar cuando el usuario inicia sesión como encargado
 document.addEventListener('DOMContentLoaded', function() {
-    const select = document.getElementById('selectorEstudianteEnc');
-    if (select) {
-        select.addEventListener('change', function() {
-            const id = parseInt(this.value);
-            if (id) {
-                setTimeout(function() {
-                    forzarActualizacionHistorial(id);
-                }, 500);
-            }
-        });
+    const userType = localStorage.getItem('userType');
+    if (userType === 'encargado') {
+        console.log('🔑 Usuario encargado detectado, forzando navegación...');
+        setTimeout(forzarNavegacionEncargado, 800);
     }
 });
 
-console.log('✅ PARCHE 2: Historial automático ACTIVADO');
+console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
   
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
