@@ -9,7 +9,20 @@
   "icons": [
     {
       "src": "https://expresion-musicall.pages.dev/logo.png",
-      "sizes": "512x512",
+      "sizes": "500x500",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://expresion-musicall.pages.dev/logo.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "https://expresion-musicall.pages.dev/logo.png",
+      "sizes": "500x500",
       "type": "image/png"
     }
   ],
