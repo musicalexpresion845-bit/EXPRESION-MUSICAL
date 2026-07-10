@@ -5966,6 +5966,48 @@ body.dark-mode .acciones .btn:hover {
 </script>
 </head>
 <body>
+    <!-- BOTÓN DE INSTALACIÓN DE LA APP -->
+<div id="installBanner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #E63946; color: white; padding: 15px 25px; border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 99999; display: flex; align-items: center; gap: 15px; font-family: 'Montserrat', sans-serif; cursor: pointer; border: none; transition: all 0.3s;">
+    <i class="fas fa-download" style="font-size: 20px;"></i>
+    <span style="font-weight: 600; font-size: 16px;">📱 Instalar App</span>
+</div>
+
+<script>
+    // =====================================================
+    // 🔥 BOTÓN DE INSTALACIÓN DE LA APP
+    // =====================================================
+    let deferredPrompt;
+    const installBanner = document.getElementById('installBanner');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🔔 Evento beforeinstallprompt detectado');
+        e.preventDefault();
+        deferredPrompt = e;
+        installBanner.style.display = 'flex';
+    });
+
+    installBanner.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const result = await deferredPrompt.userChoice;
+            console.log('✅ Usuario:', result.outcome);
+            installBanner.style.display = 'none';
+            deferredPrompt = null;
+        } else {
+            alert('⚠️ La instalación no está disponible en este momento.');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ App instalada correctamente');
+        installBanner.style.display = 'none';
+        deferredPrompt = null;
+    });
+
+    if (window.navigator.standalone) {
+        installBanner.style.display = 'none';
+    }
+</script>
 <!-- Pantalla de Login -->
     <div class="login-screen" id="loginScreen">
         <div class="login-container">
