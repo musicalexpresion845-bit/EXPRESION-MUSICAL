@@ -1,12 +1,10 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
-  "display": "standalone",
   "name": "Academia Expresión Musical",
-  "orientation": "any",
-  "scope": "/",
   "short_name": "Expresión Musical",
+  "description": "Sistema de gestión académica para la Academia de Música Expresión Musical. Control de inscripciones, pagos, asistencia y tareas.",
   "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
   "theme_color": "#E63946",
   "icons": [
     {
@@ -15,6 +13,7 @@
       "type": "image/png"
     }
   ],
-  "id": "academia-expresion-musical",
-  "description": "Sistema de gestión académica para la Academia de Música Expresión Musical. Control de inscripciones, pagos, asistencia y tareas."
+  "scope": "/",
+  "orientation": "any",
+  "id": "academia-expresion-musical"
 }
