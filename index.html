@@ -20140,5 +20140,21 @@ window.mostrarModalUsuario = function() {
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
 </script>
+    <script>
+    // =====================================================
+    // 🔥 REGISTRAR SERVICE WORKER
+    // =====================================================
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('✅ Service Worker registrado exitosamente:', registration);
+            })
+            .catch(function(error) {
+                console.log('❌ Error al registrar Service Worker:', error);
+            });
+    } else {
+        console.log('❌ Service Worker no soportado en este navegador');
+    }
+</script>
 </body>
 </html> 
