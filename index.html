@@ -9783,7 +9783,7 @@ async function cargarFotoDesdeFirebase(id) {
 }
 
 // =====================================================
-// 🔥 CARGAR DATOS - FOTOS SOLO EN MEMORIA, NO EN LOCALSTORAGE
+// 🔥 CARGAR DATOS - CORREGIDO
 // =====================================================
 
 async function loadAllData() {
@@ -9815,7 +9815,14 @@ async function loadAllData() {
         if (firestoreData.length > 0) {
             inscriptions = firestoreData;
             
-            const datosSinFotos = quitarFotosDeDatos(inscriptions);
+            const datosSinFotos = firestoreData.map(item => {
+                const copia = JSON.parse(JSON.stringify(item));
+                if (copia.estudiante) {
+                    delete copia.estudiante.foto;
+                }
+                return copia;
+            });
+            
             try {
                 localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
                 console.log(`✅ Guardados ${datosSinFotos.length} registros SIN FOTOS en localStorage`);
@@ -9846,12 +9853,9 @@ async function loadAllData() {
 }
 
 // =====================================================
-// 🔥 GUARDAR INSCRIPCIÓN - DEFINITIVA (CON FOTO EN FIREBASE)
+// 🔥 GUARDAR INSCRIPCIÓN - CORREGIDA
 // =====================================================
 
-// =====================================================
-// 🔥 GUARDAR INSCRIPCIÓN - MANTIENE LA FOTO
-// =====================================================
 function guardarInscripcion() {
     console.log('🟢 GUARDANDO INSCRIPCIÓN...');
     showToast('⏳ Guardando inscripción...', 'info');
@@ -9875,7 +9879,7 @@ function guardarInscripcion() {
     const getValue = (id) => document.getElementById(id)?.value || '';
     const editId = document.getElementById('editId')?.value;
 
-    // 🔥🔥🔥 IMPORTANTE: SI ES EDICIÓN, PRESERVAR LA FOTO EXISTENTE
+    // 🔥🔥🔥 IMPORTANTE: PRESERVAR LA FOTO EXISTENTE
     let fotoFinal = window.fotoTemporal || null;
 
     // Si estamos editando y NO hay foto temporal, buscar la foto existente
@@ -9896,7 +9900,7 @@ function guardarInscripcion() {
         showToast('⚠️ Guardando SIN foto', 'warning');
     }
 
-    // DATOS DEL FORMULARIO (SIN FOTO)
+    // DATOS DEL FORMULARIO
     const datosFormulario = {
         encargado: {
             nombre: getValue('encargadoNombre'),
@@ -9935,7 +9939,7 @@ function guardarInscripcion() {
         idFinal = currentEditId;
         datosFormulario.id = idFinal;
         
-        // Para localStorage, guardar SIN foto (para no saturar)
+        // Para localStorage, guardar SIN foto
         datosParaLocalStorage = JSON.parse(JSON.stringify(datosFormulario));
         if (datosParaLocalStorage.estudiante) {
             delete datosParaLocalStorage.estudiante.foto;
@@ -9965,11 +9969,10 @@ function guardarInscripcion() {
     localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
     console.log('💾 LocalStorage guardado (sin foto)');
 
-    // 🔥🔥🔥 GUARDAR EN FIRESTORE (CON FOTO O SIN ELLA, PERO PRESERVANDO LA EXISTENTE)
+    // 🔥🔥🔥 GUARDAR EN FIRESTORE (CON FOTO O SIN ELLA)
     if (window.db) {
         console.log('☁️ SUBIENDO A FIRESTORE...');
         
-        // 🔥 IMPORTANTE: Para edición, usar merge: true para NO sobrescribir campos
         const options = isEditing ? { merge: true } : {};
         
         window.db.collection('inscripciones').doc(String(idFinal)).set(datosFormulario, options)
@@ -10010,6 +10013,136 @@ function guardarInscripcion() {
     resetForm();
     document.getElementById('btnInicio')?.click();
     showToast('✅ Inscripción guardada correctamente', 'success');
+}
+
+// =====================================================
+// 🔥 EDITAR INSCRIPCIÓN - CORREGIDA
+// =====================================================
+
+async function editarInscripcion(id) {
+    console.log("🔄 EDITANDO ID:", id);
+    console.log("📸 CONSULTANDO DIRECTAMENTE A FIREBASE");
+
+    let inscripcion = null;
+
+    if (!window.db) {
+        showToast('❌ Firebase no disponible', 'error');
+        alert('Error: Firebase no está disponible.');
+        return;
+    }
+
+    try {
+        console.log('☁️ Consultando Firebase para ID:', id);
+        const doc = await window.db.collection('inscripciones').doc(String(id)).get();
+        
+        if (doc.exists) {
+            inscripcion = { id: doc.id, ...doc.data() };
+            console.log('✅ Datos obtenidos DIRECTAMENTE de Firebase');
+
+            // VERIFICAR SI TIENE FOTO
+            if (inscripcion.estudiante && inscripcion.estudiante.foto) {
+                window.fotoTemporal = inscripcion.estudiante.foto;
+                console.log('📸 FOTO ENCONTRADA EN FIREBASE ✅');
+                showToast('📸 Foto cargada desde Firebase', 'success');
+            } else {
+                window.fotoTemporal = null;
+                console.log('ℹ️ No hay foto en Firebase');
+                showToast('ℹ️ Este estudiante no tiene foto', 'info');
+            }
+        } else {
+            console.warn('⚠️ Documento no existe en Firebase');
+            showToast('⚠️ No se encontró la inscripción en Firebase', 'warning');
+            alert('Error: No se encontró la inscripción con ID: ' + id);
+            return;
+        }
+    } catch (e) {
+        console.error('❌ Error crítico al cargar desde Firebase:', e);
+        showToast('❌ Error al cargar desde Firebase: ' + e.message, 'error');
+        alert('Error al cargar los datos desde Firebase: ' + e.message);
+        return;
+    }
+
+    // ACTUALIZAR LA MEMORIA
+    const index = inscriptions.findIndex(ins => String(ins.id) === String(id));
+    if (index !== -1 && inscripcion) {
+        inscriptions[index] = { ...inscripcion };
+        console.log('🔄 Memoria actualizada con datos de Firebase');
+    }
+
+    // MOSTRAR FORMULARIO DE EDICIÓN
+    const dataTableContainer = document.getElementById('dataTableContainer');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    const inscriptionForm = document.getElementById('inscriptionForm');
+
+    if (dataTableContainer) dataTableContainer.style.display = 'none';
+    if (welcomeMessage) welcomeMessage.style.display = 'none';
+    if (inscriptionForm) inscriptionForm.style.display = 'block';
+
+    const fabContainer = document.getElementById('fabContainer');
+    if (fabContainer) fabContainer.style.display = 'block';
+
+    document.getElementById('editId').value = id;
+    document.getElementById('formTitle').textContent = "✏️ Editar Inscripción";
+    document.getElementById('submitBtnText').textContent = "Guardar Cambios";
+
+    // Llenar todos los campos
+    document.getElementById('encargadoNombre').value = inscripcion.encargado?.nombre || '';
+    document.getElementById('encargadoDPI').value = inscripcion.encargado?.dpi || '';
+    document.getElementById('encargadoTelefono').value = inscripcion.encargado?.telefono || '';
+    document.getElementById('encargadoDireccion').value = inscripcion.encargado?.direccion || '';
+    document.getElementById('estudianteNombre').value = inscripcion.estudiante?.nombre || '';
+    document.getElementById('estudianteEdad').value = inscripcion.estudiante?.edad || '';
+    document.getElementById('estudianteGenero').value = inscripcion.estudiante?.genero || '';
+    document.getElementById('estudianteNivel').value = inscripcion.estudiante?.nivel || '';
+    document.getElementById('planEstudio').value = inscripcion.academico?.plan || '';
+    
+    // Días de estudio
+    document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
+    if (inscripcion.academico?.dias) {
+        inscripcion.academico.dias.forEach(dia => {
+            const cb = document.querySelector(`input[name="diasEstudio"][value="${dia}"]`);
+            if (cb) cb.checked = true;
+        });
+    }
+
+    document.getElementById('horario').value = inscripcion.academico?.horario || '';
+    document.getElementById('fechaInicio').value = inscripcion.academico?.fechaInicio || '';
+    document.getElementById('instrumentoPrincipal').value = inscripcion.musical?.instrumentoPrincipal || '';
+    document.getElementById('instrumentoSecundario').value = inscripcion.musical?.instrumentoSecundario || '';
+    document.getElementById('generatedPassword').value = inscripcion.estudiante?.password || '';
+
+    // MOSTRAR LA FOTO EN EL PREVIEW
+    const fotoPreview = document.getElementById('fotoPreview');
+    if (window.fotoTemporal) {
+        fotoPreview.innerHTML = `<img src="${window.fotoTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+        console.log('📸 Foto mostrada en preview ✅');
+    } else {
+        fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
+        console.log('ℹ️ No hay foto para mostrar');
+    }
+
+    // Configurar estado de edición
+    isEditing = true;
+    currentEditId = id;
+    currentPageForm = 1;
+    updateFormNavigation();
+
+    // Ajustar labels flotantes
+    setTimeout(() => {
+        document.querySelectorAll('.floating input, .floating textarea, .floating select').forEach(field => {
+            if (field.value) {
+                const label = field.nextElementSibling;
+                if (label && label.tagName === 'LABEL') {
+                    label.style.top = '8px';
+                    label.style.left = '40px';
+                    label.style.fontSize = '11px';
+                    label.style.color = 'var(--rojo)';
+                }
+            }
+        });
+    }, 200);
+
+    console.log('✅ Edición preparada correctamente con datos DIRECTOS de Firebase');
 }
 
 // =====================================================
@@ -10143,142 +10276,6 @@ async function eliminarInscripcion(id) {
             alert('❌ Error al eliminar: ' + error.message);
         }
     }
-}
-
-// =====================================================
-// 🔥 EDITAR INSCRIPCIÓN - SIEMPRE CONSULTA FIREBASE
-// =====================================================
-async function editarInscripcion(id) {
-    console.log("🔄 EDITANDO ID:", id);
-    console.log("📸 CONSULTANDO DIRECTAMENTE A FIREBASE (sin usar caché)");
-
-    let inscripcion = null;
-    let fotoCargada = false;
-
-    // 🔥🔥🔥 SIEMPRE CARGAR DESDE FIRESTORE - NUNCA USAR MEMORIA
-    if (!window.db) {
-        showToast('❌ Firebase no disponible', 'error');
-        alert('Error: Firebase no está disponible. No se pueden cargar los datos.');
-        return;
-    }
-
-    try {
-        console.log('☁️ Consultando Firebase para ID:', id);
-        const doc = await window.db.collection('inscripciones').doc(String(id)).get();
-        
-        if (doc.exists) {
-            inscripcion = { id: doc.id, ...doc.data() };
-            console.log('✅ Datos obtenidos DIRECTAMENTE de Firebase');
-
-            // VERIFICAR SI TIENE FOTO
-            if (inscripcion.estudiante && inscripcion.estudiante.foto) {
-                window.fotoTemporal = inscripcion.estudiante.foto;
-                fotoCargada = true;
-                console.log('📸 FOTO ENCONTRADA EN FIREBASE ✅');
-                showToast('📸 Foto cargada desde Firebase', 'success');
-            } else {
-                window.fotoTemporal = null;
-                console.log('ℹ️ No hay foto en Firebase');
-                showToast('ℹ️ Este estudiante no tiene foto', 'info');
-            }
-        } else {
-            console.warn('⚠️ Documento no existe en Firebase');
-            showToast('⚠️ No se encontró la inscripción en Firebase', 'warning');
-            alert('Error: No se encontró la inscripción con ID: ' + id + ' en Firebase');
-            return;
-        }
-    } catch (e) {
-        console.error('❌ Error crítico al cargar desde Firebase:', e);
-        showToast('❌ Error al cargar desde Firebase: ' + e.message, 'error');
-        alert('Error al cargar los datos desde Firebase: ' + e.message);
-        return;
-    }
-
-    // 🔥 PASO 2: ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTO)
-    // Esto es solo para mantener consistencia, pero NO se usa para cargar
-    const index = inscriptions.findIndex(ins => String(ins.id) === String(id));
-    if (index !== -1 && inscripcion) {
-        inscriptions[index] = { ...inscripcion };
-        console.log('🔄 Memoria actualizada con datos de Firebase (incluye foto)');
-    } else if (inscripcion) {
-        inscriptions.push({ ...inscripcion });
-        console.log('🔄 Nuevo registro agregado a memoria desde Firebase');
-    }
-
-    // 🔥 PASO 3: MOSTRAR FORMULARIO DE EDICIÓN
-    const dataTableContainer = document.getElementById('dataTableContainer');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-    const inscriptionForm = document.getElementById('inscriptionForm');
-
-    if (dataTableContainer) dataTableContainer.style.display = 'none';
-    if (welcomeMessage) welcomeMessage.style.display = 'none';
-    if (inscriptionForm) inscriptionForm.style.display = 'block';
-
-    const fabContainer = document.getElementById('fabContainer');
-    if (fabContainer) fabContainer.style.display = 'block';
-
-    document.getElementById('editId').value = id;
-    document.getElementById('formTitle').textContent = "✏️ Editar Inscripción";
-    document.getElementById('submitBtnText').textContent = "Guardar Cambios";
-
-    // Llenar todos los campos
-    document.getElementById('encargadoNombre').value = inscripcion.encargado?.nombre || '';
-    document.getElementById('encargadoDPI').value = inscripcion.encargado?.dpi || '';
-    document.getElementById('encargadoTelefono').value = inscripcion.encargado?.telefono || '';
-    document.getElementById('encargadoDireccion').value = inscripcion.encargado?.direccion || '';
-    document.getElementById('estudianteNombre').value = inscripcion.estudiante?.nombre || '';
-    document.getElementById('estudianteEdad').value = inscripcion.estudiante?.edad || '';
-    document.getElementById('estudianteGenero').value = inscripcion.estudiante?.genero || '';
-    document.getElementById('estudianteNivel').value = inscripcion.estudiante?.nivel || '';
-    document.getElementById('planEstudio').value = inscripcion.academico?.plan || '';
-    
-    // Días de estudio
-    document.querySelectorAll('input[name="diasEstudio"]').forEach(cb => cb.checked = false);
-    if (inscripcion.academico?.dias) {
-        inscripcion.academico.dias.forEach(dia => {
-            const cb = document.querySelector(`input[name="diasEstudio"][value="${dia}"]`);
-            if (cb) cb.checked = true;
-        });
-    }
-
-    document.getElementById('horario').value = inscripcion.academico?.horario || '';
-    document.getElementById('fechaInicio').value = inscripcion.academico?.fechaInicio || '';
-    document.getElementById('instrumentoPrincipal').value = inscripcion.musical?.instrumentoPrincipal || '';
-    document.getElementById('instrumentoSecundario').value = inscripcion.musical?.instrumentoSecundario || '';
-    document.getElementById('generatedPassword').value = inscripcion.estudiante?.password || '';
-
-    // 🔥 MOSTRAR LA FOTO EN EL PREVIEW
-    const fotoPreview = document.getElementById('fotoPreview');
-    if (window.fotoTemporal) {
-        fotoPreview.innerHTML = `<img src="${window.fotoTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
-        console.log('📸 Foto mostrada en preview ✅');
-    } else {
-        fotoPreview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>`;
-        console.log('ℹ️ No hay foto para mostrar');
-    }
-
-    // Configurar estado de edición
-    isEditing = true;
-    currentEditId = id;
-    currentPageForm = 1;
-    updateFormNavigation();
-
-    // Ajustar labels flotantes
-    setTimeout(() => {
-        document.querySelectorAll('.floating input, .floating textarea, .floating select').forEach(field => {
-            if (field.value) {
-                const label = field.nextElementSibling;
-                if (label && label.tagName === 'LABEL') {
-                    label.style.top = '8px';
-                    label.style.left = '40px';
-                    label.style.fontSize = '11px';
-                    label.style.color = 'var(--rojo)';
-                }
-            }
-        });
-    }, 200);
-
-    console.log('✅ Edición preparada correctamente con datos DIRECTOS de Firebase');
 }
 
 // =====================================================
@@ -19255,7 +19252,7 @@ window.sincronizarAhora = function() {
 };
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA (MANTIENE FOTOS EN MEMORIA)
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA
 // =====================================================
 
 if (window.db) {
@@ -19267,18 +19264,17 @@ if (window.db) {
         
         console.log(`🔄 ${cambios.length} cambio(s) detectado(s)`);
         
-        // 🔥 LEER TODOS LOS DATOS DE FIREBASE (CON FOTOS)
+        // LEER TODOS LOS DATOS DE FIREBASE (CON FOTOS)
         let firestoreData = [];
         snapshot.forEach(doc => {
             firestoreData.push({ id: doc.id, ...doc.data() });
         });
         
-        // 🔥 ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTOS)
-        // ⚠️ IMPORTANTE: MANTENER LAS FOTOS EN MEMORIA
+        // ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTOS)
         inscriptions = firestoreData;
         window.inscriptions = firestoreData;
         
-        // 🔥 GUARDAR EN LOCALSTORAGE PERO SIN FOTOS (para no saturar)
+        // GUARDAR EN LOCALSTORAGE PERO SIN FOTOS
         const datosSinFotos = firestoreData.map(item => {
             const copia = JSON.parse(JSON.stringify(item));
             if (copia.estudiante) {
@@ -19290,7 +19286,7 @@ if (window.db) {
         
         console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase (CON FOTOS en memoria)`);
         
-        // ✅ ACTUALIZAR VISTAS SI ESTÁN VISIBLES
+        // ACTUALIZAR VISTAS SI ESTÁN VISIBLES
         const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
         const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
         
