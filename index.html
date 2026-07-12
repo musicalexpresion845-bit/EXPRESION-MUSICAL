@@ -9969,17 +9969,18 @@ function guardarInscripcion() {
     localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
     console.log('💾 LocalStorage guardado (sin foto)');
 
-    // 🔥🔥🔥 GUARDAR EN FIRESTORE (CON FOTO O SIN ELLA)
+    // 🔥🔥🔥 GUARDAR EN FIRESTORE (CON FOTO) - ¡AHORA USA `datosFormulario`!
     if (window.db) {
-        console.log('☁️ SUBIENDO A FIRESTORE...');
+        console.log('☁️ SUBIENDO A FIRESTORE CON FOTO...');
         
         const options = isEditing ? { merge: true } : {};
         
+        // ✅ CORREGIDO: Usar `datosFormulario` (que SÍ tiene la foto)
         window.db.collection('inscripciones').doc(String(idFinal)).set(datosFormulario, options)
             .then(() => {
-                console.log('✅✅✅ GUARDADO EN FIRESTORE');
+                console.log('✅✅✅ GUARDADO EN FIRESTORE CON FOTO');
                 if (datosFormulario.estudiante && datosFormulario.estudiante.foto) {
-                    console.log('📸 FOTO GUARDADA EN FIREBASE');
+                    console.log('📸 FOTO GUARDADA EN FIREBASE ✅');
                     showToast('✅ Guardado CON FOTO en Firebase', 'success');
                 } else {
                     console.log('ℹ️ Guardado SIN FOTO en Firebase');
