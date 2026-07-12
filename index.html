@@ -11171,12 +11171,10 @@ function cargarDatos() {
 function guardarDatos() {
     if (!window.datos) window.datos = { estudiantes: [], pagos: [] };
     localStorage.setItem('datosPagos', JSON.stringify(window.datos));
-    mostrarNotificacion('Datos guardados correctamente');
-    if (window.db) {
-        window.db.collection('pagos').doc('global').set(window.datos)
-            .then(() => console.log('✅ Pagos sincronizados con Firestore'))
-            .catch(err => console.error('Error al sincronizar:', err));
-    }
+    mostrarNotificacion('Datos guardados localmente');
+    // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
+    // Los datos en Firebase solo se actualizan cuando el usuario hace una acción
+    // (registrar pago, agregar estudiante, etc.) a través de window.registrarPago()
 }
 
 // =====================================================
@@ -13139,36 +13137,34 @@ const asistenciaApp = {
     // GUARDAR EN HISTORIAL
     // =====================================================
 
-    guardarEnHistorialCompleto: function(datos) {
-        try {
-            console.log("💾 Guardando en historial:", datos);
-            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-            const nuevoRegistro = {
-                id: Date.now(),
-                studentId: datos.id,
-                studentName: datos.nombre,
-                instrumento: datos.instrumento,
-                nivel: datos.nivel,
-                fecha: datos.fecha,
-                dia: datos.dia,
-                horario: datos.horario,
-                estado: datos.estado,
-                tipo: datos.tipo,
-                horaRegistro: datos.horaRegistro,
-                observaciones: datos.observaciones || '',
-                timestamp: new Date().toISOString()
-            };
-            historial.push(nuevoRegistro);
-            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-            if (window.db) {
-                window.db.collection('asistencia').doc(String(nuevoRegistro.id)).set(nuevoRegistro)
-                    .catch(err => console.error("Error guardando asistencia:", err));
-            }
-            console.log("✅ Guardado exitoso. Total registros:", historial.length);
-        } catch (error) {
-            console.error("❌ Error guardando en historial:", error);
-        }
-    },
+    function guardarEnHistorialCompleto(datos) {
+    try {
+        console.log("💾 Guardando en historial:", datos);
+        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        const nuevoRegistro = {
+            id: datos.id || Date.now(),
+            studentId: datos.id,
+            studentName: datos.nombre,
+            instrumento: datos.instrumento,
+            nivel: datos.nivel,
+            fecha: datos.fecha,
+            dia: datos.dia,
+            horario: datos.horario,
+            estado: datos.estado,
+            tipo: datos.tipo,
+            horaRegistro: datos.horaRegistro,
+            observaciones: datos.observaciones || '',
+            timestamp: new Date().toISOString()
+        };
+        historial.push(nuevoRegistro);
+        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+        // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
+        // El listener en tiempo real de Firebase actualizará localStorage
+        console.log("✅ Guardado local exitoso. Total registros:", historial.length);
+    } catch (error) {
+        console.error("❌ Error guardando en historial:", error);
+    }
+}
 
     // =====================================================
     // GUARDAR ASISTENCIA COMPLETA
@@ -14732,7 +14728,7 @@ function guardarSemanaTemario() {
 // =====================================================
 
 function guardarTemarioCompleto() {
-    console.log('🟢 Guardando temario COMPLETO en Firebase...');
+    console.log('🟢 Guardando temario COMPLETO...');
     if (temarioTemporal.semanas.length === 0) {
         alert('⚠️ Debes agregar al menos una semana al temario');
         return;
@@ -14773,11 +14769,8 @@ function guardarTemarioCompleto() {
             todosTemarios.push(temario);
         }
         localStorage.setItem('temarios', JSON.stringify(todosTemarios));
-        if (window.db) {
-            window.db.collection('temarios').doc(temario.id).set(temario)
-                .then(() => console.log('☁️ Temario guardado en Firebase'))
-                .catch(e => console.error('❌ Error en Firebase:', e));
-        }
+        // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
+        console.log('📦 Temario guardado localmente');
     }
     
     if (temarioExistente) {
@@ -14796,7 +14789,7 @@ function guardarTemarioCompleto() {
         temarioExistente.semanas.sort((a, b) => a.numero - b.numero);
         temarioExistente.fechaActualizacion = new Date().toISOString();
         notificarCambio(temarioExistente);
-        alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}\n📌 Total semanas: ${temarioExistente.semanas.length}`);
+        alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO LOCALMENTE\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}\n📌 Total semanas: ${temarioExistente.semanas.length}`);
     } else {
         const temarioId = `temario_${instrumento}_${nivel}_${Date.now()}`;
         const temario = {
@@ -14810,7 +14803,7 @@ function guardarTemarioCompleto() {
             semanas: temarioTemporal.semanas
         };
         notificarCambio(temario);
-        alert(`✅ Temario "${instrumento} - ${nivel}" CREADO\n📌 Semanas: ${temario.semanas.length}`);
+        alert(`✅ Temario "${instrumento} - ${nivel}" CREADO LOCALMENTE\n📌 Semanas: ${temario.semanas.length}`);
     }
     
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
@@ -15420,12 +15413,9 @@ function actualizarClaseVirtual(claseId) {
         alert('❌ Clase no encontrada en localStorage');
         return;
     }
-    if (window.db) {
-        window.db.collection('clasesVirtuales').doc(String(claseId)).set(claseActualizada, { merge: true })
-            .then(() => console.log('☁️ Clase actualizada en Firebase'))
-            .catch(e => console.error('❌ Error actualizando en Firebase:', e));
-    }
-    alert('✅ Clase virtual actualizada correctamente');
+    // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
+    // Los cambios se guardan solo localmente
+    alert('✅ Clase virtual actualizada localmente');
     const btnCrear = document.getElementById('btnCrearClaseVirtual');
     btnCrear.textContent = '✅ Crear Clase';
     btnCrear.style.background = '';
@@ -17813,10 +17803,8 @@ function guardarReciboEnLocal(recibo) {
     let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
     historial.push(recibo);
     localStorage.setItem('historialRecibos', JSON.stringify(historial));
-    if (window.db) {
-        window.db.collection('recibos').doc(String(recibo.id)).set(recibo)
-            .catch(err => console.error("Error guardando en Firestore:", err));
-    }
+    // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
+    // El listener en tiempo real de Firebase actualizará localStorage
     if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
         window.cargarHistorialRecibos();
     }
@@ -19149,110 +19137,119 @@ window.enviarRecordatorioAusencias = function() {
 };
 
 // =====================================================
-// SINCRONIZACIÓN COMPLETA CON FIRESTORE (TIEMPO REAL)
+// 🔥 NUEVA FUNCIÓN: SOLO LEE DESDE FIREBASE (NO SOBRESCRIBE)
 // =====================================================
 
-async function sincronizarTodoConFirebase() {
+async function sincronizarDesdeFirebase() {
     if (!window.db) {
-        console.warn("Firebase no disponible");
+        console.warn("⚠️ Firebase no disponible");
         return;
     }
-    try {
-        let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        for (let ins of inscripciones) {
-            await window.db.collection('inscripciones').doc(String(ins.id)).set(ins);
-        }
-        console.log(`✅ Sincronizadas ${inscripciones.length} inscripciones`);
-
-        let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
-        await window.db.collection('pagos').doc('global').set(pagosData);
-        console.log("✅ Sincronizados pagos");
-
-        let asistencia = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        for (let reg of asistencia) {
-            await window.db.collection('asistencia').doc(String(reg.id)).set(reg);
-        }
-        console.log(`✅ Sincronizados ${asistencia.length} registros de asistencia`);
-
-        let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        for (let c of clases) {
-            await window.db.collection('clasesVirtuales').doc(String(c.id)).set(c);
-        }
-        console.log(`✅ Sincronizadas ${clases.length} clases virtuales`);
-    } catch (e) {
-        console.error("Error en sincronización con Firebase:", e);
-    }
-}
-
-// =====================================================
-// 🔥 FUNCIONES DE SINCRONIZACIÓN - CORREGIDAS (SIN SOBRESCRIBIR)
-// =====================================================
-
-// Esta función SOLO sincroniza, NO SOBRESCRIBE las funciones originales
-function sincronizarDatosConFirebase() {
-    if (!window.db) return;
     
     try {
-        // Sincronizar inscripciones (solo las que existen en localStorage)
-        let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        for (let ins of inscripciones) {
-            if (ins && ins.id) {
-                window.db.collection('inscripciones').doc(String(ins.id)).set(ins, { merge: true })
-                    .catch(e => console.error('Error sincronizando inscripción:', e));
-            }
+        console.log("🔄 LEYENDO datos DESDE Firebase...");
+        
+        // 1. LEER INSCRIPCIONES (CON FOTOS)
+        const insSnapshot = await window.db.collection('inscripciones').get();
+        let firestoreData = [];
+        insSnapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id;
+            firestoreData.push(data);
+        });
+        
+        if (firestoreData.length > 0) {
+            window.inscriptions = firestoreData;
+            const sinFotos = firestoreData.map(item => {
+                const copia = JSON.parse(JSON.stringify(item));
+                if (copia.estudiante) delete copia.estudiante.foto;
+                return copia;
+            });
+            localStorage.setItem('inscriptions', JSON.stringify(sinFotos));
+            console.log(`✅ ${firestoreData.length} inscripciones LEÍDAS desde Firebase`);
         }
-        console.log(`✅ Sincronizadas ${inscripciones.length} inscripciones`);
-
-        // Sincronizar pagos
-        let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
-        window.db.collection('pagos').doc('global').set(pagosData, { merge: true })
-            .catch(e => console.error('Error sincronizando pagos:', e));
-        console.log("✅ Sincronizados pagos");
-
-        // Sincronizar asistencia
-        let asistencia = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        for (let reg of asistencia) {
-            if (reg && reg.id) {
-                window.db.collection('asistencia').doc(String(reg.id)).set(reg, { merge: true })
-                    .catch(e => console.error('Error sincronizando asistencia:', e));
-            }
+        
+        // 2. LEER PAGOS
+        const pagosDoc = await window.db.collection('pagos').doc('global').get();
+        if (pagosDoc.exists) {
+            const pagosData = pagosDoc.data();
+            window.datos = pagosData;
+            localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+            console.log("✅ Pagos LEÍDOS desde Firebase");
         }
-        console.log(`✅ Sincronizados ${asistencia.length} registros de asistencia`);
-
-    } catch (e) {
-        console.error("Error en sincronización:", e);
+        
+        // 3. LEER ASISTENCIA
+        const asisSnapshot = await window.db.collection('asistencia').get();
+        let asisData = [];
+        asisSnapshot.forEach(doc => asisData.push({ id: doc.id, ...doc.data() }));
+        if (asisData.length > 0) {
+            localStorage.setItem('historialAsistencia', JSON.stringify(asisData));
+            console.log(`✅ ${asisData.length} registros de asistencia LEÍDOS`);
+        }
+        
+        // 4. LEER CLASES VIRTUALES
+        const clasesSnapshot = await window.db.collection('clasesVirtuales').get();
+        let clasesData = [];
+        clasesSnapshot.forEach(doc => clasesData.push({ id: doc.id, ...doc.data() }));
+        if (clasesData.length > 0) {
+            localStorage.setItem('clasesVirtuales', JSON.stringify(clasesData));
+            console.log(`✅ ${clasesData.length} clases virtuales LEÍDAS`);
+        }
+        
+        // 5. LEER TEMARIOS
+        const temarioSnapshot = await window.db.collection('temarios').get();
+        let temarioData = [];
+        temarioSnapshot.forEach(doc => temarioData.push({ id: doc.id, ...doc.data() }));
+        if (temarioData.length > 0) {
+            localStorage.setItem('temarios', JSON.stringify(temarioData));
+            console.log(`✅ ${temarioData.length} temarios LEÍDOS`);
+        }
+        
+        // 6. LEER RECIBOS
+        const recibosSnapshot = await window.db.collection('recibos').get();
+        let recibosData = [];
+        recibosSnapshot.forEach(doc => recibosData.push(doc.data()));
+        if (recibosData.length > 0) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibosData));
+            console.log(`✅ ${recibosData.length} recibos LEÍDOS`);
+        }
+        
+        console.log("✅ Sincronización DESDE Firebase COMPLETADA");
+        
+        // Actualizar vistas
+        actualizarVistasDespuesDeSincronizar();
+        
+    } catch (error) {
+        console.error("❌ Error en sincronización DESDE Firebase:", error);
     }
 }
 
-// ✅ ESCUCHAR EVENTOS DE CAMBIO EN LUGAR DE SOBRESCRIBIR FUNCIONES
-document.addEventListener('inscripciones-actualizadas', function(e) {
-    // Cuando se guarda o actualiza una inscripción, sincronizar
-    setTimeout(sincronizarDatosConFirebase, 500);
-});
-
-// ✅ OBSERVAR CAMBIOS EN LA TABLA PARA DETECTAR ELIMINACIONES
-const observerEliminar = new MutationObserver(() => {
-    // Verificar si la tabla cambió (posible eliminación)
-    const tableBody = document.querySelector('#inscriptionsTable tbody');
-    if (tableBody) {
-        setTimeout(sincronizarDatosConFirebase, 500);
+// Función para actualizar vistas después de sincronizar
+function actualizarVistasDespuesDeSincronizar() {
+    try {
+        if (document.getElementById('dataTableContainer')?.style.display === 'block') {
+            if (typeof renderTable === 'function') renderTable();
+        }
+        if (document.getElementById('pagosContainer')?.style.display !== 'none') {
+            if (typeof actualizarVista === 'function') actualizarVista();
+        }
+        if (document.getElementById('asistenciaContainer')?.style.display !== 'none') {
+            if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
+                asistenciaApp.cargarEstudiantesAutomaticamente();
+            }
+        }
+        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+        if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+    } catch(e) {
+        console.warn("⚠️ Error actualizando vistas:", e);
     }
-});
-
-// Observar cambios en la tabla
-const table = document.getElementById('inscriptionsTable');
-if (table) {
-    observerEliminar.observe(table, { childList: true, subtree: true });
 }
 
-// ✅ FUNCIÓN DE RESPALDO PARA SINCRONIZAR MANUALMENTE SI ES NECESARIO
-window.sincronizarAhora = function() {
-    sincronizarDatosConFirebase();
-    console.log('🔄 Sincronización manual ejecutada');
-};
+// ✅ Ejecutar UNA VEZ al inicio
+setTimeout(sincronizarDesdeFirebase, 2000);
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - SOLO LECTURA
 // =====================================================
 
 if (window.db) {
@@ -19317,7 +19314,7 @@ if (window.db) {
     });
 }
 
-// Sincronización en tiempo real de pagos
+// Sincronización en tiempo real de pagos - SOLO LECTURA
 if (window.db) {
     window.db.collection('pagos').doc('global').onSnapshot((doc) => {
         if (doc.exists) {
@@ -19334,8 +19331,7 @@ if (window.db) {
 }
 
 // =====================================================
-// 🔥 Sincronización de USUARIOS - VERSIÓN CORREGIDA
-// 🔥 AHORA ACTUALIZA currentUser EN TIEMPO REAL
+// 🔥 Sincronización de USUARIOS - SOLO LECTURA
 // =====================================================
 
 if (window.db) {
@@ -19517,8 +19513,6 @@ setTimeout(actualizarSaludoEncabezado, 1000);
 if (typeof window.checkLoginStatus === 'function') {
     window.checkLoginStatus();
 }
-
-
 
 // =====================================================
 // PERSONALIZACIÓN DEL SISTEMA
@@ -20096,8 +20090,7 @@ if (typeof window.checkLoginStatus === 'function') {
     }
 })();
 
-  
-  // =============================================
+// =============================================
 // CORRECCIÓN: Mostrar/ocultar instrumentos y estudiantes
 // =============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -20131,8 +20124,7 @@ window.mostrarModalUsuario = function() {
         tipoSelect.dispatchEvent(event);
     }
 };
-  
-  
+
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
 </script>
@@ -20153,4 +20145,4 @@ console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
     }
 </script>
 </body>
-</html> 
+</html>
