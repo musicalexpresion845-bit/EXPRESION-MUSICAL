@@ -15365,6 +15365,7 @@ let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
 let listenerFotoEstudiante = null;
 let datosEstudianteCache = null;
+let modalInstrumentoElemento = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES
@@ -15638,7 +15639,7 @@ function aplicarTemaEncargado(color, esPrincipal) {
 }
 
 // =====================================================
-// 4. MODAL CAMBIAR INSTRUMENTO - CON CIERRE INMEDIATO
+// 4. MODAL CAMBIAR INSTRUMENTO - CON CIERRE INSTANTÁNEO
 // =====================================================
 
 function mostrarModalCambioInstrumento() {
@@ -15647,91 +15648,129 @@ function mostrarModalCambioInstrumento() {
         return;
     }
 
-    // Crear el modal
+    // Si ya hay un modal abierto, lo cerramos primero
+    cerrarModalInstrumento();
+
+    // Crear el modal SIN fondo oscuro (overlay)
     const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.id = 'modalCambioInstrumento';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:10000;animation:fadeIn 0.2s ease;';
+    modal.id = 'modalInstrumentoFlotante';
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 99999;
+        animation: modalEntrar 0.2s ease;
+        border: 2px solid #E63946;
+    `;
+
+    // Estilos de animación
+    const estiloAnim = document.createElement('style');
+    estiloAnim.id = 'estiloModalInstrumento';
+    estiloAnim.textContent = `
+        @keyframes modalEntrar {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes modalSalir {
+            from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            to { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(estiloAnim);
 
     modal.innerHTML = `
-        <div style="background:white;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:scaleIn 0.2s ease;position:relative;max-height:90vh;overflow-y:auto;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <h4 style="margin:0;color:#E63946;font-size:1.2rem;">🎸 Cambiar Instrumento</h4>
-                <button onclick="cerrarModalInstrumento()" style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 5px;line-height:1;">&times;</button>
-            </div>
-            <p style="color:#666;font-size:0.9rem;margin-bottom:20px;">Selecciona el instrumento que deseas visualizar:</p>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-                ${encargadoInstrumentosLista.map(instr => {
-                    const esPrincipal = instr === encargadoInstrumentosLista[0];
-                    const color = esPrincipal ? '#E63946' : '#1976D2';
-                    const selected = (instr === encargadoInstrumentoSeleccionado) ? 'border:3px solid #4CAF50; background:#f0fff0;' : '';
-                    return `
-                        <button onclick="seleccionarInstrumentoEncargado('${instr}')" 
-                            style="padding:16px;border-radius:12px;border:2px solid ${selected ? '#4CAF50' : '#ddd'};background:${selected ? '#f0fff0' : 'white'};cursor:pointer;font-weight:600;color:${color};${selected}transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;font-size:1rem;width:100%;"
-                            onmouseover="this.style.borderColor='${color}';this.style.background='${color}11';"
-                            onmouseout="this.style.borderColor='${selected ? '#4CAF50' : '#ddd'}';this.style.background='${selected ? '#f0fff0' : 'white'}';">
-                            <span>${instr} ${esPrincipal ? '⭐ (Principal)' : '🔄 (Secundario)'}</span>
-                            ${instr === encargadoInstrumentoSeleccionado ? ' <span style="color:#4CAF50;font-size:1.2rem;">✅</span>' : ''}
-                        </button>
-                    `;
-                }).join('')}
-            </div>
-            <div style="margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:15px;">
-                <button onclick="cerrarModalInstrumento()" style="padding:10px 30px;background:#6c757d;color:white;border:none;border-radius:30px;cursor:pointer;font-size:0.9rem;">Cancelar</button>
-            </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+            <h4 style="margin:0;color:#E63946;font-size:1.2rem;">🎸 Cambiar Instrumento</h4>
+            <button onclick="cerrarModalInstrumento()" 
+                style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 10px;line-height:1;"
+                onmouseover="this.style.color='#E63946'"
+                onmouseout="this.style.color='#999'">
+                &times;
+            </button>
+        </div>
+        <p style="color:#666;font-size:0.9rem;margin-bottom:20px;">Selecciona el instrumento que deseas visualizar:</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            ${encargadoInstrumentosLista.map(instr => {
+                const esPrincipal = instr === encargadoInstrumentosLista[0];
+                const color = esPrincipal ? '#E63946' : '#1976D2';
+                const selected = (instr === encargadoInstrumentoSeleccionado) ? 'border:3px solid #4CAF50; background:#f0fff0;' : '';
+                return `
+                    <button onclick="seleccionarInstrumentoEncargado('${instr}')" 
+                        style="padding:16px;border-radius:12px;border:2px solid ${selected ? '#4CAF50' : '#ddd'};background:${selected ? '#f0fff0' : 'white'};cursor:pointer;font-weight:600;color:${color};${selected}transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;font-size:1rem;width:100%;"
+                        onmouseover="this.style.borderColor='${color}';this.style.background='${color}11';"
+                        onmouseout="this.style.borderColor='${selected ? '#4CAF50' : '#ddd'}';this.style.background='${selected ? '#f0fff0' : 'white'}';">
+                        <span>${instr} ${esPrincipal ? '⭐ (Principal)' : '🔄 (Secundario)'}</span>
+                        ${instr === encargadoInstrumentoSeleccionado ? ' <span style="color:#4CAF50;font-size:1.2rem;">✅</span>' : ''}
+                    </button>
+                `;
+            }).join('')}
+        </div>
+        <div style="margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:15px;">
+            <button onclick="cerrarModalInstrumento()" 
+                style="padding:10px 30px;background:#6c757d;color:white;border:none;border-radius:30px;cursor:pointer;font-size:0.9rem;"
+                onmouseover="this.style.background='#5a6268'"
+                onmouseout="this.style.background='#6c757d'">
+                Cancelar
+            </button>
         </div>
     `;
 
-    // Agregar estilos de animación
-    const styleAnim = document.createElement('style');
-    styleAnim.textContent = `
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        @keyframes scaleIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
-    `;
-    document.head.appendChild(styleAnim);
-
     document.body.appendChild(modal);
+    modalInstrumentoElemento = modal;
 
-    // Cerrar al hacer clic fuera
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
+    // Cerrar al hacer clic fuera (pero NO se oscurece la pantalla)
+    document.addEventListener('click', function cerrarFuera(e) {
+        if (modal && !modal.contains(e.target)) {
             cerrarModalInstrumento();
+            document.removeEventListener('click', cerrarFuera);
         }
     });
 
     // Cerrar con Escape
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function cerrarEscape(e) {
         if (e.key === 'Escape') {
             cerrarModalInstrumento();
+            document.removeEventListener('keydown', cerrarEscape);
         }
     });
 }
 
 // =====================================================
-// 5. CERRAR MODAL INSTRUMENTO - FUNCIÓN SEPARADA
+// 5. CERRAR MODAL INSTRUMENTO - CIERRE INSTANTÁNEO
 // =====================================================
 
 function cerrarModalInstrumento() {
-    const modal = document.getElementById('modalCambioInstrumento');
+    const modal = document.getElementById('modalInstrumentoFlotante');
     if (modal) {
-        modal.style.opacity = '0';
-        modal.style.transition = 'opacity 0.15s ease';
+        // Animación de salida
+        modal.style.animation = 'modalSalir 0.15s ease forwards';
         setTimeout(() => {
             if (modal && modal.parentNode) {
                 modal.remove();
             }
+            // Limpiar estilos de animación
+            const estilo = document.getElementById('estiloModalInstrumento');
+            if (estilo) estilo.remove();
         }, 150);
     }
+    modalInstrumentoElemento = null;
 }
 
 // =====================================================
-// 6. SELECCIONAR INSTRUMENTO - CIERRE INMEDIATO + CARGA RÁPIDA
+// 6. SELECCIONAR INSTRUMENTO - CIERRE INMEDIATO
 // =====================================================
 
 function seleccionarInstrumentoEncargado(instrumento) {
     console.log('🔄 Instrumento seleccionado:', instrumento);
     
-    // 🔥 PASO 1: CERRAR MODAL INMEDIATAMENTE
+    // 🔥 PASO 1: CERRAR MODAL INMEDIATAMENTE (PRIMERO)
     cerrarModalInstrumento();
     
     // 🔥 PASO 2: Actualizar variable
@@ -15741,12 +15780,11 @@ function seleccionarInstrumentoEncargado(instrumento) {
     const esPrincipal = instrumento === encargadoInstrumentosLista[0];
     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
 
-    // 🔥 PASO 4: Actualizar datos de la pestaña activa (con pequeño delay para que la UI se actualice primero)
+    // 🔥 PASO 4: Actualizar datos de la pestaña activa (con pequeño delay)
     if (encargadoEstudianteActual) {
-        // Actualizar la información básica del estudiante (solo la pestaña activa)
         setTimeout(() => {
             cargarDatosPestanaActiva(encargadoEstudianteActual);
-        }, 150);
+        }, 200);
     }
 }
 
