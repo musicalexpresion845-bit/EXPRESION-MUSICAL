@@ -18448,8 +18448,8 @@ console.log("✅ BLOQUE 7 CARGADO: Sistema de Recibos (DEFINITIVO)");
 <!-- ============================================ -->
 <!-- BLOQUE 8: INICIALIZACIÓN, FUNCIONES AUXILIARES Y SINCRONIZACIÓN COMPLETA -->
 <!-- ============================================ -->
-
 <script>
+
 // =====================================================
 // FUNCIONES DE SALUDO Y BIENVENIDA
 // =====================================================
@@ -18538,6 +18538,7 @@ function calcularFechaVencimiento(fechaInicio) {
 // =====================================================
 // 🔥 GENERAR CARNET - SIEMPRE CONSULTA FIREBASE PARA LA FOTO
 // =====================================================
+
 async function generarCarnetEstudiante(id) {
     console.log("🎫 GENERANDO CARNET PARA ID:", id);
     console.log("📸 BUSCANDO FOTO DIRECTAMENTE EN FIREBASE");
@@ -18554,7 +18555,6 @@ async function generarCarnetEstudiante(id) {
     try {
         console.log('☁️ Consultando Firebase para el carnet...');
         const doc = await window.db.collection('inscripciones').doc(String(id)).get();
-        
         if (doc.exists) {
             inscripcion = { id: doc.id, ...doc.data() };
             console.log('✅ Datos obtenidos DIRECTAMENTE de Firebase para carnet');
@@ -18579,7 +18579,6 @@ async function generarCarnetEstudiante(id) {
         return;
     }
 
-    // Si no hay inscripción, error
     if (!inscripcion) {
         alert('No se encontró el estudiante con ID: ' + id);
         return;
@@ -18610,318 +18609,310 @@ async function generarCarnetEstudiante(id) {
     const fechaVencimiento = calcularFechaVencimiento(inscripcion.academico.fechaInicio);
 
     // 🔥 USAR LA FOTO OBTENIDA DE FIREBASE
-    let fotoHtml = (foto && foto !== 'null' && foto !== '') 
-        ? `<img src="${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` 
+    let fotoHtml = (foto && foto !== 'null' && foto !== '')
+        ? `<img src="${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
         : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 50%;">
             <i class="fas fa-user" style="font-size: 40px; color: #ccc;"></i>
-           </div>`;
+        </div>`;
 
     // =====================================================
     // DISEÑO DEL CARNET - CON FOTO DESDE FIREBASE
     // =====================================================
-    previewContainer.innerHTML = `
-    <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
-        <!-- ============ CARNET FRONTAL ============ -->
-        <div class="carnet-frontal" style="
-            width: 280px !important;
-            height: 440px !important;
-            background: #ffffff !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-            border: 2px solid #E63946 !important;
-            position: relative !important;
-        ">
-            <!-- Franja superior ROJA -->
-            <div style="
-                background: #E63946 !important;
-                padding: 16px 12px 12px 12px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 12px !important;
-                flex-shrink: 0 !important;
-                position: relative !important;
-                z-index: 1 !important;
-                border-bottom: 3px solid #C1121F !important;
-            ">
-                <div style="
-                    position: absolute !important;
-                    left: 50% !important;
-                    top: 50% !important;
-                    transform: translate(-50%, -50%) !important;
-                    opacity: 0.08 !important;
-                    pointer-events: none !important;
-                ">
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
-                </div>
-                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                <div style="text-align: center; position: relative; z-index: 1;">
-                    <div style="font-size: 15px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
-                    <div style="font-size: 10px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 2px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
-                </div>
-            </div>
 
-            <!-- Cuerpo frontal -->
-            <div style="
-                flex: 1 !important;
-                padding: 4px 10px 3px 10px !important;
+    previewContainer.innerHTML = `
+        <div style="display: flex; gap: 0px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+            <!-- ============ CARNET FRONTAL ============ -->
+            <div class="carnet-frontal" style="
+                width: 280px !important;
+                height: 440px !important;
+                background: #ffffff !important;
+                border-radius: 16px !important;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+                overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 4px !important;
+                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+                border: 2px solid #E63946 !important;
                 position: relative !important;
-                z-index: 1 !important;
-                background: #ffffff !important;
             ">
-                <!-- FOTO -->
-                <div style="display: flex; justify-content: center; margin-top: -18px;">
-                    <div style="
-                        width: 100px !important;
-                        height: 100px !important;
-                        border-radius: 50% !important;
-                        border: 3px solid #E63946 !important;
-                        overflow: hidden !important;
-                        background: #f5f5f5 !important;
-                        box-shadow: 0 0 25px rgba(230, 57, 70, 0.3), 0 4px 20px rgba(230, 57, 70, 0.15) !important;
-                    ">
-                        ${fotoHtml}
-                    </div>
-                </div>
-
-                <!-- NOMBRE -->
-                <div style="text-align: center;">
-                    <div style="font-size: 15px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
-                    ${apellidos ? `<div style="font-size: 11px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.1 !important; margin-top: 0px !important;">${apellidos}</div>` : ''}
-                    <div style="font-size: 10px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
-                </div>
-
-                <!-- CUADROS -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
-                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Edad</div>
-                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.edad}</div>
-                    </div>
-                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Nivel</div>
-                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.nivel}</div>
-                    </div>
-                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Plan</div>
-                        <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.plan}</div>
-                    </div>
-                </div>
-
-                <!-- INSTRUMENTO -->
+                <!-- Franja superior ROJA -->
                 <div style="
-                    background: #ffd9d9 !important;
-                    padding: 5px 8px !important;
-                    border-radius: 6px !important;
-                    border: 3px solid #E63946 !important;
-                    text-align: center !important;
-                    min-height: 50px !important;
+                    background: #E63946 !important;
+                    padding: 16px 12px 12px 12px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 12px !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
+                    border-bottom: 3px solid #C1121F !important;
+                ">
+                    <div style="
+                        position: absolute !important;
+                        left: 50% !important;
+                        top: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        opacity: 0.08 !important;
+                        pointer-events: none !important;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
+                    </div>
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <div style="text-align: center; position: relative; z-index: 1;">
+                        <div style="font-size: 15px !important; font-weight: 800 !important; color: #ffffff !important; letter-spacing: 1px !important; text-transform: uppercase !important; line-height: 1.2 !important; text-align: center !important;">Expresión Musical</div>
+                        <div style="font-size: 10px !important; color: #ffffff !important; letter-spacing: 2px !important; font-weight: 700 !important; margin-top: 2px !important; text-align: center !important; opacity: 0.9 !important;">ACADEMIA DE MÚSICA</div>
+                    </div>
+                </div>
+                <!-- Cuerpo frontal -->
+                <div style="
+                    flex: 1 !important;
+                    padding: 4px 10px 3px 10px !important;
                     display: flex !important;
                     flex-direction: column !important;
-                    justify-content: center !important;
-                    gap: 5px !important;
-                    box-shadow: 0 4px 16px rgba(230, 57, 70, 0.2) !important;
+                    gap: 4px !important;
+                    position: relative !important;
+                    z-index: 1 !important;
+                    background: #ffffff !important;
                 ">
-                    <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">Instrumento</div>
-                    <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.3 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
-                </div>
-
-                <!-- HORARIO Y GÉNERO -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Horario</div>
-                        <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.horario || 'N/A'}</div>
+                    <!-- FOTO -->
+                    <div style="display: flex; justify-content: center; margin-top: -18px;">
+                        <div style="
+                            width: 100px !important;
+                            height: 100px !important;
+                            border-radius: 50% !important;
+                            border: 3px solid #E63946 !important;
+                            overflow: hidden !important;
+                            background: #f5f5f5 !important;
+                            box-shadow: 0 0 25px rgba(230, 57, 70, 0.3), 0 4px 20px rgba(230, 57, 70, 0.15) !important;
+                        ">
+                            ${fotoHtml}
+                        </div>
                     </div>
-                    <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
-                        <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Género</div>
-                        <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
+                    <!-- NOMBRE -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.2 !important;">${nombres}</div>
+                        ${apellidos ? `<div style="font-size: 11px !important; font-weight: 500 !important; color: #555 !important; line-height: 1.1 !important; margin-top: 0px !important;">${apellidos}</div>` : ''}
+                        <div style="font-size: 10px !important; color: #E63946 !important; font-weight: 700 !important; margin-top: 2px !important;">ID: ${String(inscripcion.id).slice(-6)}</div>
                     </div>
-                </div>
-
-                <!-- VÁLIDO HASTA -->
-                <div style="
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    align-items: center !important;
-                    background: #f0f0f0 !important;
-                    padding: 3px 12px !important;
-                    border-radius: 6px !important;
-                    border: 2px solid #ccc !important;
-                    margin-top: 2px !important;
-                    min-height: 32px !important;
-                    margin-bottom: 0px !important;
-                ">
-                    <div style="white-space: nowrap !important;">
-                        <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">VÁLIDO HASTA</div>
-                        <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.3 !important;">${fechaVencimiento}</div>
+                    <!-- CUADROS -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 2px;">
+                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Edad</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.edad}</div>
+                        </div>
+                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Nivel</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.nivel}</div>
+                        </div>
+                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Plan</div>
+                            <div style="font-size: 14px !important; font-weight: 700 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.plan}</div>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap !important; padding-left: 2px !important;">
-                        <div style="width: 7px; height: 7px; background: #4CAF50; border-radius: 50%;"></div>
-                        <span style="font-size: 7.5px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
+                    <!-- INSTRUMENTO -->
+                    <div style="
+                        background: #ffd9d9 !important;
+                        padding: 5px 8px !important;
+                        border-radius: 6px !important;
+                        border: 3px solid #E63946 !important;
+                        text-align: center !important;
+                        min-height: 50px !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                        gap: 5px !important;
+                        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.2) !important;
+                    ">
+                        <div style="font-size: 6px !important; color: #555 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">Instrumento</div>
+                        <div style="font-size: 15px !important; font-weight: 700 !important; color: #E63946 !important; line-height: 1.3 !important;">${inscripcion.musical.instrumentoPrincipal}</div>
+                    </div>
+                    <!-- HORARIO Y GÉNERO -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Horario</div>
+                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.academico.horario || 'N/A'}</div>
+                        </div>
+                        <div style="background: #e8e8e8 !important; padding: 5px 4px; border-radius: 6px; text-align: center; border: 3px solid #bbb !important; min-height: 50px !important; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.15) !important;">
+                            <div style="font-size: 6px !important; color: #444 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 5px !important; line-height: 1.3 !important;">Género</div>
+                            <div style="font-size: 11px !important; font-weight: 600 !important; color: #1a1a1a !important; line-height: 1.3 !important;">${inscripcion.estudiante.genero || 'N/E'}</div>
+                        </div>
+                    </div>
+                    <!-- VÁLIDO HASTA -->
+                    <div style="
+                        display: flex !important;
+                        justify-content: space-between !important;
+                        align-items: center !important;
+                        background: #f0f0f0 !important;
+                        padding: 3px 12px !important;
+                        border-radius: 6px !important;
+                        border: 2px solid #ccc !important;
+                        margin-top: 2px !important;
+                        min-height: 32px !important;
+                        margin-bottom: 0px !important;
+                    ">
+                        <div style="white-space: nowrap !important;">
+                            <div style="font-size: 5px !important; color: #888 !important; font-weight: 600 !important; letter-spacing: 0.5px !important; line-height: 1.3 !important;">VÁLIDO HASTA</div>
+                            <div style="font-size: 8.5px !important; font-weight: 700 !important; color: #1a1a2e !important; line-height: 1.3 !important;">${fechaVencimiento}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap !important; padding-left: 2px !important;">
+                            <div style="width: 7px; height: 7px; background: #4CAF50; border-radius: 50%;"></div>
+                            <span style="font-size: 7.5px !important; font-weight: 700 !important; color: #4CAF50 !important;">VÁLIDO</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- ============ CARNET DORSO ============ -->
-        <div class="carnet-dorso" style="
-            width: 280px !important;
-            height: 440px !important;
-            background: #ffffff !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-            border: 2px solid #E63946 !important;
-            position: relative !important;
-        ">
-            <!-- Franja superior NEGRA -->
-            <div style="
-                background: #1a1a2e !important;
-                padding: 16px 12px 12px 12px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 12px !important;
-                border-bottom: 3px solid #E63946 !important;
-                flex-shrink: 0 !important;
-                position: relative !important;
-                z-index: 1 !important;
-            ">
-                <div style="
-                    position: absolute !important;
-                    left: 50% !important;
-                    top: 50% !important;
-                    transform: translate(-50%, -50%) !important;
-                    opacity: 0.08 !important;
-                    pointer-events: none !important;
-                ">
-                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
-                </div>
-                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
-                <span style="font-size: 13px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.3 !important;">Código de Verificación</span>
-            </div>
-
-            <!-- Cuerpo dorso -->
-            <div style="
-                flex: 1 !important;
-                padding: 4px 6px 4px 6px !important;
+            <!-- ============ CARNET DORSO ============ -->
+            <div class="carnet-dorso" style="
+                width: 280px !important;
+                height: 440px !important;
+                background: #ffffff !important;
+                border-radius: 16px !important;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+                overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 3px !important;
+                font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+                border: 2px solid #E63946 !important;
                 position: relative !important;
-                z-index: 1 !important;
-                background: #ffffff !important;
             ">
-                <!-- QR -->
-                <div id="qr-code-container" style="
-                    width: 225px !important;
-                    height: 225px !important;
-                    background: white !important;
-                    border-radius: 14px !important;
-                    padding: 3px !important;
-                    border: 3px solid #E63946 !important;
+                <!-- Franja superior NEGRA -->
+                <div style="
+                    background: #1a1a2e !important;
+                    padding: 16px 12px 12px 12px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15) !important;
+                    gap: 12px !important;
+                    border-bottom: 3px solid #E63946 !important;
+                    flex-shrink: 0 !important;
+                    position: relative !important;
+                    z-index: 1 !important;
                 ">
-                    <div style="text-align: center;">
-                        <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 18px;"></i>
+                    <div style="
+                        position: absolute !important;
+                        left: 50% !important;
+                        top: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        opacity: 0.08 !important;
+                        pointer-events: none !important;
+                    ">
+                        <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 180px; height: 180px; object-fit: contain; filter: brightness(0) invert(1);">
                     </div>
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); position: relative; z-index: 1;">
+                    <span style="font-size: 13px !important; font-weight: 700 !important; color: #ffffff !important; letter-spacing: 2px !important; text-transform: uppercase !important; position: relative; z-index: 1; line-height: 1.3 !important;">Código de Verificación</span>
                 </div>
+                <!-- Cuerpo dorso -->
                 <div style="
-                    font-size: 6px !important;
-                    color: #666 !important;
-                    text-align: center !important;
-                    font-weight: 500 !important;
-                    margin-top: 1px !important;
-                    margin-bottom: 1px !important;
-                    line-height: 1.3 !important;
-                ">Escanear para verificar identidad</div>
-
-                <!-- CONTACTO -->
-                <div style="
-                    background: #e8e8e8 !important;
-                    padding: 5px 12px !important;
-                    border-radius: 6px !important;
-                    text-align: center !important;
-                    width: 100% !important;
-                    border: 2px solid #ccc !important;
-                    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12) !important;
+                    flex: 1 !important;
+                    padding: 4px 6px 4px 6px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 3px !important;
+                    position: relative !important;
+                    z-index: 1 !important;
+                    background: #ffffff !important;
                 ">
-                    <div style="
-                        font-size: 6.5px !important;
-                        color: #E63946 !important;
-                        font-weight: 700 !important;
-                        letter-spacing: 0.5px !important;
-                        margin-bottom: 3px !important;
-                        line-height: 1.3 !important;
-                    ">CONTACTO</div>
-                    <div style="
+                    <!-- QR -->
+                    <div id="qr-code-container" style="
+                        width: 225px !important;
+                        height: 225px !important;
+                        background: white !important;
+                        border-radius: 14px !important;
+                        padding: 3px !important;
+                        border: 3px solid #E63946 !important;
                         display: flex !important;
-                        justify-content: center !important;
                         align-items: center !important;
-                        gap: 10px !important;
+                        justify-content: center !important;
+                        box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15) !important;
+                    ">
+                        <div style="text-align: center;">
+                            <i class="fas fa-spinner fa-spin" style="color: #E63946; font-size: 18px;"></i>
+                        </div>
+                    </div>
+                    <div style="
                         font-size: 6px !important;
-                        font-weight: 600 !important;
-                        color: #1a1a1a !important;
-                        margin-bottom: 3px !important;
-                        line-height: 1.3 !important;
-                    ">
-                        <span>📞 37418036</span>
-                        <span style="color: #ccc !important;">|</span>
-                        <span>📞 38514409</span>
-                    </div>
-                    <div style="
-                        font-size: 5.5px !important;
-                        color: #555 !important;
+                        color: #666 !important;
+                        text-align: center !important;
                         font-weight: 500 !important;
-                        display: flex !important;
-                        justify-content: center !important;
-                        align-items: center !important;
-                        gap: 4px !important;
+                        margin-top: 1px !important;
+                        margin-bottom: 1px !important;
                         line-height: 1.3 !important;
+                    ">Escanear para verificar identidad</div>
+                    <!-- CONTACTO -->
+                    <div style="
+                        background: #e8e8e8 !important;
+                        padding: 5px 12px !important;
+                        border-radius: 6px !important;
+                        text-align: center !important;
+                        width: 100% !important;
+                        border: 2px solid #ccc !important;
+                        box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12) !important;
                     ">
-                        <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 6px;"></i>
-                        <span>08 Calle c 10-72 Zona 3 San Marcos</span>
+                        <div style="
+                            font-size: 6.5px !important;
+                            color: #E63946 !important;
+                            font-weight: 700 !important;
+                            letter-spacing: 0.5px !important;
+                            margin-bottom: 3px !important;
+                            line-height: 1.3 !important;
+                        ">CONTACTO</div>
+                        <div style="
+                            display: flex !important;
+                            justify-content: center !important;
+                            align-items: center !important;
+                            gap: 10px !important;
+                            font-size: 6px !important;
+                            font-weight: 600 !important;
+                            color: #1a1a1a !important;
+                            margin-bottom: 3px !important;
+                            line-height: 1.3 !important;
+                        ">
+                            <span>📞 37418036</span>
+                            <span style="color: #ccc !important;">|</span>
+                            <span>📞 38514409</span>
+                        </div>
+                        <div style="
+                            font-size: 5.5px !important;
+                            color: #555 !important;
+                            font-weight: 500 !important;
+                            display: flex !important;
+                            justify-content: center !important;
+                            align-items: center !important;
+                            gap: 4px !important;
+                            line-height: 1.3 !important;
+                        ">
+                            <i class="fas fa-map-marker-alt" style="color: #E63946; font-size: 6px;"></i>
+                            <span>08 Calle c 10-72 Zona 3 San Marcos</span>
+                        </div>
                     </div>
+                    <!-- www -->
+                    <div style="
+                        font-size: 10px !important;
+                        color: #1a1a2e !important;
+                        font-weight: 700 !important;
+                        text-align: center !important;
+                        margin-top: 3px !important;
+                        line-height: 1.3 !important;
+                        white-space: nowrap !important;
+                        overflow: hidden !important;
+                        text-overflow: ellipsis !important;
+                        max-width: 100% !important;
+                    ">www.expressionmusical.com</div>
                 </div>
-
-                <!-- www -->
-                <div style="
-                    font-size: 10px !important;
-                    color: #1a1a2e !important;
-                    font-weight: 700 !important;
-                    text-align: center !important;
-                    margin-top: 3px !important;
-                    line-height: 1.3 !important;
-                    white-space: nowrap !important;
-                    overflow: hidden !important;
-                    text-overflow: ellipsis !important;
-                    max-width: 100% !important;
-                ">www.expressionmusical.com</div>
             </div>
         </div>
-    </div>
-    <div style="text-align: center; margin-top: 8px;">
-        <span style="font-size: 11px; color: #999; background: #f5f5f5; padding: 4px 16px; border-radius: 14px;">8.4 x 5.4 cm</span>
-    </div>
+        <div style="text-align: center; margin-top: 8px;">
+            <span style="font-size: 11px; color: #999; background: #f5f5f5; padding: 4px 16px; border-radius: 14px;">8.4 x 5.4 cm</span>
+        </div>
     `;
 
     // =====================================================
     // GENERAR QR
     // =====================================================
+
     const qrContainer = document.getElementById('qr-code-container');
     if (qrContainer) {
         const textoQR = `
@@ -18985,7 +18976,6 @@ async function descargarCarnetActual() {
 
     const carnetFrontal = document.querySelector('.carnet-frontal');
     const carnetDorso = document.querySelector('.carnet-dorso');
-
     if (!carnetFrontal || !carnetDorso) {
         alert('Error: No se pudo encontrar el carnet para descargar');
         return;
@@ -19019,7 +19009,6 @@ async function descargarCarnetActual() {
 
     try {
         const scale = 4;
-        
         const canvasFrontal = await html2canvas(carnetFrontal, {
             scale: scale,
             useCORS: true,
@@ -19032,7 +19021,7 @@ async function descargarCarnetActual() {
                 const style = doc.createElement('style');
                 style.textContent = `
                     * { font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important; }
-                    .carnet-frontal, .carnet-dorso { 
+                    .carnet-frontal, .carnet-dorso {
                         transform: scale(1) !important;
                         width: 280px !important;
                         height: 440px !important;
@@ -19060,7 +19049,7 @@ async function descargarCarnetActual() {
                 const style = doc.createElement('style');
                 style.textContent = `
                     * { font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important; }
-                    .carnet-frontal, .carnet-dorso { 
+                    .carnet-frontal, .carnet-dorso {
                         transform: scale(1) !important;
                         width: 280px !important;
                         height: 440px !important;
@@ -19103,7 +19092,6 @@ async function descargarCarnetActual() {
         if (typeof showToast === 'function') {
             showToast('Carnet descargado correctamente', 'success');
         }
-
     } catch (error) {
         document.body.removeChild(toastMsg);
         console.error('Error al generar PDF:', error);
@@ -19125,10 +19113,12 @@ window.generateContract = function(id) {
             }
         } catch(e) {}
     }
+
     if (inscriptions.length === 0 && window.inscriptions && Array.isArray(window.inscriptions)) {
         inscriptions = window.inscriptions;
         console.log('📦 Datos encontrados en window.inscriptions:', inscriptions.length);
     }
+
     if (inscriptions.length === 0 && window.db) {
         console.log('🔄 Intentando cargar desde Firebase...');
         window.db.collection('inscripciones').get().then((snapshot) => {
@@ -19147,6 +19137,7 @@ window.generateContract = function(id) {
             return;
         }
     }
+
     if (inscriptions.length === 0) {
         console.error('❌ No se encontraron inscripciones en ninguna fuente');
         alert('⚠️ No se encontraron inscripciones. Por favor, recarga la página o verifica que haya estudiantes registrados.');
@@ -19186,7 +19177,6 @@ window.generateContract = function(id) {
                     </div>
                 </div>
             </div>
-
             <div style="margin-bottom: 30px;">
                 <p>Yo: <strong>${inscripcion.encargado.nombre}</strong></p>
                 <p>Quien me identifico con número de DPI: <strong>${inscripcion.encargado.dpi}</strong></p>
@@ -19213,11 +19203,9 @@ window.generateContract = function(id) {
                     <strong>${endDate.getDate()}/${endDate.getMonth() + 1}/${endDate.getFullYear()}</strong>
                 </p>
             </div>
-
             <div style="margin-bottom: 30px;">
                 <p>Por lo tanto, es la obligación de la Institución, Docente Instructor, Encargado (a),
                 Padre de Familia y Estudiante velar por que se cumplan las siguientes normas descritas en este contrato.</p>
-
                 <h4 style="color: #E63946; border-bottom: 1px solid #eee; padding-bottom: 5px;">RESPONSABILIDADES DE EXPRESIÓN MUSICAL</h4>
                 <ol style="padding-left: 20px;">
                     <li>Brindar un servicio de calidad educativa en el ámbito de formación musical.</li>
@@ -19228,7 +19216,6 @@ window.generateContract = function(id) {
                     <li>Resolver conflictos en forma positiva si en su momento se amerita.</li>
                     <li>Entregar solvencia de pagos de mensualidades a los padres de familia o encargados.</li>
                 </ol>
-
                 <h4 style="color: #E63946; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px;">RESPONSABILIDADES DEL PADRE/MADRE DE FAMILIA O ENCARGADO(A)</h4>
                 <ol style="padding-left: 20px;">
                     <li>Asegurarse que el estudiante se presente 5 minutos antes de su horario de clase establecido.</li>
@@ -19239,7 +19226,6 @@ window.generateContract = function(id) {
                     <li>Leer todas las comunicaciones de la Academia y del docente instructor del estudiante.</li>
                     <li>Cumplir puntualmente con la cancelación de los pagos mensuales los primeros 5 días cada mes.</li>
                 </ol>
-
                 <h4 style="color: #E63946; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px;">RESPONSABILIDADES DEL ESTUDIANTE</h4>
                 <ol style="padding-left: 20px;">
                     <li>Llegar a tiempo preparados para trabajar y participar en las lecciones diarias.</li>
@@ -19254,7 +19240,6 @@ window.generateContract = function(id) {
                     <li>Respetar a todos los compañeros, padres de familia, docentes y personal que se encuentran en la Academia Expresión Musical.</li>
                 </ol>
             </div>
-
             <div style="margin-bottom: 30px;">
                 <h4 style="color: #E63946; border-bottom: 1px solid #eee; padding-bottom: 5px;">VIGENCIA Y CONDICIONES ADICIONALES</h4>
                 <p>El presente compromiso de estudios entra en vigencia al momento de su emisión y finaliza 11 meses después.</p>
@@ -19267,7 +19252,6 @@ window.generateContract = function(id) {
                     <li>El estudiante deberá de presentar la tarea anterior firmada por el encargado, que garantice el avance teórico/práctico del mismo.</li>
                 </ol>
             </div>
-
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px;">
                 <div style="text-align: center;">
                     <p style="border-top: 1px solid #000; width: 80%; margin: 15px auto 0;"></p>
@@ -19281,13 +19265,11 @@ window.generateContract = function(id) {
                     <p>Estudiante</p>
                 </div>
             </div>
-
             <div style="text-align: center; margin-top: 40px;">
                 <p style="border-top: 1px solid #000; width: 60%; margin: 15px auto 0;"></p>
                 <p><strong>REPRESENTANTE DE LA ACADEMIA</strong></p>
                 <p>Director Administrativo</p>
             </div>
-
             <div style="margin-top: 40px; font-size: 12px; color: #666; text-align: center;">
                 <p>Este documento es generado automáticamente por el sistema de gestión académica de Expresion Musical</p>
                 <p>Fecha de emisión: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
@@ -19465,7 +19447,6 @@ window.enviarRecordatorioAusencias = function() {
             </div>
         `;
         document.body.appendChild(modal);
-
         const closeSpan = modal.querySelector('.close');
         const closeBtn = modal.querySelector('#cerrarModalRecordatorio');
         const cerrarModal = () => { modal.style.display = 'none'; };
@@ -19480,7 +19461,7 @@ window.enviarRecordatorioAusencias = function() {
 };
 
 // =====================================================
-// 🔥 NUEVA FUNCIÓN: SOLO LEE DESDE FIREBASE (NO SOBRESCRIBE)
+// 🔥 FUNCIÓN: SOLO LEE DESDE FIREBASE - CORREGIDA (NO SOBRESCRIBE)
 // =====================================================
 
 async function sincronizarDesdeFirebase() {
@@ -19488,11 +19469,11 @@ async function sincronizarDesdeFirebase() {
         console.warn("⚠️ Firebase no disponible");
         return;
     }
-    
+
     try {
         console.log("🔄 LEYENDO datos DESDE Firebase...");
-        
-        // 1. LEER INSCRIPCIONES (CON FOTOS)
+
+        // 1. LEER INSCRIPCIONES (CON FOTOS) - SOLO ACTUALIZAR SI HAY CAMBIOS
         const insSnapshot = await window.db.collection('inscripciones').get();
         let firestoreData = [];
         insSnapshot.forEach(doc => {
@@ -19500,68 +19481,100 @@ async function sincronizarDesdeFirebase() {
             data.id = doc.id;
             firestoreData.push(data);
         });
-        
+
         if (firestoreData.length > 0) {
-            window.inscriptions = firestoreData;
-            const sinFotos = firestoreData.map(item => {
-                const copia = JSON.parse(JSON.stringify(item));
-                if (copia.estudiante) delete copia.estudiante.foto;
-                return copia;
-            });
-            localStorage.setItem('inscriptions', JSON.stringify(sinFotos));
-            console.log(`✅ ${firestoreData.length} inscripciones LEÍDAS desde Firebase`);
+            // Verificar si realmente hay cambios en los datos (comparar IDs)
+            const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            const localIds = localData.map(item => String(item.id));
+            const firestoreIds = firestoreData.map(item => String(item.id));
+            
+            // Solo actualizar si hay diferencias
+            const hayCambios = localIds.length !== firestoreIds.length || 
+                               localIds.some(id => !firestoreIds.includes(id)) ||
+                               firestoreIds.some(id => !localIds.includes(id));
+            
+            if (hayCambios || localData.length === 0) {
+                // Guardar en memoria CON FOTOS
+                window.inscriptions = firestoreData;
+                
+                // Guardar en localStorage SIN FOTOS (para no llenar el storage)
+                const sinFotos = firestoreData.map(item => {
+                    const copia = JSON.parse(JSON.stringify(item));
+                    if (copia.estudiante) delete copia.estudiante.foto;
+                    return copia;
+                });
+                localStorage.setItem('inscriptions', JSON.stringify(sinFotos));
+                console.log(`✅ ${firestoreData.length} inscripciones LEÍDAS desde Firebase`);
+            } else {
+                console.log('📦 No hay cambios en inscripciones, usando caché local');
+            }
         }
-        
-        // 2. LEER PAGOS
+
+        // 2. LEER PAGOS - SOLO ACTUALIZAR SI HAY CAMBIOS
         const pagosDoc = await window.db.collection('pagos').doc('global').get();
         if (pagosDoc.exists) {
             const pagosData = pagosDoc.data();
-            window.datos = pagosData;
-            localStorage.setItem('datosPagos', JSON.stringify(pagosData));
-            console.log("✅ Pagos LEÍDOS desde Firebase");
+            const localPagos = JSON.parse(localStorage.getItem('datosPagos') || '{}');
+            if (JSON.stringify(localPagos) !== JSON.stringify(pagosData) || Object.keys(localPagos).length === 0) {
+                window.datos = pagosData;
+                localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+                console.log("✅ Pagos LEÍDOS desde Firebase");
+            }
         }
-        
-        // 3. LEER ASISTENCIA
+
+        // 3. LEER ASISTENCIA - SOLO ACTUALIZAR SI HAY CAMBIOS
         const asisSnapshot = await window.db.collection('asistencia').get();
         let asisData = [];
         asisSnapshot.forEach(doc => asisData.push({ id: doc.id, ...doc.data() }));
         if (asisData.length > 0) {
-            localStorage.setItem('historialAsistencia', JSON.stringify(asisData));
-            console.log(`✅ ${asisData.length} registros de asistencia LEÍDOS`);
+            const localAsis = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            if (localAsis.length !== asisData.length || localAsis.length === 0) {
+                localStorage.setItem('historialAsistencia', JSON.stringify(asisData));
+                console.log(`✅ ${asisData.length} registros de asistencia LEÍDOS`);
+            }
         }
-        
-        // 4. LEER CLASES VIRTUALES
+
+        // 4. LEER CLASES VIRTUALES - SOLO ACTUALIZAR SI HAY CAMBIOS
         const clasesSnapshot = await window.db.collection('clasesVirtuales').get();
         let clasesData = [];
         clasesSnapshot.forEach(doc => clasesData.push({ id: doc.id, ...doc.data() }));
         if (clasesData.length > 0) {
-            localStorage.setItem('clasesVirtuales', JSON.stringify(clasesData));
-            console.log(`✅ ${clasesData.length} clases virtuales LEÍDAS`);
+            const localClases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            if (localClases.length !== clasesData.length || localClases.length === 0) {
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clasesData));
+                console.log(`✅ ${clasesData.length} clases virtuales LEÍDAS`);
+            }
         }
-        
-        // 5. LEER TEMARIOS
+
+        // 5. LEER TEMARIOS - SOLO ACTUALIZAR SI HAY CAMBIOS
         const temarioSnapshot = await window.db.collection('temarios').get();
         let temarioData = [];
         temarioSnapshot.forEach(doc => temarioData.push({ id: doc.id, ...doc.data() }));
         if (temarioData.length > 0) {
-            localStorage.setItem('temarios', JSON.stringify(temarioData));
-            console.log(`✅ ${temarioData.length} temarios LEÍDOS`);
+            const localTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+            if (localTemarios.length !== temarioData.length || localTemarios.length === 0) {
+                localStorage.setItem('temarios', JSON.stringify(temarioData));
+                console.log(`✅ ${temarioData.length} temarios LEÍDOS`);
+            }
         }
-        
-        // 6. LEER RECIBOS
+
+        // 6. LEER RECIBOS - SOLO ACTUALIZAR SI HAY CAMBIOS
         const recibosSnapshot = await window.db.collection('recibos').get();
         let recibosData = [];
         recibosSnapshot.forEach(doc => recibosData.push(doc.data()));
         if (recibosData.length > 0) {
-            localStorage.setItem('historialRecibos', JSON.stringify(recibosData));
-            console.log(`✅ ${recibosData.length} recibos LEÍDOS`);
+            const localRecibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+            if (localRecibos.length !== recibosData.length || localRecibos.length === 0) {
+                localStorage.setItem('historialRecibos', JSON.stringify(recibosData));
+                console.log(`✅ ${recibosData.length} recibos LEÍDOS`);
+            }
         }
-        
+
         console.log("✅ Sincronización DESDE Firebase COMPLETADA");
-        
-        // Actualizar vistas
+
+        // Actualizar vistas solo si es necesario
         actualizarVistasDespuesDeSincronizar();
-        
+
     } catch (error) {
         console.error("❌ Error en sincronización DESDE Firebase:", error);
     }
@@ -19588,33 +19601,30 @@ function actualizarVistasDespuesDeSincronizar() {
     }
 }
 
-// ✅ Ejecutar UNA VEZ al inicio
-setTimeout(sincronizarDesdeFirebase, 2000);
+// ✅ Ejecutar UNA VEZ al inicio (con delay para no bloquear)
+setTimeout(sincronizarDesdeFirebase, 3000);
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - SOLO LECTURA
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - SOLO LECTURA (NO SOBRESCRIBE FOTOS)
 // =====================================================
 
 if (window.db) {
     console.log('🔄 Iniciando listener de inscripciones...');
-    
     window.db.collection('inscripciones').onSnapshot((snapshot) => {
         const cambios = snapshot.docChanges();
         if (cambios.length === 0) return;
-        
         console.log(`🔄 ${cambios.length} cambio(s) detectado(s)`);
-        
+
         // LEER TODOS LOS DATOS DE FIREBASE (CON FOTOS)
         let firestoreData = [];
         snapshot.forEach(doc => {
             firestoreData.push({ id: doc.id, ...doc.data() });
         });
-        
+
         // ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTOS)
-        inscriptions = firestoreData;
         window.inscriptions = firestoreData;
-        
-        // GUARDAR EN LOCALSTORAGE PERO SIN FOTOS
+
+        // GUARDAR EN LOCALSTORAGE PERO SIN FOTOS (para no llenar storage)
         const datosSinFotos = firestoreData.map(item => {
             const copia = JSON.parse(JSON.stringify(item));
             if (copia.estudiante) {
@@ -19623,35 +19633,30 @@ if (window.db) {
             return copia;
         });
         localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
-        
         console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase (CON FOTOS en memoria)`);
-        
+
         // ACTUALIZAR VISTAS SI ESTÁN VISIBLES
         const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
         const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
-        
+
         if (dataTableVisible && typeof renderTable === 'function') {
             renderTable();
             console.log('🔄 Tabla actualizada');
         }
-        
         if (pagosVisible && typeof sincronizarPagosConInscripciones === 'function') {
             sincronizarPagosConInscripciones();
             console.log('🔄 Pagos actualizados');
         }
-        
         if (typeof actualizarListaEncargados === 'function') {
             actualizarListaEncargados();
         }
-        
         if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
             asistenciaApp.cargarEstudiantesAutomaticamente();
         }
-        
+
         window.dispatchEvent(new CustomEvent('inscripciones-actualizadas', {
             detail: firestoreData
         }));
-        
     }, (error) => {
         console.error("❌ Error en listener de inscripciones:", error);
     });
@@ -19692,29 +19697,25 @@ if (window.db) {
         window.systemUsers = unidos;
         console.log("🔄 Usuarios actualizados en tiempo real");
 
-        // =====================================================
         // 🔥 NUEVO: Actualizar currentUser si cambió
-        // =====================================================
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const username = currentUser.username;
 
         if (username && usuariosFirestore[username]) {
             const usuarioActualizado = usuariosFirestore[username];
-            // Verificar si hubo cambios en estudiantesIds o datos importantes
             const oldData = JSON.stringify(currentUser);
             const newData = JSON.stringify(usuarioActualizado);
-            
+
             if (oldData !== newData) {
                 console.log('🔄 Usuario actualizado en Firebase, actualizando currentUser...');
                 localStorage.setItem('currentUser', JSON.stringify(usuarioActualizado));
-                
+
                 // 🔥 Si es encargado, recargar su selector de estudiantes
                 if (usuarioActualizado.tipo === 'encargado') {
                     console.log('🔄 Encargado detectado, recargando selector...');
                     if (typeof cargarSelector === 'function') {
                         cargarSelector();
                     }
-                    // También recargar la información del estudiante actual
                     if (typeof window.actualizarInfoEstudiante === 'function') {
                         const select = document.getElementById('selectorEstudianteEnc');
                         if (select && select.value) {
@@ -19762,11 +19763,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('contractModal').style.display = 'none';
         });
     }
+
     if (exitContractBtn) {
         exitContractBtn.addEventListener('click', function() {
             document.getElementById('contractModal').style.display = 'none';
         });
     }
+
     if (printContractBtn) {
         printContractBtn.addEventListener('click', function() {
             const printWindow = window.open('', '_blank');
@@ -19793,6 +19796,7 @@ document.addEventListener('DOMContentLoaded', function() {
             printWindow.document.close();
         });
     }
+
     if (downloadContractBtn) {
         downloadContractBtn.addEventListener('click', function() {
             const contractElement = document.getElementById('contractContent');
@@ -19805,7 +19809,6 @@ document.addEventListener('DOMContentLoaded', function() {
             clone.style.boxSizing = 'border-box';
             clone.style.fontFamily = 'Arial, sans-serif';
             document.body.appendChild(clone);
-
             const opt = {
                 margin: 0,
                 filename: `Contrato_${cleanFileName}.pdf`,
@@ -19813,7 +19816,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
             };
-
             html2pdf().set(opt).from(clone).save().then(() => {
                 document.body.removeChild(clone);
                 showToast(`Contrato de ${studentName} descargado correctamente`);
@@ -19852,7 +19854,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // =====================================================
 
 setTimeout(actualizarSaludoEncabezado, 1000);
-
 if (typeof window.checkLoginStatus === 'function') {
     window.checkLoginStatus();
 }
@@ -19974,7 +19975,7 @@ if (typeof window.checkLoginStatus === 'function') {
 
         if (highContrast === 'on') {
             css += `body { background-color: #000 !important; color: #ff0 !important; filter: contrast(1.2) brightness(0.95); }
-                .secretaria-panel, .data-table-container, .modal-content { background-color: #111 !important; color: #ff0 !important; border-color: #ff0 !important; }`;
+            .secretaria-panel, .data-table-container, .modal-content { background-color: #111 !important; color: #ff0 !important; border-color: #ff0 !important; }`;
         }
 
         if (shadowSelector && shadowValue !== 'none') {
@@ -20232,7 +20233,7 @@ if (typeof window.checkLoginStatus === 'function') {
         btnNotif.style.marginLeft = '15px';
         btnNotif.style.backgroundColor = '#555';
         btnNotif.style.borderRadius = '30px';
-        btnNotif.innerHTML = '<i class="fas fa-bell"></i> <span id="contadorNotif" style="position: absolute; top: -8px; right: -8px; background: #E63946; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none;">0</span>';
+        btnNotif.innerHTML = `<i class="fas fa-bell"></i> <span id="contadorNotif" style="position: absolute; top: -8px; right: -8px; background: #E63946; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none;">0</span>`;
 
         const panel = document.createElement('div');
         panel.id = 'panelNotificaciones';
@@ -20436,6 +20437,7 @@ if (typeof window.checkLoginStatus === 'function') {
 // =============================================
 // CORRECCIÓN: Mostrar/ocultar instrumentos y estudiantes
 // =============================================
+
 document.addEventListener('DOMContentLoaded', function() {
     const tipoSelect = document.getElementById('usuarioTipo');
     const instrumentosGroup = document.getElementById('instrumentos-group');
@@ -20470,7 +20472,9 @@ window.mostrarModalUsuario = function() {
 
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
+
 </script>
+<!-- ============================================ -->
     <script>
     // =====================================================
     // 🔥 REGISTRAR SERVICE WORKER
