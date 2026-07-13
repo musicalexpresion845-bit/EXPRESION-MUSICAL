@@ -15639,7 +15639,7 @@ function aplicarTemaEncargado(color, esPrincipal) {
 }
 
 // =====================================================
-// 4. MODAL CAMBIAR INSTRUMENTO - CON CIERRE INSTANTÁNEO
+// 4. MODAL CAMBIAR INSTRUMENTO - CIERRE INSTANTÁNEO
 // =====================================================
 
 function mostrarModalCambioInstrumento() {
@@ -15648,10 +15648,10 @@ function mostrarModalCambioInstrumento() {
         return;
     }
 
-    // Si ya hay un modal abierto, lo cerramos primero
+    // Cerrar modal anterior si existe
     cerrarModalInstrumento();
 
-    // Crear el modal SIN fondo oscuro (overlay)
+    // Crear el modal
     const modal = document.createElement('div');
     modal.id = 'modalInstrumentoFlotante';
     modal.style.cssText = `
@@ -15666,32 +15666,14 @@ function mostrarModalCambioInstrumento() {
         width: 90%;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         z-index: 99999;
-        animation: modalEntrar 0.2s ease;
         border: 2px solid #E63946;
     `;
-
-    // Estilos de animación
-    const estiloAnim = document.createElement('style');
-    estiloAnim.id = 'estiloModalInstrumento';
-    estiloAnim.textContent = `
-        @keyframes modalEntrar {
-            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        }
-        @keyframes modalSalir {
-            from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            to { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(estiloAnim);
 
     modal.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
             <h4 style="margin:0;color:#E63946;font-size:1.2rem;">🎸 Cambiar Instrumento</h4>
-            <button onclick="cerrarModalInstrumento()" 
-                style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 10px;line-height:1;"
-                onmouseover="this.style.color='#E63946'"
-                onmouseout="this.style.color='#999'">
+            <button id="btnCerrarModalInstrumento" 
+                style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 10px;line-height:1;">
                 &times;
             </button>
         </div>
@@ -15702,10 +15684,8 @@ function mostrarModalCambioInstrumento() {
                 const color = esPrincipal ? '#E63946' : '#1976D2';
                 const selected = (instr === encargadoInstrumentoSeleccionado) ? 'border:3px solid #4CAF50; background:#f0fff0;' : '';
                 return `
-                    <button onclick="seleccionarInstrumentoEncargado('${instr}')" 
-                        style="padding:16px;border-radius:12px;border:2px solid ${selected ? '#4CAF50' : '#ddd'};background:${selected ? '#f0fff0' : 'white'};cursor:pointer;font-weight:600;color:${color};${selected}transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;font-size:1rem;width:100%;"
-                        onmouseover="this.style.borderColor='${color}';this.style.background='${color}11';"
-                        onmouseout="this.style.borderColor='${selected ? '#4CAF50' : '#ddd'}';this.style.background='${selected ? '#f0fff0' : 'white'}';">
+                    <button class="btnSeleccionarInstrumento" data-instrumento="${instr}"
+                        style="padding:16px;border-radius:12px;border:2px solid ${selected ? '#4CAF50' : '#ddd'};background:${selected ? '#f0fff0' : 'white'};cursor:pointer;font-weight:600;color:${color};${selected}transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;font-size:1rem;width:100%;">
                         <span>${instr} ${esPrincipal ? '⭐ (Principal)' : '🔄 (Secundario)'}</span>
                         ${instr === encargadoInstrumentoSeleccionado ? ' <span style="color:#4CAF50;font-size:1.2rem;">✅</span>' : ''}
                     </button>
@@ -15713,10 +15693,8 @@ function mostrarModalCambioInstrumento() {
             }).join('')}
         </div>
         <div style="margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:15px;">
-            <button onclick="cerrarModalInstrumento()" 
-                style="padding:10px 30px;background:#6c757d;color:white;border:none;border-radius:30px;cursor:pointer;font-size:0.9rem;"
-                onmouseover="this.style.background='#5a6268'"
-                onmouseout="this.style.background='#6c757d'">
+            <button id="btnCancelarModalInstrumento" 
+                style="padding:10px 30px;background:#6c757d;color:white;border:none;border-radius:30px;cursor:pointer;font-size:0.9rem;">
                 Cancelar
             </button>
         </div>
@@ -15725,71 +15703,114 @@ function mostrarModalCambioInstrumento() {
     document.body.appendChild(modal);
     modalInstrumentoElemento = modal;
 
-    // Cerrar al hacer clic fuera (pero NO se oscurece la pantalla)
-    document.addEventListener('click', function cerrarFuera(e) {
-        if (modal && !modal.contains(e.target)) {
+    // =====================================================
+    // 🔥 EVENTOS CON CIERRE INSTANTÁNEO
+    // =====================================================
+
+    // Botón de cerrar (X)
+    const btnCerrar = document.getElementById('btnCerrarModalInstrumento');
+    if (btnCerrar) {
+        btnCerrar.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             cerrarModalInstrumento();
-            document.removeEventListener('click', cerrarFuera);
-        }
+        });
+    }
+
+    // Botón Cancelar
+    const btnCancelar = document.getElementById('btnCancelarModalInstrumento');
+    if (btnCancelar) {
+        btnCancelar.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            cerrarModalInstrumento();
+        });
+    }
+
+    // Botones de selección de instrumento
+    document.querySelectorAll('.btnSeleccionarInstrumento').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const instrumento = this.getAttribute('data-instrumento');
+            if (instrumento) {
+                // CERRAR MODAL INMEDIATAMENTE
+                cerrarModalInstrumento();
+                // EJECUTAR SELECCIÓN
+                ejecutarSeleccionInstrumento(instrumento);
+            }
+        });
     });
+
+    // Cerrar al hacer clic fuera
+    setTimeout(() => {
+        document.addEventListener('click', function cerrarFuera(e) {
+            const modalActual = document.getElementById('modalInstrumentoFlotante');
+            if (modalActual && !modalActual.contains(e.target)) {
+                cerrarModalInstrumento();
+                document.removeEventListener('click', cerrarFuera);
+            }
+        });
+    }, 100);
 
     // Cerrar con Escape
     document.addEventListener('keydown', function cerrarEscape(e) {
         if (e.key === 'Escape') {
-            cerrarModalInstrumento();
-            document.removeEventListener('keydown', cerrarEscape);
+            const modalActual = document.getElementById('modalInstrumentoFlotante');
+            if (modalActual) {
+                cerrarModalInstrumento();
+                document.removeEventListener('keydown', cerrarEscape);
+            }
         }
     });
 }
 
 // =====================================================
-// 5. CERRAR MODAL INSTRUMENTO - CIERRE INSTANTÁNEO
+// 5. CERRAR MODAL INSTRUMENTO - ELIMINACIÓN DIRECTA
 // =====================================================
 
 function cerrarModalInstrumento() {
     const modal = document.getElementById('modalInstrumentoFlotante');
     if (modal) {
-        // Animación de salida
-        modal.style.animation = 'modalSalir 0.15s ease forwards';
-        setTimeout(() => {
-            if (modal && modal.parentNode) {
-                modal.remove();
-            }
-            // Limpiar estilos de animación
-            const estilo = document.getElementById('estiloModalInstrumento');
-            if (estilo) estilo.remove();
-        }, 150);
+        // Eliminar directamente del DOM
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+        modalInstrumentoElemento = null;
+        console.log('✅ Modal eliminado del DOM');
     }
-    modalInstrumentoElemento = null;
 }
 
 // =====================================================
-// 6. SELECCIONAR INSTRUMENTO - CIERRE INMEDIATO
+// 6. EJECUTAR SELECCIÓN DE INSTRUMENTO
 // =====================================================
 
-function seleccionarInstrumentoEncargado(instrumento) {
+function ejecutarSeleccionInstrumento(instrumento) {
     console.log('🔄 Instrumento seleccionado:', instrumento);
     
-    // 🔥 PASO 1: CERRAR MODAL INMEDIATAMENTE (PRIMERO)
-    cerrarModalInstrumento();
-    
-    // 🔥 PASO 2: Actualizar variable
     encargadoInstrumentoSeleccionado = instrumento;
 
-    // 🔥 PASO 3: Aplicar tema de color
     const esPrincipal = instrumento === encargadoInstrumentosLista[0];
     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
 
-    // 🔥 PASO 4: Actualizar datos de la pestaña activa (con pequeño delay)
     if (encargadoEstudianteActual) {
         setTimeout(() => {
             cargarDatosPestanaActiva(encargadoEstudianteActual);
-        }, 200);
+        }, 150);
     }
 }
 
 // =====================================================
-// 7. CARGAR DATOS DE LA PESTAÑA ACTIVA
+// 7. SELECCIONAR INSTRUMENTO (FUNCIÓN LEGACY)
+// =====================================================
+
+function seleccionarInstrumentoEncargado(instrumento) {
+    cerrarModalInstrumento();
+    ejecutarSeleccionInstrumento(instrumento);
+}
+
+// =====================================================
+// 8. CARGAR DATOS DE LA PESTAÑA ACTIVA
 // =====================================================
 
 function cargarDatosPestanaActiva(estudianteId) {
@@ -15839,7 +15860,7 @@ function cargarDatosPestanaActiva(estudianteId) {
 }
 
 // =====================================================
-// 8. EDITAR PERFIL (solo foto)
+// 9. EDITAR PERFIL (solo foto)
 // =====================================================
 
 function mostrarModalEditarPerfil() {
@@ -15932,7 +15953,7 @@ function guardarFotoPerfil() {
 }
 
 // =====================================================
-// 9. SELECTOR DE ESTUDIANTES - TIEMPO REAL
+// 10. SELECTOR DE ESTUDIANTES - TIEMPO REAL
 // =====================================================
 
 function iniciarSelectorTiempoReal() {
@@ -16080,7 +16101,7 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
 }
 
 // =====================================================
-// 10. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ)
+// 11. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ)
 // =====================================================
 
 window.actualizarInfoEstudiante = async function(estudianteId) {
@@ -16193,7 +16214,7 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 };
 
 // =====================================================
-// 11. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
+// 12. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
 // =====================================================
 
 async function mostrarInfoEstudiante(estudiante) {
@@ -16299,7 +16320,7 @@ async function mostrarInfoEstudiante(estudiante) {
 }
 
 // =====================================================
-// 12. TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
+// 13. TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
 // =====================================================
 
 function iniciarListenerFotoEncargado(estudianteId) {
@@ -16332,7 +16353,7 @@ function iniciarListenerFotoEncargado(estudianteId) {
 }
 
 // =====================================================
-// 13. LIMPIAR LISTENERS
+// 14. LIMPIAR LISTENERS
 // =====================================================
 
 function limpiarListenersEncargado() {
@@ -16357,7 +16378,7 @@ function limpiarListenersEncargado() {
 }
 
 // =====================================================
-// 14. CARGAR DATOS DEL ENCARGADO
+// 15. CARGAR DATOS DEL ENCARGADO
 // =====================================================
 
 function cargarDatosEncargado(estudianteId, instrumento) {
@@ -16388,7 +16409,7 @@ function cargarDatosEncargado(estudianteId, instrumento) {
 }
 
 // =====================================================
-// 15. PAGOS - TIEMPO REAL
+// 16. PAGOS - TIEMPO REAL
 // =====================================================
 
 function iniciarPagosTiempoReal(estudianteId) {
@@ -16453,7 +16474,7 @@ function renderPagos(estudianteId, pagos, container) {
 }
 
 // =====================================================
-// 16. ASISTENCIA - TIEMPO REAL
+// 17. ASISTENCIA - TIEMPO REAL
 // =====================================================
 
 function iniciarAsistenciaTiempoReal(estudianteId) {
@@ -16533,7 +16554,7 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 17. CLASES VIRTUALES - TIEMPO REAL
+// 18. CLASES VIRTUALES - TIEMPO REAL
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
@@ -16625,7 +16646,7 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 18. GRABACIONES - TIEMPO REAL
+// 19. GRABACIONES - TIEMPO REAL
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
@@ -16707,7 +16728,7 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 19. TEMARIO / CLASE ACTUAL - TIEMPO REAL
+// 20. TEMARIO / CLASE ACTUAL - TIEMPO REAL
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
@@ -16807,7 +16828,7 @@ function renderTemario(estudianteId, temario) {
 }
 
 // =====================================================
-// 20. INFO TAREA - TIEMPO REAL
+// 21. INFO TAREA - TIEMPO REAL
 // =====================================================
 
 function iniciarInfoTareaTiempoReal(estudianteId) {
@@ -16847,7 +16868,7 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
 }
 
 // =====================================================
-// 21. ENVIAR TAREA
+// 22. ENVIAR TAREA
 // =====================================================
 
 function enviarTarea() {
@@ -16942,7 +16963,7 @@ function enviarTarea() {
 }
 
 // =====================================================
-// 22. NOTAS - TIEMPO REAL
+// 23. NOTAS - TIEMPO REAL
 // =====================================================
 
 function iniciarTareasTiempoReal(estudianteId) {
@@ -17039,7 +17060,7 @@ function renderNotas(tareasEstudiante, cuerpo) {
 }
 
 // =====================================================
-// 23. NAVEGACIÓN DEL PANEL ENCARGADO
+// 24. NAVEGACIÓN DEL PANEL ENCARGADO
 // =====================================================
 
 function iniciarNavegacionEncargado() {
@@ -17199,7 +17220,7 @@ function iniciarNavegacionEncargado() {
 }
 
 // =====================================================
-// 24. SWIPE PARA ENCARGADO (CORREGIDO)
+// 25. SWIPE PARA ENCARGADO (CORREGIDO)
 // =====================================================
 
 function activarSwipeEncargado() {
@@ -17304,7 +17325,7 @@ function activarSwipeEncargado() {
 }
 
 // =====================================================
-// 25. HISTORIAL COMPLETO
+// 26. HISTORIAL COMPLETO
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
@@ -17482,7 +17503,7 @@ function renderHistorialCompleto(container, temario) {
 }
 
 // =====================================================
-// 26. INICIALIZACIÓN Y FORZAR NAVEGACIÓN
+// 27. INICIALIZACIÓN Y FORZAR NAVEGACIÓN
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -17564,7 +17585,7 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
 
 // =====================================================
-// 27. SWIPE: EJECUTAR CUANDO EL PANEL SE MUESTRA
+// 28. SWIPE: EJECUTAR CUANDO EL PANEL SE MUESTRA
 // =====================================================
 
 const panelEncSwipe = document.getElementById('encargadoPanel');
