@@ -17631,7 +17631,7 @@ console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 7: SISTEMA DE RECIBOS -->
+<!-- BLOQUE 7: SISTEMA DE RECIBOS (CORREGIDO) -->
 <!-- ============================================ -->
 <script>
 // =====================================================
@@ -17659,7 +17659,7 @@ function escapeHtml(text) {
 }
 
 // =====================================================
-// LISTA DE ENCARGADOS (ya definida en Bloque 2, pero la reforzamos)
+// LISTA DE ENCARGADOS
 // =====================================================
 
 window.actualizarListaEncargados = function() {
@@ -17726,19 +17726,40 @@ window.ocultarRecibo = function() {
 };
 
 // =====================================================
-// GUARDAR Y CARGAR HISTORIAL DE RECIBOS
+// ✅ GUARDAR RECIBO EN LOCAL Y FIREBASE (CORREGIDO)
 // =====================================================
 
 function guardarReciboEnLocal(recibo) {
+    console.log('💾 Guardando recibo:', recibo);
+    
+    // 1. Guardar en localStorage
     let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
     historial.push(recibo);
     localStorage.setItem('historialRecibos', JSON.stringify(historial));
-    // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
-    // El listener en tiempo real de Firebase actualizará localStorage
+    
+    // 2. 🔥 GUARDAR EN FIREBASE
+    if (window.db) {
+        const docId = String(recibo.id || Date.now());
+        window.db.collection('recibos').doc(docId).set(recibo)
+            .then(() => {
+                console.log('☁️ Recibo guardado en Firebase:', docId);
+            })
+            .catch(err => {
+                console.error('❌ Error guardando recibo en Firebase:', err);
+            });
+    } else {
+        console.warn('⚠️ Firebase no disponible, recibo solo en localStorage');
+    }
+    
+    // 3. Actualizar vista de historial si está visible
     if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
         window.cargarHistorialRecibos();
     }
 }
+
+// =====================================================
+// CARGAR HISTORIAL DE RECIBOS
+// =====================================================
 
 window.cargarHistorialRecibos = function() {
     const contenedor = document.getElementById('historial-list-recibos');
@@ -17912,7 +17933,7 @@ window.enviarWhatsAppReciboMejorado = function() {
 };
 
 // =====================================================
-// IMPRIMIR RECIBO (con iframe oculto)
+// IMPRIMIR RECIBO
 // =====================================================
 
 window.imprimirReciboMejorado = function() {
@@ -17956,6 +17977,86 @@ window.imprimirReciboMejorado = function() {
 };
 
 // =====================================================
+// ✅ SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA
+// =====================================================
+
+function iniciarSincronizacionRecibos() {
+    if (!window.db) {
+        console.warn("⚠️ Firebase no disponible, los recibos solo estarán en local.");
+        return;
+    }
+    
+    // 🔥 ESCUCHAR CAMBIOS DESDE FIREBASE
+    window.db.collection('recibos').onSnapshot((snapshot) => {
+        let recibosFirestore = [];
+        snapshot.forEach(doc => {
+            recibosFirestore.push({ id: doc.id, ...doc.data() });
+        });
+        
+        if (recibosFirestore.length > 0) {
+            let locales = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+            let unidos = [...locales];
+            
+            recibosFirestore.forEach(r => {
+                const existe = unidos.some(u => u.id === r.id);
+                if (!existe) {
+                    unidos.push(r);
+                } else {
+                    const index = unidos.findIndex(u => u.id === r.id);
+                    if (index !== -1) {
+                        unidos[index] = r;
+                    }
+                }
+            });
+            
+            localStorage.setItem('historialRecibos', JSON.stringify(unidos));
+            console.log(`🔄 Recibos sincronizados: ${recibosFirestore.length} desde Firebase, ${unidos.length} total`);
+            
+            const historialSection = document.getElementById('historial-seccion-recibos');
+            if (historialSection && historialSection.style.display !== 'none') {
+                window.cargarHistorialRecibos();
+            }
+        }
+    }, error => {
+        console.error("❌ Error en listener de recibos:", error);
+    });
+}
+
+// =====================================================
+// ✅ FUNCIÓN PARA SUBIR TODOS LOS RECIBOS PENDIENTES A FIREBASE
+// =====================================================
+
+function sincronizarRecibosConFirebase() {
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible');
+        return;
+    }
+    
+    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+    if (recibos.length === 0) {
+        console.log('📭 No hay recibos para sincronizar');
+        return;
+    }
+    
+    console.log(`🔄 Sincronizando ${recibos.length} recibos con Firebase...`);
+    
+    let sincronizados = 0;
+    recibos.forEach(recibo => {
+        const docId = String(recibo.id || Date.now() + Math.random());
+        window.db.collection('recibos').doc(docId).set(recibo)
+            .then(() => {
+                sincronizados++;
+                if (sincronizados === recibos.length) {
+                    console.log(`✅ ${sincronizados} recibos sincronizados con Firebase`);
+                }
+            })
+            .catch(err => {
+                console.error('❌ Error sincronizando recibo:', err);
+            });
+    });
+}
+
+// =====================================================
 // INICIALIZACIÓN DEL FORMULARIO DE RECIBOS
 // =====================================================
 
@@ -17996,31 +18097,8 @@ window.inicializarFormularioRecibo = function() {
 })();
 
 // =====================================================
-// SINCRONIZACIÓN EN TIEMPO REAL DE RECIBOS
+// INICIALIZACIÓN
 // =====================================================
-
-function iniciarSincronizacionRecibos() {
-    if (!window.db) {
-        console.warn("⚠️ Firebase no disponible, los recibos solo estarán en local.");
-        return;
-    }
-    window.db.collection('recibos').onSnapshot((snapshot) => {
-        let recibosFirestore = [];
-        snapshot.forEach(doc => recibosFirestore.push(doc.data()));
-        if (recibosFirestore.length > 0) {
-            let locales = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-            let unidos = [...locales];
-            recibosFirestore.forEach(r => {
-                if (!unidos.some(u => u.id === r.id)) unidos.push(r);
-            });
-            localStorage.setItem('historialRecibos', JSON.stringify(unidos));
-            console.log(`🔄 Recibos sincronizados desde Firestore: ${recibosFirestore.length} recibos`);
-            if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
-                window.cargarHistorialRecibos();
-            }
-        }
-    }, error => console.error("Error en listener de recibos:", error));
-}
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.inicializarFormularioRecibo);
@@ -18028,9 +18106,13 @@ if (document.readyState === 'loading') {
     window.inicializarFormularioRecibo();
 }
 
-iniciarSincronizacionRecibos();
+// Iniciar sincronización en tiempo real
+setTimeout(iniciarSincronizacionRecibos, 1000);
 
-console.log("✅ Bloque 7 cargado: Sistema de Recibos");
+// 🔥 SUBIR RECIBOS EXISTENTES A FIREBASE (EJECUTAR UNA VEZ)
+setTimeout(sincronizarRecibosConFirebase, 2000);
+
+console.log("✅ Bloque 7 cargado: Sistema de Recibos (CORREGIDO)");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 8: INICIALIZACIÓN, FUNCIONES AUXILIARES Y SINCRONIZACIÓN COMPLETA -->
