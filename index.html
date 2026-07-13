@@ -5966,48 +5966,7 @@ body.dark-mode .acciones .btn:hover {
 </script>
 </head>
 <body>
-    <!-- BOTÓN DE INSTALACIÓN DE LA APP -->
-<div id="installBanner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #E63946; color: white; padding: 15px 25px; border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 99999; display: flex; align-items: center; gap: 15px; font-family: 'Montserrat', sans-serif; cursor: pointer; border: none; transition: all 0.3s;">
-    <i class="fas fa-download" style="font-size: 20px;"></i>
-    <span style="font-weight: 600; font-size: 16px;">📱 Instalar App</span>
-</div>
-
-<script>
-    // =====================================================
-    // 🔥 BOTÓN DE INSTALACIÓN DE LA APP
-    // =====================================================
-    let deferredPrompt;
-    const installBanner = document.getElementById('installBanner');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('🔔 Evento beforeinstallprompt detectado');
-        e.preventDefault();
-        deferredPrompt = e;
-        installBanner.style.display = 'flex';
-    });
-
-    installBanner.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const result = await deferredPrompt.userChoice;
-            console.log('✅ Usuario:', result.outcome);
-            installBanner.style.display = 'none';
-            deferredPrompt = null;
-        } else {
-            alert('⚠️ La instalación no está disponible en este momento.');
-        }
-    });
-
-    window.addEventListener('appinstalled', () => {
-        console.log('✅ App instalada correctamente');
-        installBanner.style.display = 'none';
-        deferredPrompt = null;
-    });
-
-    if (window.navigator.standalone) {
-        installBanner.style.display = 'none';
-    }
-</script>
+  
 <!-- Pantalla de Login -->
     <div class="login-screen" id="loginScreen">
         <div class="login-container">
@@ -17631,21 +17590,24 @@ console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
 console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 7: SISTEMA DE RECIBOS (CORREGIDO) -->
+<!-- BLOQUE 7: SISTEMA DE RECIBOS (DEFINITIVO) -->
 <!-- ============================================ -->
 <script>
 // =====================================================
-// FUNCIONES AUXILIARES PARA RECIBOS
+// FUNCIONES AUXILIARES
 // =====================================================
 
 function convertirMontoALetras(monto) {
-    return `${Math.floor(monto)} QUETZALES ${(monto % 1 * 100).toFixed(0)}/100`;
+    const enteros = Math.floor(monto);
+    const decimales = Math.round((monto % 1) * 100);
+    return `${enteros} QUETZALES ${String(decimales).padStart(2, '0')}/100`;
 }
 
-function generarNumeroRecibo() {
-    const historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const base = historial.length + 1;
-    return `REC-${String(base).padStart(4,'0')}-${new Date().getFullYear()}`;
+function generarNumeroRecibo(historial) {
+    const año = new Date().getFullYear();
+    const totalRecibos = historial.length + 1;
+    const numero = String(totalRecibos).padStart(4, '0');
+    return `REC-${numero}-${año}`;
 }
 
 function escapeHtml(text) {
@@ -17657,6 +17619,58 @@ function escapeHtml(text) {
         return m;
     });
 }
+
+function formatearFecha(fechaStr) {
+    if (!fechaStr) return '';
+    try {
+        if (fechaStr.includes('-')) {
+            const partes = fechaStr.split('-');
+            const año = partes[0];
+            const mes = partes[1];
+            let dia = partes[2];
+            if (dia.length > 2) dia = dia.substring(0, 2);
+            return `${dia}/${mes}/${año}`;
+        }
+        const fecha = new Date(fechaStr);
+        const offset = fecha.getTimezoneOffset();
+        const fechaLocal = new Date(fecha.getTime() - offset * 60000);
+        const dia = String(fechaLocal.getDate()).padStart(2, '0');
+        const mes = String(fechaLocal.getMonth() + 1).padStart(2, '0');
+        const año = fechaLocal.getFullYear();
+        return `${dia}/${mes}/${año}`;
+    } catch(e) {
+        return fechaStr;
+    }
+}
+
+function obtenerFechaActual() {
+    const hoy = new Date();
+    const offset = hoy.getTimezoneOffset();
+    const fechaLocal = new Date(hoy.getTime() - offset * 60000);
+    const dia = String(fechaLocal.getDate()).padStart(2, '0');
+    const mes = String(fechaLocal.getMonth() + 1).padStart(2, '0');
+    const año = fechaLocal.getFullYear();
+    return `${año}-${mes}-${dia}`;
+}
+
+// =====================================================
+// BUSCADOR
+// =====================================================
+
+function buscarHistorialRecibos() {
+    const busqueda = document.getElementById('buscarHistorialRecibos');
+    if (!busqueda) return;
+    const termino = busqueda.value.toLowerCase().trim();
+    document.querySelectorAll('#historial-list-recibos .recibo-item').forEach(item => {
+        item.style.display = (termino === '' || item.textContent.toLowerCase().includes(termino)) ? 'flex' : 'none';
+    });
+}
+
+window.buscarHistorialRecibos = buscarHistorialRecibos;
+window.limpiarBuscadorRecibos = function() {
+    const busqueda = document.getElementById('buscarHistorialRecibos');
+    if (busqueda) { busqueda.value = ''; buscarHistorialRecibos(); }
+};
 
 // =====================================================
 // LISTA DE ENCARGADOS
@@ -17670,178 +17684,260 @@ window.actualizarListaEncargados = function() {
     inscriptions.forEach(ins => {
         if (ins.encargado?.nombre && ins.estado !== 'inactivo') {
             const nombre = ins.encargado.nombre.trim();
-            if (!encargados.has(nombre)) {
-                encargados.set(nombre, {
-                    telefono: ins.encargado.telefono || '',
-                    estudiante: ins.estudiante?.nombre || ''
-                });
+            const estudiante = ins.estudiante?.nombre || '';
+            const key = `${nombre}|${estudiante}`;
+            if (!encargados.has(key)) {
+                encargados.set(key, { nombre, estudiante, telefono: ins.encargado.telefono || '', id: ins.id });
             }
         }
     });
+    const valorActual = select.value;
     select.innerHTML = '<option value="">Seleccione un encargado</option>';
-    const ordenados = Array.from(encargados.entries()).sort((a,b) => a[0].localeCompare(b[0]));
-    ordenados.forEach(([nombre, datos]) => {
+    Array.from(encargados.values()).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(datos => {
         const opt = document.createElement('option');
-        opt.value = nombre;
-        opt.textContent = `${nombre} - ${datos.estudiante}`;
+        opt.value = datos.nombre;
+        opt.textContent = `${datos.nombre} - ${datos.estudiante}`;
         opt.setAttribute('data-telefono', datos.telefono);
         opt.setAttribute('data-estudiante', datos.estudiante);
         select.appendChild(opt);
     });
+    if (valorActual) {
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === valorActual) { select.selectedIndex = i; break; }
+        }
+    }
+    if (select.value) actualizarEstudianteRecibo();
 };
 
 window.actualizarEstudianteRecibo = function() {
     const select = document.getElementById('encargado');
     const estudianteInput = document.getElementById('estudiante');
-    const selected = select?.options[select.selectedIndex];
-    estudianteInput.value = (selected && selected.value) ? (selected.getAttribute('data-estudiante') || '') : '';
+    if (!select || !estudianteInput) return;
+    const selectedOption = select.options[select.selectedIndex];
+    estudianteInput.value = (selectedOption && selectedOption.value) ? selectedOption.getAttribute('data-estudiante') || '' : '';
 };
 
 // =====================================================
-// MOSTRAR RECIBO
+// 🔥 MOSTRAR RECIBO - VERSIÓN QUE SÍ FUNCIONA
 // =====================================================
 
 window.mostrarRecibo = function(recibo) {
-    document.getElementById('fecha-recibo').innerText = recibo.fecha;
-    document.getElementById('fecha-recibo-copia').innerText = recibo.fecha;
-    document.getElementById('numero-recibo').innerText = recibo.numero;
-    document.getElementById('numero-recibo-copia').innerText = recibo.numero;
-    document.getElementById('mes-recibo').innerText = recibo.mes;
-    document.getElementById('mes-recibo-copia').innerText = recibo.mes;
-    document.getElementById('encargado-recibo').innerText = recibo.encargado;
-    document.getElementById('encargado-recibo-copia').innerText = recibo.encargado;
-    document.getElementById('estudiante-recibo').innerText = recibo.estudiante;
-    document.getElementById('estudiante-recibo-copia').innerText = recibo.estudiante;
-    document.getElementById('monto-recibo').innerText = `Q ${recibo.monto.toFixed(2)}`;
-    document.getElementById('monto-recibo-copia').innerText = `Q ${recibo.monto.toFixed(2)}`;
-    document.getElementById('monto-letras').innerText = recibo.montoLetras;
-    document.getElementById('monto-letras-copia').innerText = recibo.montoLetras;
-    document.getElementById('recibo-container').style.display = 'block';
-    document.getElementById('recibo-container').scrollIntoView({ behavior: 'smooth' });
+    console.log('📄 Mostrando recibo:', recibo);
+    if (!recibo) return;
+    
+    const fechaFormateada = formatearFecha(recibo.fecha) || '';
+    
+    document.getElementById('fecha-recibo').innerText = fechaFormateada;
+    document.getElementById('fecha-recibo-copia').innerText = fechaFormateada;
+    document.getElementById('numero-recibo').innerText = recibo.numero || '';
+    document.getElementById('numero-recibo-copia').innerText = recibo.numero || '';
+    document.getElementById('mes-recibo').innerText = recibo.mes || '';
+    document.getElementById('mes-recibo-copia').innerText = recibo.mes || '';
+    document.getElementById('encargado-recibo').innerText = recibo.encargado || '';
+    document.getElementById('encargado-recibo-copia').innerText = recibo.encargado || '';
+    document.getElementById('estudiante-recibo').innerText = recibo.estudiante || '';
+    document.getElementById('estudiante-recibo-copia').innerText = recibo.estudiante || '';
+    
+    const montoFormateado = `Q ${(recibo.monto || 0).toFixed(2)}`;
+    document.getElementById('monto-recibo').innerText = montoFormateado;
+    document.getElementById('monto-recibo-copia').innerText = montoFormateado;
+    
+    const montoLetras = convertirMontoALetras(recibo.monto || 0);
+    document.getElementById('monto-letras').innerText = montoLetras;
+    document.getElementById('monto-letras-copia').innerText = montoLetras;
+    
+    // 🔥🔥🔥 FORZAR VISIBILIDAD - MÉTODO DEFINITIVO
+    const container = document.getElementById('recibo-container');
+    if (container) {
+        // Quitar TODO estilo que lo oculte
+        container.style.cssText = '';
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+        container.style.height = 'auto';
+        container.style.overflow = 'visible';
+        container.style.position = 'relative';
+        container.style.zIndex = '999';
+        console.log('✅ Contenedor visible');
+    } else {
+        console.error('❌ Contenedor #recibo-container NO EXISTE en el HTML');
+        alert('Error: El contenedor del recibo no existe en la página. Revisa el HTML.');
+        return;
+    }
+    
+    const content = document.getElementById('recibo-content');
+    if (content) {
+        content.style.cssText = '';
+        content.style.display = 'block';
+        content.style.visibility = 'visible';
+        content.style.opacity = '1';
+        content.style.height = 'auto';
+        content.style.overflow = 'visible';
+        console.log('✅ Contenido visible');
+    } else {
+        console.error('❌ Contenido #recibo-content NO EXISTE en el HTML');
+        alert('Error: El contenido del recibo no existe en la página. Revisa el HTML.');
+        return;
+    }
+    
+    // Scroll automático al recibo
+    setTimeout(function() {
+        if (container) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            console.log('📄 Scroll al recibo');
+        }
+    }, 300);
 };
 
 window.ocultarRecibo = function() {
     const container = document.getElementById('recibo-container');
-    if (container) container.style.display = 'none';
+    if (container) {
+        container.style.display = 'none';
+    }
+    window.reciboActual = null;
 };
 
 // =====================================================
-// ✅ GUARDAR RECIBO EN LOCAL Y FIREBASE (CORREGIDO)
+// GUARDAR RECIBO - CON NÚMEROS CORRELATIVOS
 // =====================================================
 
 function guardarReciboEnLocal(recibo) {
     console.log('💾 Guardando recibo:', recibo);
     
-    // 1. Guardar en localStorage
     let historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    historial.push(recibo);
+    let auditoria = JSON.parse(localStorage.getItem('auditoriaRecibos') || '[]');
+    
+    const existeIndex = historial.findIndex(r => 
+        r.mes === recibo.mes && 
+        r.año === recibo.año &&
+        r.estudiante === recibo.estudiante && 
+        r.encargado === recibo.encargado
+    );
+    
+    let reciboGuardado;
+    let esActualizacion = false;
+    
+    if (existeIndex !== -1) {
+        const reciboExistente = historial[existeIndex];
+        const montoAnterior = reciboExistente.monto;
+        
+        auditoria.push({
+            id: Date.now(),
+            fecha: new Date().toISOString(),
+            tipo: 'MODIFICACION_RECIBO',
+            mes: recibo.mes,
+            año: recibo.año,
+            estudiante: recibo.estudiante,
+            encargado: recibo.encargado,
+            reciboAnterior: { ...reciboExistente },
+            reciboNuevo: { ...recibo },
+            motivo: `Corrección de monto: Q${montoAnterior} → Q${recibo.monto}`,
+            usuario: JSON.parse(localStorage.getItem('currentUser') || '{}').nombre || 'Sistema',
+            fechaModificacion: new Date().toISOString()
+        });
+        localStorage.setItem('auditoriaRecibos', JSON.stringify(auditoria));
+        
+        recibo.id = reciboExistente.id;
+        recibo.numero = reciboExistente.numero;
+        recibo.fechaModificacion = new Date().toISOString();
+        
+        historial[existeIndex] = recibo;
+        reciboGuardado = recibo;
+        esActualizacion = true;
+        console.log(`🔄 ACTUALIZANDO recibo #${recibo.numero}`);
+    } else {
+        recibo.id = Date.now();
+        recibo.numero = generarNumeroRecibo(historial);
+        recibo.fechaCreacion = new Date().toISOString();
+        historial.push(recibo);
+        reciboGuardado = recibo;
+        esActualizacion = false;
+        console.log(`➕ Creando nuevo recibo #${recibo.numero}`);
+    }
+    
     localStorage.setItem('historialRecibos', JSON.stringify(historial));
     
-    // 2. 🔥 GUARDAR EN FIREBASE
     if (window.db) {
-        const docId = String(recibo.id || Date.now());
-        window.db.collection('recibos').doc(docId).set(recibo)
-            .then(() => {
-                console.log('☁️ Recibo guardado en Firebase:', docId);
-            })
-            .catch(err => {
-                console.error('❌ Error guardando recibo en Firebase:', err);
-            });
-    } else {
-        console.warn('⚠️ Firebase no disponible, recibo solo en localStorage');
+        const docId = String(reciboGuardado.id || Date.now());
+        window.db.collection('recibos').doc(docId).set(reciboGuardado)
+            .then(() => console.log(`☁️ Recibo guardado en Firebase: ${docId}`))
+            .catch(err => console.error('❌ Error en Firebase:', err));
+        
+        if (esActualizacion && auditoria.length > 0) {
+            const auditId = `audit_${Date.now()}`;
+            window.db.collection('auditoria_recibos').doc(auditId).set(auditoria[auditoria.length - 1])
+                .catch(err => console.error('❌ Error guardando auditoría:', err));
+        }
     }
     
-    // 3. Actualizar vista de historial si está visible
-    if (document.getElementById('historial-seccion-recibos').style.display !== 'none') {
-        window.cargarHistorialRecibos();
-    }
+    return { recibo: reciboGuardado, actualizado: esActualizacion };
 }
 
 // =====================================================
-// CARGAR HISTORIAL DE RECIBOS
+// CARGAR RECIBOS DESDE FIREBASE (SOLO LECTURA)
 // =====================================================
 
-window.cargarHistorialRecibos = function() {
-    const contenedor = document.getElementById('historial-list-recibos');
-    if (!contenedor) return;
-    let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    recibos = recibos.filter(r => r && typeof r.monto === 'number');
-    if (recibos.length === 0) {
-        contenedor.innerHTML = '<div class="empty-state">No hay recibos</div>';
+function cargarRecibosDesdeFirebase() {
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible');
         return;
     }
-    recibos.sort((a,b) => b.id - a.id);
-    let html = '';
-    for (const r of recibos) {
-        const fecha = r.fecha ? r.fecha : 'Fecha no disponible';
-        html += `
-            <div class="recibo-item">
-                <div class="recibo-info">
-                    <strong>${escapeHtml(r.estudiante || '?')}</strong><br>
-                    ${r.numero || 'N/A'} - ${r.mes || '?'}<br>
-                    Q ${r.monto.toFixed(2)} - ${fecha}
-                </div>
-                <div class="recibo-actions">
-                    <button class="btn-small" onclick="window.verReciboHistorial(${r.id})">Ver</button>
-                    <button class="btn-small" onclick="window.descargarReciboHistorial(${r.id})">PDF</button>
-                    <button class="btn-small" onclick="window.enviarWhatsAppReciboHistorial(${r.id})">WhatsApp</button>
-                </div>
-            </div>
-        `;
-    }
-    contenedor.innerHTML = html;
-};
-
-window.verReciboHistorial = function(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        window.reciboActual = recibo;
-        window.mostrarRecibo(recibo);
-    } else alert('Recibo no encontrado');
-};
-
-window.descargarReciboHistorial = function(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        window.reciboActual = recibo;
-        window.descargarPDFReciboMejorado();
-    } else alert('Recibo no encontrado');
-};
-
-window.enviarWhatsAppReciboHistorial = function(id) {
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const recibo = recibos.find(r => r.id === id);
-    if (recibo) {
-        window.reciboActual = recibo;
-        window.enviarWhatsAppReciboMejorado();
-    } else alert('Recibo no encontrado');
-};
+    
+    console.log('☁️ Cargando recibos desde Firebase...');
+    window.db.collection('recibos').get().then((snapshot) => {
+        let recibosFirestore = [];
+        snapshot.forEach(doc => {
+            recibosFirestore.push({ ...doc.data() });
+        });
+        
+        if (recibosFirestore.length > 0) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibosFirestore));
+            console.log(`✅ ${recibosFirestore.length} recibos cargados desde Firebase`);
+            if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+        } else {
+            console.log('📭 No hay recibos en Firebase');
+        }
+    }).catch((error) => {
+        console.error('❌ Error cargando recibos:', error);
+    });
+}
 
 // =====================================================
 // GENERAR RECIBO
 // =====================================================
 
 window.generarRecibo = function() {
-    const fechaPago = document.getElementById('fecha-pago').value;
-    const mesPago = document.getElementById('mes-pago').value;
-    const encargado = document.getElementById('encargado').value;
-    const estudiante = document.getElementById('estudiante').value;
-    let monto = parseFloat(document.getElementById('monto').value);
+    console.log('🟢 Generando/Actualizando recibo...');
+    
+    const fechaPago = document.getElementById('fecha-pago')?.value;
+    const mesPago = document.getElementById('mes-pago')?.value;
+    const encargado = document.getElementById('encargado')?.value;
+    const estudiante = document.getElementById('estudiante')?.value;
+    let monto = parseFloat(document.getElementById('monto')?.value);
     
     if (!fechaPago || !mesPago || !encargado || !estudiante || isNaN(monto) || monto <= 0) {
-        alert('Complete todos los campos correctamente');
+        alert('⚠️ Complete todos los campos correctamente');
         return;
     }
     
-    const telefono = document.getElementById('encargado').options[document.getElementById('encargado').selectedIndex]?.getAttribute('data-telefono') || '';
-    const numeroRecibo = generarNumeroRecibo();
+    const añoPago = new Date(fechaPago).getFullYear();
+    const selectEncargado = document.getElementById('encargado');
+    const telefono = selectEncargado.options[selectEncargado.selectedIndex]?.getAttribute('data-telefono') || '';
+    
+    const historial = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+    const existe = historial.find(r => 
+        r.mes === mesPago && 
+        r.año === añoPago &&
+        r.estudiante === estudiante && 
+        r.encargado === encargado
+    );
+    
     const nuevoRecibo = {
-        id: Date.now(),
-        numero: numeroRecibo,
+        id: existe ? existe.id : Date.now(),
+        numero: existe ? existe.numero : generarNumeroRecibo(historial),
         fecha: fechaPago,
         mes: mesPago,
+        año: añoPago,
         encargado: encargado,
         estudiante: estudiante,
         telefono: telefono,
@@ -17851,97 +17947,323 @@ window.generarRecibo = function() {
     };
     
     window.reciboActual = nuevoRecibo;
-    window.mostrarRecibo(nuevoRecibo);
-    guardarReciboEnLocal(nuevoRecibo);
-    alert('Recibo generado correctamente');
+    const resultado = guardarReciboEnLocal(nuevoRecibo);
+    
+    window.mostrarRecibo(resultado.recibo);
+    
+    if (resultado.actualizado) {
+        alert(`✅ RECIBO ACTUALIZADO\n📌 #${nuevoRecibo.numero}\n💰 Q${monto.toFixed(2)}\n📅 ${mesPago} ${añoPago}`);
+    } else {
+        alert(`✅ RECIBO CREADO\n📌 #${nuevoRecibo.numero}\n💰 Q${monto.toFixed(2)}\n📅 ${mesPago} ${añoPago}`);
+    }
+    
+    if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
 };
 
+// =====================================================
+// LIMPIAR FORMULARIO
+// =====================================================
+
 window.limpiarFormularioRecibo = function() {
-    const hoy = new Date();
-    const año = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoy.getDate()).padStart(2, '0');
-    document.getElementById('fecha-pago').value = `${año}-${mes}-${dia}`;
+    document.getElementById('fecha-pago').value = obtenerFechaActual();
     document.getElementById('mes-pago').value = '';
     document.getElementById('encargado').value = '';
     document.getElementById('estudiante').value = '';
     document.getElementById('monto').value = '';
     window.ocultarRecibo();
+    window.reciboActual = null;
+    if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
 };
+
+// =====================================================
+// MOSTRAR SECCIÓN
+// =====================================================
 
 window.mostrarSeccionRecibos = function(seccion) {
     window.ocultarRecibo();
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     if (seccion === 'formulario') {
-        tabs[0].classList.add('active');
+        document.querySelector('.tab:first-child')?.classList.add('active');
         document.getElementById('formulario-seccion-recibos').style.display = 'block';
         document.getElementById('historial-seccion-recibos').style.display = 'none';
     } else {
-        tabs[1].classList.add('active');
+        document.querySelector('.tab:last-child')?.classList.add('active');
         document.getElementById('formulario-seccion-recibos').style.display = 'none';
         document.getElementById('historial-seccion-recibos').style.display = 'block';
-        window.cargarHistorialRecibos();
+        if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
     }
 };
 
 // =====================================================
-// DESCARGAR PDF DEL RECIBO
+// CARGAR HISTORIAL
 // =====================================================
+
+window.cargarHistorialRecibos = function() {
+    const contenedor = document.getElementById('historial-list-recibos');
+    if (!contenedor) return;
+    let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]').filter(r => r && typeof r.monto === 'number');
+    
+    if (recibos.length === 0) {
+        contenedor.innerHTML = '<div class="empty-state" style="text-align:center;padding:30px;color:#888;">No hay recibos registrados</div>';
+        return;
+    }
+    
+    recibos.sort((a,b) => b.id - a.id);
+    let html = '';
+    for (const r of recibos) {
+        const fecha = r.fecha ? formatearFecha(r.fecha) : 'Fecha no disponible';
+        html += `
+            <div class="recibo-item" style="padding:12px 15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+                <div class="recibo-info">
+                    <strong>${escapeHtml(r.estudiante || '?')}</strong>
+                    <br>
+                    <span style="font-size:0.85rem;color:#666;">${r.numero || 'N/A'} - ${r.mes || '?'} ${r.año || ''}</span>
+                    <br>
+                    <span style="font-weight:600;color:#E63946;">Q ${(r.monto || 0).toFixed(2)}</span>
+                    <span style="font-size:0.75rem;color:#888;margin-left:10px;">${fecha}</span>
+                    ${r.fechaModificacion ? `<span style="font-size:0.65rem;color:#ff9800;margin-left:5px;">✏️ Editado</span>` : ''}
+                </div>
+                <div class="recibo-actions" style="display:flex;gap:5px;">
+                    <button class="btn-small" onclick="window.verReciboHistorial('${r.id}')" style="padding:4px 8px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                    <button class="btn-small" onclick="window.descargarReciboHistorial('${r.id}')" style="padding:4px 8px;background:#E63946;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+                    <button class="btn-small" onclick="window.enviarWhatsAppReciboHistorial('${r.id}')" style="padding:4px 8px;background:#25D366;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.7rem;">
+                        <i class="fab fa-whatsapp"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    contenedor.innerHTML = html;
+    
+    const busqueda = document.getElementById('buscarHistorialRecibos');
+    if (busqueda) {
+        busqueda.onkeyup = buscarHistorialRecibos;
+    }
+};
+
+// =====================================================
+// 🔥 VER RECIBO - VERSIÓN QUE SÍ FUNCIONA
+// =====================================================
+
+window.verReciboHistorial = function(id) {
+    console.log('👀 Ver recibo ID:', id);
+    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+    const recibo = recibos.find(r => String(r.id) === String(id));
+    if (!recibo) {
+        alert('❌ Recibo no encontrado');
+        return;
+    }
+    
+    console.log('✅ Recibo encontrado:', recibo.estudiante);
+    console.log('📌 Número:', recibo.numero);
+    
+    window.reciboActual = recibo;
+    
+    // 🔥🔥🔥 FORZAR VISIBILIDAD DIRECTAMENTE
+    const container = document.getElementById('recibo-container');
+    if (container) {
+        container.style.cssText = '';
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+        container.style.height = 'auto';
+        container.style.overflow = 'visible';
+        container.style.position = 'relative';
+        container.style.zIndex = '999';
+        console.log('✅ Contenedor forzado a visible');
+    } else {
+        console.error('❌ Contenedor NO EXISTE');
+        alert('Error: El contenedor del recibo no existe. Revisa el HTML.');
+        return;
+    }
+    
+    const content = document.getElementById('recibo-content');
+    if (content) {
+        content.style.cssText = '';
+        content.style.display = 'block';
+        content.style.visibility = 'visible';
+        content.style.opacity = '1';
+        content.style.height = 'auto';
+        content.style.overflow = 'visible';
+        console.log('✅ Contenido forzado a visible');
+    } else {
+        console.error('❌ Contenido NO EXISTE');
+        alert('Error: El contenido del recibo no existe. Revisa el HTML.');
+        return;
+    }
+    
+    // Llenar los datos del recibo
+    window.mostrarRecibo(recibo);
+    
+    // Cambiar a la pestaña de formulario para ver el recibo
+    window.mostrarSeccionRecibos('formulario');
+    
+    // Hacer scroll al recibo
+    setTimeout(function() {
+        if (container) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            console.log('📄 Scroll hacia el recibo');
+        }
+    }, 500);
+    
+    // Verificar si el recibo es visible
+    setTimeout(function() {
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            const isVisible = rect.height > 0 && rect.width > 0;
+            console.log('📊 ¿Recibo visible?', isVisible);
+            if (!isVisible) {
+                console.warn('⚠️ El recibo no es visible, forzando nuevamente...');
+                container.style.display = 'block';
+                container.style.visibility = 'visible';
+                container.style.opacity = '1';
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }, 1000);
+};
+
+// =====================================================
+// DESCARGAR PDF
+// =====================================================
+
+window.descargarReciboHistorial = function(id) {
+    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+    const recibo = recibos.find(r => String(r.id) === String(id));
+    if (recibo) {
+        window.reciboActual = recibo;
+        window.descargarPDFReciboMejorado();
+    } else {
+        alert('Recibo no encontrado');
+    }
+};
 
 window.descargarPDFReciboMejorado = function() {
     const element = document.getElementById('recibo-content');
-    if (!element) return;
-    let estudiante = window.reciboActual?.estudiante || document.getElementById('estudiante')?.value || 'recibo';
-    let numero = window.reciboActual?.numero || 'recibo';
-    let nombreLimpio = estudiante.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    if (!nombreLimpio) nombreLimpio = 'recibo';
-    const nombreArchivo = `Recibo_${nombreLimpio}_${numero}.pdf`;
-    html2pdf().set({
+    if (!element) {
+        alert('No hay recibo para descargar');
+        return;
+    }
+    
+    const recibo = window.reciboActual || {};
+    const estudiante = (recibo.estudiante || 'recibo').trim();
+    const numero = recibo.numero || 'recibo';
+    const mes = recibo.mes || '';
+    const año = recibo.año || '';
+    
+    const nombreLimpio = estudiante
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '_');
+    
+    let nombreArchivo = `Recibo`;
+    if (nombreLimpio) nombreArchivo += `_${nombreLimpio}`;
+    if (numero) nombreArchivo += `_${numero}`;
+    if (mes && año) nombreArchivo += `_${mes}_${año}`;
+    nombreArchivo += `.pdf`;
+    
+    console.log('📄 Nombre del archivo:', nombreArchivo);
+    
+    const opt = {
         margin: 0,
         filename: nombreArchivo,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(element).save();
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { 
+            scale: 3,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        },
+        jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait'
+        }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(function() {
+        console.log('✅ PDF descargado correctamente');
+    }).catch(function(error) {
+        console.error('❌ Error al generar PDF:', error);
+        alert('Error al generar el PDF. Intente nuevamente.');
+    });
 };
 
 // =====================================================
-// ENVIAR RECIBO POR WHATSAPP
+// ENVIAR POR WHATSAPP
 // =====================================================
 
+window.enviarWhatsAppReciboHistorial = function(id) {
+    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+    const recibo = recibos.find(r => String(r.id) === String(id));
+    if (recibo) {
+        window.reciboActual = recibo;
+        window.enviarWhatsAppReciboMejorado();
+    } else {
+        alert('Recibo no encontrado');
+    }
+};
+
 window.enviarWhatsAppReciboMejorado = function() {
-    if (!window.reciboActual || !window.reciboActual.telefono) {
-        alert('No se puede enviar: falta número de teléfono');
+    const recibo = window.reciboActual;
+    if (!recibo) {
+        alert('No hay recibo para enviar');
         return;
     }
-    const r = window.reciboActual;
+    
+    let telefono = recibo.telefono || '';
+    if (!telefono) {
+        const selectEncargado = document.getElementById('encargado');
+        if (selectEncargado) {
+            const selectedOption = selectEncargado.options[selectEncargado.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                telefono = selectedOption.getAttribute('data-telefono') || '';
+            }
+        }
+    }
+    
+    if (!telefono) {
+        alert('⚠️ No se encontró número de teléfono para este encargado');
+        return;
+    }
+    
+    telefono = telefono.replace(/\D/g, '');
+    if (telefono.length < 8) {
+        alert('⚠️ El número de teléfono no es válido');
+        return;
+    }
+    
+    const fechaFormateada = recibo.fecha ? formatearFecha(recibo.fecha) : 'N/A';
     const mensaje = `🎵 *ACADEMIA DE MÚSICA EXPRESIÓN MUSICAL* 🎵%0A%0A` +
         `📋 *COMPROBANTE DE PAGO*%0A%0A` +
-        `🔢 *No. de Recibo:* ${r.numero}%0A` +
-        `📅 *Fecha:* ${r.fecha}%0A` +
-        `🗓️ *Mes Pagado:* ${r.mes}%0A%0A` +
-        `👤 *Encargado:* ${r.encargado}%0A` +
-        `🎓 *Estudiante:* ${r.estudiante}%0A` +
-        `💰 *Monto:* Q ${r.monto.toFixed(2)}%0A` +
-        `📝 *${r.montoLetras}*%0A%0A` +
+        `🔢 *No. de Recibo:* ${recibo.numero || 'N/A'}%0A` +
+        `📅 *Fecha:* ${fechaFormateada}%0A` +
+        `🗓️ *Mes Pagado:* ${recibo.mes || 'N/A'} ${recibo.año || ''}%0A%0A` +
+        `👤 *Encargado:* ${recibo.encargado || 'N/A'}%0A` +
+        `🎓 *Estudiante:* ${recibo.estudiante || 'N/A'}%0A` +
+        `💰 *Monto:* Q ${(recibo.monto || 0).toFixed(2)}%0A` +
+        `📝 *${recibo.montoLetras || ''}*%0A%0A` +
         `🏫 *Academia de Música Expresión Musical*%0A` +
         `📞 Tel: 37418036 / 38514409%0A` +
         `📍 08 Calle c 10-72 Zona 3 San Marcos`;
-    const telefono = r.telefono.replace(/\D/g, '');
+    
     window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
 };
 
 // =====================================================
-// IMPRIMIR RECIBO
+// IMPRIMIR
 // =====================================================
 
 window.imprimirReciboMejorado = function() {
     const contenido = document.getElementById('recibo-content');
-    if (!contenido) {
-        alert('No hay recibo para imprimir');
-        return;
-    }
+    if (!contenido) { alert('No hay recibo para imprimir'); return; }
+    
     const clon = contenido.cloneNode(true);
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';
@@ -17949,8 +18271,8 @@ window.imprimirReciboMejorado = function() {
     iframe.style.height = '0';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
+    
     const iframeDoc = iframe.contentWindow.document;
-    iframeDoc.open();
     iframeDoc.write(`
         <!DOCTYPE html>
         <html>
@@ -17958,161 +18280,132 @@ window.imprimirReciboMejorado = function() {
             <title>Recibo</title>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
             <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-                .recibo-paper { max-width: 800px; margin: 0 auto; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; }
+                .recibo-paper { max-width: 800px; margin: 0 auto; background: white; }
+                .recibo-header { border-bottom: 3px solid #E63946 !important; }
+                .recibo-header h2 { color: #E63946 !important; }
+                .recibo-section h3 { color: #E63946 !important; border-bottom: 2px solid #E63946 !important; }
+                .monto-destacado { background: #fff5f5 !important; color: #E63946 !important; font-weight: bold !important; }
+                .recibo-label { font-weight: bold !important; color: #333 !important; }
+                .recibo-footer { border-top: 2px solid #E63946 !important; }
+                @media print { body { padding: 10mm; } .no-print { display: none !important; } }
             </style>
         </head>
         <body>${clon.outerHTML}</body>
         </html>
     `);
     iframeDoc.close();
+    
     iframe.onload = function() {
         iframe.contentWindow.print();
-        setTimeout(() => document.body.removeChild(iframe), 100);
+        setTimeout(() => document.body.removeChild(iframe), 1500);
     };
     if (iframe.contentWindow.document.readyState === 'complete') {
         iframe.contentWindow.print();
-        setTimeout(() => document.body.removeChild(iframe), 100);
+        setTimeout(() => document.body.removeChild(iframe), 1500);
     }
 };
 
 // =====================================================
-// ✅ SINCRONIZACIÓN EN TIEMPO REAL - CORREGIDA
+// AUDITORÍA
 // =====================================================
 
-function iniciarSincronizacionRecibos() {
-    if (!window.db) {
-        console.warn("⚠️ Firebase no disponible, los recibos solo estarán en local.");
+window.verAuditoriaRecibos = function() {
+    const auditoria = JSON.parse(localStorage.getItem('auditoriaRecibos') || '[]');
+    if (auditoria.length === 0) {
+        alert('No hay registros de auditoría');
         return;
     }
-    
-    // 🔥 ESCUCHAR CAMBIOS DESDE FIREBASE
-    window.db.collection('recibos').onSnapshot((snapshot) => {
-        let recibosFirestore = [];
-        snapshot.forEach(doc => {
-            recibosFirestore.push({ id: doc.id, ...doc.data() });
-        });
-        
-        if (recibosFirestore.length > 0) {
-            let locales = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-            let unidos = [...locales];
-            
-            recibosFirestore.forEach(r => {
-                const existe = unidos.some(u => u.id === r.id);
-                if (!existe) {
-                    unidos.push(r);
-                } else {
-                    const index = unidos.findIndex(u => u.id === r.id);
-                    if (index !== -1) {
-                        unidos[index] = r;
-                    }
-                }
-            });
-            
-            localStorage.setItem('historialRecibos', JSON.stringify(unidos));
-            console.log(`🔄 Recibos sincronizados: ${recibosFirestore.length} desde Firebase, ${unidos.length} total`);
-            
-            const historialSection = document.getElementById('historial-seccion-recibos');
-            if (historialSection && historialSection.style.display !== 'none') {
-                window.cargarHistorialRecibos();
-            }
-        }
-    }, error => {
-        console.error("❌ Error en listener de recibos:", error);
+    let mensaje = '📋 AUDITORÍA DE RECIBOS\n\n';
+    auditoria.forEach((a, i) => {
+        mensaje += `🔹 #${i+1} - ${new Date(a.fecha).toLocaleString()}\n`;
+        mensaje += `   ${a.tipo}\n   ${a.mes} ${a.año} - ${a.estudiante}\n`;
+        mensaje += `   Anterior: Q${a.reciboAnterior.monto} | Nuevo: Q${a.reciboNuevo.monto}\n`;
+        mensaje += `   Motivo: ${a.motivo}\n\n`;
     });
-}
-
-// =====================================================
-// ✅ FUNCIÓN PARA SUBIR TODOS LOS RECIBOS PENDIENTES A FIREBASE
-// =====================================================
-
-function sincronizarRecibosConFirebase() {
-    if (!window.db) {
-        console.warn('⚠️ Firebase no disponible');
-        return;
-    }
-    
-    const recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    if (recibos.length === 0) {
-        console.log('📭 No hay recibos para sincronizar');
-        return;
-    }
-    
-    console.log(`🔄 Sincronizando ${recibos.length} recibos con Firebase...`);
-    
-    let sincronizados = 0;
-    recibos.forEach(recibo => {
-        const docId = String(recibo.id || Date.now() + Math.random());
-        window.db.collection('recibos').doc(docId).set(recibo)
-            .then(() => {
-                sincronizados++;
-                if (sincronizados === recibos.length) {
-                    console.log(`✅ ${sincronizados} recibos sincronizados con Firebase`);
-                }
-            })
-            .catch(err => {
-                console.error('❌ Error sincronizando recibo:', err);
-            });
-    });
-}
-
-// =====================================================
-// INICIALIZACIÓN DEL FORMULARIO DE RECIBOS
-// =====================================================
-
-window.inicializarFormularioRecibo = function() {
-    const hoy = new Date();
-    const año = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoy.getDate()).padStart(2, '0');
-    const fechaInput = document.getElementById('fecha-pago');
-    if (fechaInput) fechaInput.value = `${año}-${mes}-${dia}`;
-    if (typeof window.actualizarListaEncargados === 'function') window.actualizarListaEncargados();
-    if (typeof window.cargarHistorialRecibos === 'function') window.cargarHistorialRecibos();
-    const selectEnc = document.getElementById('encargado');
-    if (selectEnc && !selectEnc._listener) {
-        selectEnc.addEventListener('change', window.actualizarEstudianteRecibo);
-        selectEnc._listener = true;
-    }
-    const generarBtn = document.querySelector('.btn-primary-recibos');
-    if (generarBtn && !generarBtn._listener) {
-        generarBtn.onclick = window.generarRecibo;
-        generarBtn._listener = true;
-    }
-    console.log('✅ Formulario de recibos inicializado');
+    alert(mensaje);
 };
-
-// =====================================================
-// LIMPIAR RECIBOS CORRUPTOS
-// =====================================================
-
-(function limpiarRecibos() {
-    let recibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
-    const original = recibos.length;
-    recibos = recibos.filter(r => r && typeof r.monto === 'number');
-    if (recibos.length < original) {
-        localStorage.setItem('historialRecibos', JSON.stringify(recibos));
-        console.log(`🗑️ Eliminados ${original - recibos.length} recibos corruptos`);
-    }
-})();
 
 // =====================================================
 // INICIALIZACIÓN
 // =====================================================
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.inicializarFormularioRecibo);
-} else {
-    window.inicializarFormularioRecibo();
+window.inicializarFormularioRecibo = function() {
+    console.log('🔧 Inicializando formulario de recibos...');
+    
+    const fechaActual = obtenerFechaActual();
+    const fechaInput = document.getElementById('fecha-pago');
+    if (fechaInput) fechaInput.value = fechaActual;
+    
+    if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+    
+    const selectEncargado = document.getElementById('encargado');
+    if (selectEncargado) {
+        selectEncargado.onchange = actualizarEstudianteRecibo;
+    }
+    
+    const btnNuevo = document.querySelector('.recibos-button.btn-secondary-recibos');
+    if (btnNuevo) {
+        btnNuevo.onclick = limpiarFormularioRecibo;
+    }
+    
+    if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+};
+
+// =====================================================
+// SINCRONIZACIÓN EN TIEMPO REAL (SOLO LECTURA)
+// =====================================================
+
+function iniciarSincronizacionRecibos() {
+    if (!window.db) {
+        console.warn("⚠️ Firebase no disponible");
+        return;
+    }
+    
+    window.db.collection('recibos').onSnapshot((snapshot) => {
+        let recibosFirestore = [];
+        snapshot.forEach(doc => {
+            recibosFirestore.push({ ...doc.data() });
+        });
+        
+        if (recibosFirestore.length > 0) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibosFirestore));
+            console.log(`🔄 ${recibosFirestore.length} recibos sincronizados desde Firebase`);
+            
+            const historialSection = document.getElementById('historial-seccion-recibos');
+            if (historialSection && historialSection.style.display !== 'none') {
+                if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+            }
+        }
+    }, (error) => {
+        console.error("❌ Error en listener de recibos:", error);
+    });
 }
 
-// Iniciar sincronización en tiempo real
-setTimeout(iniciarSincronizacionRecibos, 1000);
+// =====================================================
+// INICIALIZAR
+// =====================================================
 
-// 🔥 SUBIR RECIBOS EXISTENTES A FIREBASE (EJECUTAR UNA VEZ)
-setTimeout(sincronizarRecibosConFirebase, 2000);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        window.inicializarFormularioRecibo();
+        setTimeout(cargarRecibosDesdeFirebase, 1000);
+        setTimeout(iniciarSincronizacionRecibos, 1500);
+    });
+} else {
+    window.inicializarFormularioRecibo();
+    setTimeout(cargarRecibosDesdeFirebase, 1000);
+    setTimeout(iniciarSincronizacionRecibos, 1500);
+}
 
-console.log("✅ Bloque 7 cargado: Sistema de Recibos (CORREGIDO)");
+window.guardarReciboEnLocal = guardarReciboEnLocal;
+window.convertirMontoALetras = convertirMontoALetras;
+window.generarNumeroRecibo = generarNumeroRecibo;
+window.formatearFecha = formatearFecha;
+window.obtenerFechaActual = obtenerFechaActual;
+window.cargarRecibosDesdeFirebase = cargarRecibosDesdeFirebase;
+
+console.log("✅ BLOQUE 7 CARGADO: Sistema de Recibos (DEFINITIVO)");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 8: INICIALIZACIÓN, FUNCIONES AUXILIARES Y SINCRONIZACIÓN COMPLETA -->
