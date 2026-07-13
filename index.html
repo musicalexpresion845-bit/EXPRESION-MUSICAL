@@ -15339,10 +15339,9 @@ function eliminarClaseVirtual(claseId) {
 console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente con filtros por instrumentos (Principal y Secundario) y temarios por docente");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 6: SISTEMA DE ENCARGADOS -->
+<!-- BLOQUE 6: SISTEMA DE ENCARGADOS - VERSIÓN FINAL -->
 <!-- ============================================ -->
 <script>
-
 // =====================================================
 // VARIABLES GLOBALES
 // =====================================================
@@ -15365,8 +15364,7 @@ let encargadoListeners = {
 let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
 let listenerFotoEstudiante = null;
-let encargadoSwipeInicializado = false;
-let datosEstudianteCache = null; // CACHÉ PARA EVITAR RECARGAS INNECESARIAS
+let datosEstudianteCache = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES
@@ -15640,7 +15638,7 @@ function aplicarTemaEncargado(color, esPrincipal) {
 }
 
 // =====================================================
-// 4. MODAL CAMBIAR INSTRUMENTO (CORREGIDO - CAMBIO RÁPIDO)
+// 4. MODAL CAMBIAR INSTRUMENTO - CON CIERRE INMEDIATO
 // =====================================================
 
 function mostrarModalCambioInstrumento() {
@@ -15649,62 +15647,111 @@ function mostrarModalCambioInstrumento() {
         return;
     }
 
+    // Crear el modal
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+    modal.id = 'modalCambioInstrumento';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:10000;animation:fadeIn 0.2s ease;';
 
     modal.innerHTML = `
-        <div style="background:white;border-radius:12px;padding:25px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-            <h4 style="margin-top:0;color:#E63946;">🎸 Cambiar Instrumento</h4>
-            <p style="color:#666;font-size:0.9rem;">Selecciona el instrumento que deseas visualizar:</p>
-            <div style="display:flex;flex-direction:column;gap:10px;margin:20px 0;">
+        <div style="background:white;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:scaleIn 0.2s ease;position:relative;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;color:#E63946;font-size:1.2rem;">🎸 Cambiar Instrumento</h4>
+                <button onclick="cerrarModalInstrumento()" style="background:none;border:none;font-size:28px;cursor:pointer;color:#999;padding:0 5px;line-height:1;">&times;</button>
+            </div>
+            <p style="color:#666;font-size:0.9rem;margin-bottom:20px;">Selecciona el instrumento que deseas visualizar:</p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
                 ${encargadoInstrumentosLista.map(instr => {
                     const esPrincipal = instr === encargadoInstrumentosLista[0];
                     const color = esPrincipal ? '#E63946' : '#1976D2';
                     const selected = (instr === encargadoInstrumentoSeleccionado) ? 'border:3px solid #4CAF50; background:#f0fff0;' : '';
                     return `
                         <button onclick="seleccionarInstrumentoEncargado('${instr}')" 
-                            style="padding:14px;border-radius:10px;border:2px solid #ddd;background:white;cursor:pointer;font-weight:bold;color:${color};${selected}transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;">
-                            <span>${instr} ${esPrincipal ? '(Principal)' : '(Secundario)'}</span>
-                            ${instr === encargadoInstrumentoSeleccionado ? ' ✅' : ''}
+                            style="padding:16px;border-radius:12px;border:2px solid ${selected ? '#4CAF50' : '#ddd'};background:${selected ? '#f0fff0' : 'white'};cursor:pointer;font-weight:600;color:${color};${selected}transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;font-size:1rem;width:100%;"
+                            onmouseover="this.style.borderColor='${color}';this.style.background='${color}11';"
+                            onmouseout="this.style.borderColor='${selected ? '#4CAF50' : '#ddd'}';this.style.background='${selected ? '#f0fff0' : 'white'}';">
+                            <span>${instr} ${esPrincipal ? '⭐ (Principal)' : '🔄 (Secundario)'}</span>
+                            ${instr === encargadoInstrumentoSeleccionado ? ' <span style="color:#4CAF50;font-size:1.2rem;">✅</span>' : ''}
                         </button>
                     `;
                 }).join('')}
             </div>
+            <div style="margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:15px;">
+                <button onclick="cerrarModalInstrumento()" style="padding:10px 30px;background:#6c757d;color:white;border:none;border-radius:30px;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+            </div>
         </div>
     `;
 
+    // Agregar estilos de animación
+    const styleAnim = document.createElement('style');
+    styleAnim.textContent = `
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        @keyframes scaleIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+    `;
+    document.head.appendChild(styleAnim);
+
     document.body.appendChild(modal);
+
+    // Cerrar al hacer clic fuera
     modal.addEventListener('click', function(e) {
-        if (e.target === this) this.remove();
+        if (e.target === this) {
+            cerrarModalInstrumento();
+        }
+    });
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModalInstrumento();
+        }
     });
 }
 
 // =====================================================
-// 5. SELECCIONAR INSTRUMENTO (CORREGIDO - CAMBIO RÁPIDO SIN RECARGAR ESTUDIANTE)
+// 5. CERRAR MODAL INSTRUMENTO - FUNCIÓN SEPARADA
 // =====================================================
 
-function seleccionarInstrumentoEncargado(instrumento) {
-    console.log('🔄 Instrumento seleccionado:', instrumento);
-    encargadoInstrumentoSeleccionado = instrumento;
-
-    const modal = document.querySelector('.modal');
-    if (modal) modal.remove();
-
-    const esPrincipal = instrumento === encargadoInstrumentosLista[0];
-    aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
-
-    if (encargadoEstudianteActual) {
-        // 🔥 SOLO ACTUALIZAR LAS PESTAÑAS QUE DEPENDEN DEL INSTRUMENTO
-        // NO recargar toda la información del estudiante (eso causa el retraso)
+function cerrarModalInstrumento() {
+    const modal = document.getElementById('modalCambioInstrumento');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.15s ease';
         setTimeout(() => {
-            cargarDatosPestanaActiva(encargadoEstudianteActual);
-        }, 100);
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+        }, 150);
     }
 }
 
 // =====================================================
-// 6. CARGAR DATOS DE LA PESTAÑA ACTIVA (NUEVA FUNCIÓN - RÁPIDA)
+// 6. SELECCIONAR INSTRUMENTO - CIERRE INMEDIATO + CARGA RÁPIDA
+// =====================================================
+
+function seleccionarInstrumentoEncargado(instrumento) {
+    console.log('🔄 Instrumento seleccionado:', instrumento);
+    
+    // 🔥 PASO 1: CERRAR MODAL INMEDIATAMENTE
+    cerrarModalInstrumento();
+    
+    // 🔥 PASO 2: Actualizar variable
+    encargadoInstrumentoSeleccionado = instrumento;
+
+    // 🔥 PASO 3: Aplicar tema de color
+    const esPrincipal = instrumento === encargadoInstrumentosLista[0];
+    aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+
+    // 🔥 PASO 4: Actualizar datos de la pestaña activa (con pequeño delay para que la UI se actualice primero)
+    if (encargadoEstudianteActual) {
+        // Actualizar la información básica del estudiante (solo la pestaña activa)
+        setTimeout(() => {
+            cargarDatosPestanaActiva(encargadoEstudianteActual);
+        }, 150);
+    }
+}
+
+// =====================================================
+// 7. CARGAR DATOS DE LA PESTAÑA ACTIVA
 // =====================================================
 
 function cargarDatosPestanaActiva(estudianteId) {
@@ -15754,7 +15801,7 @@ function cargarDatosPestanaActiva(estudianteId) {
 }
 
 // =====================================================
-// 7. EDITAR PERFIL (solo foto)
+// 8. EDITAR PERFIL (solo foto)
 // =====================================================
 
 function mostrarModalEditarPerfil() {
@@ -15847,7 +15894,7 @@ function guardarFotoPerfil() {
 }
 
 // =====================================================
-// 8. SELECTOR DE ESTUDIANTES - TIEMPO REAL
+// 9. SELECTOR DE ESTUDIANTES - TIEMPO REAL
 // =====================================================
 
 function iniciarSelectorTiempoReal() {
@@ -15995,16 +16042,14 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
 }
 
 // =====================================================
-// 9. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ PARA EVITAR RECARGAS)
+// 10. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ)
 // =====================================================
 
 window.actualizarInfoEstudiante = async function(estudianteId) {
     console.log('🔄 actualizarInfoEstudiante ID:', estudianteId);
     
-    // 🔥 VERIFICAR CACHÉ: Si ya tenemos los datos y es el mismo estudiante, NO recargar
     if (datosEstudianteCache && datosEstudianteCache.id == estudianteId) {
         console.log('📦 Usando caché del estudiante - NO recargar');
-        // Solo actualizar el instrumento seleccionado si es necesario
         const estudiante = datosEstudianteCache;
         const principal = estudiante.musical?.instrumentoPrincipal || '';
         const secundario = estudiante.musical?.instrumentoSecundario || '';
@@ -16030,14 +16075,12 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
     limpiarListenersEncargado();
     iniciarListenerFotoEncargado(estudianteId);
 
-    // PRIMERO: INTENTAR CARGAR DESDE FIREBASE (CON FOTO)
     if (window.db) {
         try {
             console.log('☁️ Cargando estudiante desde Firebase para encargado...');
             const doc = await window.db.collection('inscripciones').doc(String(estudianteId)).get();
             if (doc.exists) {
                 const estudiante = { id: doc.id, ...doc.data() };
-                // GUARDAR EN CACHÉ
                 datosEstudianteCache = estudiante;
                 await mostrarInfoEstudiante(estudiante);
                 console.log('✅ Estudiante cargado desde Firebase con foto');
@@ -16071,13 +16114,11 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
         }
     }
 
-    // SEGUNDO: FALLBACK - USAR LOCALSTORAGE
     console.log('📦 Usando fallback: cargando desde localStorage...');
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
 
     if (estudiante) {
-        // GUARDAR EN CACHÉ
         datosEstudianteCache = estudiante;
         await mostrarInfoEstudiante(estudiante);
         console.log('📦 Estudiante cargado desde localStorage');
@@ -16114,7 +16155,7 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 };
 
 // =====================================================
-// 10. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
+// 11. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
 // =====================================================
 
 async function mostrarInfoEstudiante(estudiante) {
@@ -16220,7 +16261,7 @@ async function mostrarInfoEstudiante(estudiante) {
 }
 
 // =====================================================
-// 11. TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
+// 12. TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
 // =====================================================
 
 function iniciarListenerFotoEncargado(estudianteId) {
@@ -16240,7 +16281,6 @@ function iniciarListenerFotoEncargado(estudianteId) {
                 const data = doc.data();
                 console.log('📸 Cambio detectado en la foto del estudiante:', estudianteId);
                 const estudiante = { id: doc.id, ...data };
-                // ACTUALIZAR CACHÉ
                 datosEstudianteCache = estudiante;
                 mostrarInfoEstudiante(estudiante);
                 if (estudiante.estudiante?.foto) {
@@ -16254,7 +16294,7 @@ function iniciarListenerFotoEncargado(estudianteId) {
 }
 
 // =====================================================
-// 12. LIMPIAR LISTENERS
+// 13. LIMPIAR LISTENERS
 // =====================================================
 
 function limpiarListenersEncargado() {
@@ -16279,13 +16319,12 @@ function limpiarListenersEncargado() {
 }
 
 // =====================================================
-// 13. CARGAR DATOS DEL ENCARGADO
+// 14. CARGAR DATOS DEL ENCARGADO
 // =====================================================
 
 function cargarDatosEncargado(estudianteId, instrumento) {
     if (!estudianteId || !instrumento) return;
 
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -16311,7 +16350,7 @@ function cargarDatosEncargado(estudianteId, instrumento) {
 }
 
 // =====================================================
-// 14. PAGOS - TIEMPO REAL
+// 15. PAGOS - TIEMPO REAL
 // =====================================================
 
 function iniciarPagosTiempoReal(estudianteId) {
@@ -16376,7 +16415,7 @@ function renderPagos(estudianteId, pagos, container) {
 }
 
 // =====================================================
-// 15. ASISTENCIA - TIEMPO REAL
+// 16. ASISTENCIA - TIEMPO REAL
 // =====================================================
 
 function iniciarAsistenciaTiempoReal(estudianteId) {
@@ -16456,7 +16495,7 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 16. CLASES VIRTUALES - TIEMPO REAL
+// 17. CLASES VIRTUALES - TIEMPO REAL
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
@@ -16548,7 +16587,7 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 17. GRABACIONES - TIEMPO REAL
+// 18. GRABACIONES - TIEMPO REAL
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
@@ -16630,11 +16669,10 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 18. TEMARIO / CLASE ACTUAL - TIEMPO REAL
+// 19. TEMARIO / CLASE ACTUAL - TIEMPO REAL
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -16690,7 +16728,6 @@ function actualizarTemarioLocal(estudianteId, instrumento, nivel) {
 }
 
 function renderTemario(estudianteId, temario) {
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -16732,13 +16769,12 @@ function renderTemario(estudianteId, temario) {
 }
 
 // =====================================================
-// 19. INFO TAREA - TIEMPO REAL
+// 20. INFO TAREA - TIEMPO REAL
 // =====================================================
 
 function iniciarInfoTareaTiempoReal(estudianteId) {
     iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
 
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -16773,7 +16809,7 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
 }
 
 // =====================================================
-// 20. ENVIAR TAREA
+// 21. ENVIAR TAREA
 // =====================================================
 
 function enviarTarea() {
@@ -16799,7 +16835,6 @@ function enviarTarea() {
         const fileData = e.target.result;
         const fileName = file.name;
 
-        // Usar caché si está disponible
         let estudiante = datosEstudianteCache;
         if (!estudiante || estudiante.id != estudianteId) {
             const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -16869,7 +16904,7 @@ function enviarTarea() {
 }
 
 // =====================================================
-// 21. NOTAS - TIEMPO REAL
+// 22. NOTAS - TIEMPO REAL
 // =====================================================
 
 function iniciarTareasTiempoReal(estudianteId) {
@@ -16966,7 +17001,7 @@ function renderNotas(tareasEstudiante, cuerpo) {
 }
 
 // =====================================================
-// 22. NAVEGACIÓN DEL PANEL ENCARGADO
+// 23. NAVEGACIÓN DEL PANEL ENCARGADO
 // =====================================================
 
 function iniciarNavegacionEncargado() {
@@ -17126,7 +17161,7 @@ function iniciarNavegacionEncargado() {
 }
 
 // =====================================================
-// 23. SWIPE PARA ENCARGADO (CORREGIDO - SOLO HORIZONTAL Y RÁPIDO)
+// 24. SWIPE PARA ENCARGADO (CORREGIDO)
 // =====================================================
 
 function activarSwipeEncargado() {
@@ -17231,7 +17266,7 @@ function activarSwipeEncargado() {
 }
 
 // =====================================================
-// 24. HISTORIAL COMPLETO
+// 25. HISTORIAL COMPLETO
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
@@ -17239,7 +17274,6 @@ function cargarHistorialCompleto(estudianteId) {
     const container = document.getElementById('historialCompletoContainer');
     if (!container) return;
 
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -17309,7 +17343,6 @@ function renderHistorialCompleto(container, temario) {
         return;
     }
 
-    // Usar caché si está disponible
     let estudiante = datosEstudianteCache;
     if (!estudiante || estudiante.id != estudianteId) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
@@ -17411,7 +17444,7 @@ function renderHistorialCompleto(container, temario) {
 }
 
 // =====================================================
-// 25. INICIALIZACIÓN Y FORZAR NAVEGACIÓN
+// 26. INICIALIZACIÓN Y FORZAR NAVEGACIÓN
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -17493,7 +17526,7 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
 
 // =====================================================
-// 26. SWIPE: EJECUTAR CUANDO EL PANEL SE MUESTRA
+// 27. SWIPE: EJECUTAR CUANDO EL PANEL SE MUESTRA
 // =====================================================
 
 const panelEncSwipe = document.getElementById('encargadoPanel');
@@ -17532,8 +17565,9 @@ setTimeout(function() {
 }, 1200);
 
 console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
-console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL CORREGIDA (CAMBIO RÁPIDO)");
+console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL");
 </script>
+<!-- ============================================ -->
 <!-- ============================================ -->
 <!-- BLOQUE 7: SISTEMA DE RECIBOS (DEFINITIVO) -->
 <!-- ============================================ -->
