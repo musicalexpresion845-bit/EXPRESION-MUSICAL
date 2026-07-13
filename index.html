@@ -15342,6 +15342,7 @@ console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente con filtros por instrumento
 <!-- BLOQUE 6: SISTEMA DE ENCARGADOS -->
 <!-- ============================================ -->
 <script>
+
 // =====================================================
 // VARIABLES GLOBALES
 // =====================================================
@@ -15365,6 +15366,7 @@ let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
 let listenerFotoEstudiante = null;
 let encargadoSwipeInicializado = false;
+let datosEstudianteCache = null; // CACHÉ PARA EVITAR RECARGAS INNECESARIAS
 
 // =====================================================
 // FUNCIONES AUXILIARES
@@ -15638,7 +15640,7 @@ function aplicarTemaEncargado(color, esPrincipal) {
 }
 
 // =====================================================
-// 4. MODAL CAMBIAR INSTRUMENTO (CORREGIDO)
+// 4. MODAL CAMBIAR INSTRUMENTO (CORREGIDO - CAMBIO RÁPIDO)
 // =====================================================
 
 function mostrarModalCambioInstrumento() {
@@ -15679,7 +15681,7 @@ function mostrarModalCambioInstrumento() {
 }
 
 // =====================================================
-// 5. SELECCIONAR INSTRUMENTO (CORREGIDO - ACTUALIZA TODAS LAS PESTAÑAS)
+// 5. SELECCIONAR INSTRUMENTO (CORREGIDO - CAMBIO RÁPIDO SIN RECARGAR ESTUDIANTE)
 // =====================================================
 
 function seleccionarInstrumentoEncargado(instrumento) {
@@ -15693,18 +15695,16 @@ function seleccionarInstrumentoEncargado(instrumento) {
     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
 
     if (encargadoEstudianteActual) {
-        // Actualizar la información del estudiante
-        window.actualizarInfoEstudiante(encargadoEstudianteActual);
-
-        // Recargar los datos de la pestaña activa después de un pequeño delay
+        // 🔥 SOLO ACTUALIZAR LAS PESTAÑAS QUE DEPENDEN DEL INSTRUMENTO
+        // NO recargar toda la información del estudiante (eso causa el retraso)
         setTimeout(() => {
             cargarDatosPestanaActiva(encargadoEstudianteActual);
-        }, 400);
+        }, 100);
     }
 }
 
 // =====================================================
-// 6. CARGAR DATOS DE LA PESTAÑA ACTIVA (NUEVA FUNCIÓN)
+// 6. CARGAR DATOS DE LA PESTAÑA ACTIVA (NUEVA FUNCIÓN - RÁPIDA)
 // =====================================================
 
 function cargarDatosPestanaActiva(estudianteId) {
@@ -15995,13 +15995,38 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
 }
 
 // =====================================================
-// 9. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CORREGIDO)
+// 9. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ PARA EVITAR RECARGAS)
 // =====================================================
 
 window.actualizarInfoEstudiante = async function(estudianteId) {
     console.log('🔄 actualizarInfoEstudiante ID:', estudianteId);
-    encargadoEstudianteActual = estudianteId;
+    
+    // 🔥 VERIFICAR CACHÉ: Si ya tenemos los datos y es el mismo estudiante, NO recargar
+    if (datosEstudianteCache && datosEstudianteCache.id == estudianteId) {
+        console.log('📦 Usando caché del estudiante - NO recargar');
+        // Solo actualizar el instrumento seleccionado si es necesario
+        const estudiante = datosEstudianteCache;
+        const principal = estudiante.musical?.instrumentoPrincipal || '';
+        const secundario = estudiante.musical?.instrumentoSecundario || '';
+        encargadoInstrumentosLista = [principal];
+        if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
+            encargadoInstrumentosLista.push(secundario);
+        }
+        if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
+            encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
+        }
+        if (encargadoInstrumentoSeleccionado) {
+            const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
+            aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
+        }
+        cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
+        setTimeout(() => {
+            cargarDatosPestanaActiva(estudianteId);
+        }, 300);
+        return;
+    }
 
+    encargadoEstudianteActual = estudianteId;
     limpiarListenersEncargado();
     iniciarListenerFotoEncargado(estudianteId);
 
@@ -16012,6 +16037,8 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
             const doc = await window.db.collection('inscripciones').doc(String(estudianteId)).get();
             if (doc.exists) {
                 const estudiante = { id: doc.id, ...doc.data() };
+                // GUARDAR EN CACHÉ
+                datosEstudianteCache = estudiante;
                 await mostrarInfoEstudiante(estudiante);
                 console.log('✅ Estudiante cargado desde Firebase con foto');
 
@@ -16035,7 +16062,7 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 
                 setTimeout(() => {
                     cargarDatosPestanaActiva(estudianteId);
-                }, 500);
+                }, 300);
 
                 return;
             }
@@ -16050,6 +16077,8 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
 
     if (estudiante) {
+        // GUARDAR EN CACHÉ
+        datosEstudianteCache = estudiante;
         await mostrarInfoEstudiante(estudiante);
         console.log('📦 Estudiante cargado desde localStorage');
 
@@ -16073,7 +16102,7 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 
         setTimeout(() => {
             cargarDatosPestanaActiva(estudianteId);
-        }, 500);
+        }, 300);
 
     } else {
         console.error('❌ Estudiante no encontrado en ninguna fuente');
@@ -16211,6 +16240,8 @@ function iniciarListenerFotoEncargado(estudianteId) {
                 const data = doc.data();
                 console.log('📸 Cambio detectado en la foto del estudiante:', estudianteId);
                 const estudiante = { id: doc.id, ...data };
+                // ACTUALIZAR CACHÉ
+                datosEstudianteCache = estudiante;
                 mostrarInfoEstudiante(estudiante);
                 if (estudiante.estudiante?.foto) {
                     window.fotoTemporalEncargado = estudiante.estudiante.foto;
@@ -16254,9 +16285,14 @@ function limpiarListenersEncargado() {
 function cargarDatosEncargado(estudianteId, instrumento) {
     if (!estudianteId || !instrumento) return;
 
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        datosEstudianteCache = estudiante;
+    }
 
     const estudianteModificado = {
         ...estudiante,
@@ -16598,9 +16634,14 @@ function renderGrabaciones(grabaciones, container) {
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        datosEstudianteCache = estudiante;
+    }
 
     if (encargadoListeners.temario) {
         encargadoListeners.temario();
@@ -16649,9 +16690,14 @@ function actualizarTemarioLocal(estudianteId, instrumento, nivel) {
 }
 
 function renderTemario(estudianteId, temario) {
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        datosEstudianteCache = estudiante;
+    }
 
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     if (isNaN(fechaIngreso.getTime())) return;
@@ -16692,9 +16738,14 @@ function renderTemario(estudianteId, temario) {
 function iniciarInfoTareaTiempoReal(estudianteId) {
     iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
 
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return;
+        datosEstudianteCache = estudiante;
+    }
 
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     if (isNaN(fechaIngreso.getTime())) return;
@@ -16748,9 +16799,14 @@ function enviarTarea() {
         const fileData = e.target.result;
         const fileName = file.name;
 
-        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-        if (!estudiante) return;
+        // Usar caché si está disponible
+        let estudiante = datosEstudianteCache;
+        if (!estudiante || estudiante.id != estudianteId) {
+            const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            estudiante = inscriptions.find(ins => ins.id == estudianteId);
+            if (!estudiante) return;
+            datosEstudianteCache = estudiante;
+        }
 
         const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
         if (isNaN(fechaIngreso.getTime())) return;
@@ -17070,7 +17126,7 @@ function iniciarNavegacionEncargado() {
 }
 
 // =====================================================
-// 23. SWIPE PARA ENCARGADO (CORREGIDO - SOLO HORIZONTAL)
+// 23. SWIPE PARA ENCARGADO (CORREGIDO - SOLO HORIZONTAL Y RÁPIDO)
 // =====================================================
 
 function activarSwipeEncargado() {
@@ -17124,7 +17180,7 @@ function activarSwipeEncargado() {
     container.removeEventListener('touchend', window._swipeEndHandler);
 
     window._swipeStartHandler = function(e) {
-        const target = e.target.closest('input, select, textarea, button, .deuda-badge, .profile-level, .detail-item');
+        const target = e.target.closest('input, select, textarea, button, .deuda-badge, .profile-level, .detail-item, .menu-item, .menu-hamburguesa-item');
         if (target) {
             isSwiping = false;
             return;
@@ -17183,11 +17239,16 @@ function cargarHistorialCompleto(estudianteId) {
     const container = document.getElementById('historialCompletoContainer');
     if (!container) return;
 
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) {
-        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No se encontró el estudiante.</p>';
-        return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) {
+            container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No se encontró el estudiante.</p>';
+            return;
+        }
+        datosEstudianteCache = estudiante;
     }
 
     const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
@@ -17248,11 +17309,16 @@ function renderHistorialCompleto(container, temario) {
         return;
     }
 
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) {
-        container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">No se encontró el estudiante.</p>`;
-        return;
+    // Usar caché si está disponible
+    let estudiante = datosEstudianteCache;
+    if (!estudiante || estudiante.id != estudianteId) {
+        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) {
+            container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">No se encontró el estudiante.</p>`;
+            return;
+        }
+        datosEstudianteCache = estudiante;
     }
 
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
@@ -17466,7 +17532,7 @@ setTimeout(function() {
 }, 1200);
 
 console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
-console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL CORREGIDA");
+console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL CORREGIDA (CAMBIO RÁPIDO)");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 7: SISTEMA DE RECIBOS (DEFINITIVO) -->
