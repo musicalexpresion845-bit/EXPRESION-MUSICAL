@@ -15363,24 +15363,161 @@ let encargadoListeners = {
 };
 let encargadoUserName = null;
 let encargadoTemaActual = 'principal';
-  let listenerFotoEstudiante = null;
+let listenerFotoEstudiante = null;
+let encargadoSwipeInicializado = false;
 
-  // =====================================================
-// 🔥 CARGAR SELECTOR DE ESTUDIANTES PARA ENCARGADO  <-- PEGAR AQUÍ
+// =====================================================
+// FUNCIONES AUXILIARES
+// =====================================================
+
+function getNombreMes(mes) {
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return meses[mes-1] || mes;
+}
+
+function formatearFecha(fechaISO) {
+    if (!fechaISO) return '';
+    try {
+        const fecha = new Date(fechaISO);
+        if (isNaN(fecha.getTime())) return fechaISO;
+        return `${fecha.getDate()}/${fecha.getMonth()+1}/${fecha.getFullYear()}`;
+    } catch(e) {
+        return fechaISO;
+    }
+}
+
+function calcularDeudaEstudiante(estudianteId) {
+    try {
+        let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
+        let pagos = pagosData.pagos || [];
+        let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+        if (!estudiante) return 0;
+        const mensualidad = estudiante.musical?.mensualidad || 200;
+        const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
+        if (isNaN(fechaIngreso.getTime())) return 0;
+        const añoIngreso = fechaIngreso.getFullYear();
+        const mesIngreso = fechaIngreso.getMonth() + 1;
+        const diaIngreso = fechaIngreso.getDate();
+        let primerMes = mesIngreso;
+        let primerAño = añoIngreso;
+        if (diaIngreso > 20) {
+            primerMes++;
+            if (primerMes > 12) { primerMes = 1; primerAño++; }
+        }
+        const hoy = new Date();
+        const añoActual = hoy.getFullYear();
+        const mesActual = hoy.getMonth() + 1;
+        const diaActual = hoy.getDate();
+        let deuda = 0;
+        for (let año = primerAño; año <= añoActual; año++) {
+            let mesInicio = (año === primerAño) ? primerMes : 1;
+            let mesFin = (año === añoActual) ? mesActual : 12;
+            for (let mes = mesInicio; mes <= mesFin; mes++) {
+                if (año === añoActual && mes === mesActual && diaActual <= 5) continue;
+                const pagado = pagos.some(p => String(p.idEstudiante) === String(estudianteId) && p.mes === mes && p.año === año);
+                if (!pagado) deuda += mensualidad;
+            }
+        }
+        return deuda;
+    } catch(e) {
+        return 0;
+    }
+}
+
+// =====================================================
+// FUNCIONES PARA DETECTAR YOUTUBE Y CONVERTIR ENLACES
+// =====================================================
+
+function extraerIdYouTube(url) {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+function esVideoYouTube(url) {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function convertirTextoAEnlaces(texto) {
+    if (!texto) return 'No especificado';
+    if (texto.includes('<a ')) return texto;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const partes = texto.split(urlRegex);
+    let resultado = '';
+    for (let i = 0; i < partes.length; i++) {
+        if (i % 2 === 1) {
+            const url = partes[i];
+            if (esVideoYouTube(url)) {
+                const videoId = extraerIdYouTube(url);
+                if (videoId) {
+                    resultado += `
+                        <div style="margin-top:8px;">
+                            <iframe 
+                                src="https://www.youtube.com/embed/${videoId}" 
+                                style="width:100%; height:280px; border-radius:10px; border:none;" 
+                                allowfullscreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            ></iframe>
+                            <br>
+                            <a href="${url}" target="_blank" style="color:#E63946; font-size:0.8rem; text-decoration:underline;">
+                                <i class="fas fa-external-link-alt"></i> Abrir en YouTube
+                            </a>
+                        </div>
+                    `;
+                    continue;
+                }
+            }
+            resultado += `<a href="${url}" target="_blank" style="color:#E63946;text-decoration:underline;word-break:break-all;">${url}</a>`;
+        } else {
+            resultado += partes[i];
+        }
+    }
+    return resultado || texto;
+}
+
+function renderizarMaterial(material) {
+    if (!material || material === 'No especificado' || material === '--') {
+        return 'No especificado';
+    }
+    if (esVideoYouTube(material)) {
+        const videoId = extraerIdYouTube(material);
+        if (videoId) {
+            return `
+                <div style="margin-top:5px;">
+                    <iframe 
+                        src="https://www.youtube.com/embed/${videoId}" 
+                        style="width:100%; height:280px; border-radius:10px; border:none; background:#000;" 
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    ></iframe>
+                    <br>
+                    <a href="${material}" target="_blank" style="color:#E63946; font-size:0.8rem; text-decoration:underline;">
+                        <i class="fas fa-external-link-alt"></i> Abrir en YouTube
+                    </a>
+                </div>
+            `;
+        }
+    }
+    return convertirTextoAEnlaces(material);
+}
+
+// =====================================================
+// 1. CARGAR SELECTOR DE ESTUDIANTES PARA ENCARGADO
 // =====================================================
 
 function cargarSelector() {
     console.log('🔄 Cargando selector de estudiantes...');
-    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
-    
+
     if (!username) {
         console.warn('⚠️ No se encontró usuario encargado');
         return;
     }
 
-    // 🔥 PRIMERO: CARGAR DESDE FIREBASE (SIEMPRE)
     if (window.db) {
         window.db.collection('usuarios').doc(username).get()
             .then((doc) => {
@@ -15406,10 +15543,10 @@ function cargarSelector() {
     }
 }
 
-// Exponer globalmente para que pueda ser llamada desde guardarUsuario
 window.cargarSelector = cargarSelector;
+
 // =====================================================
-// FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA (ENCARGADO)
+// 2. FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA
 // =====================================================
 
 function abrirMenuHamburguesa() {
@@ -15429,18 +15566,19 @@ function cerrarMenuHamburguesa() {
 }
 
 // =====================================================
-// 🔥 FUNCIÓN PARA APLICAR TEMA DE COLOR
+// 3. APLICAR TEMA DE COLOR
 // =====================================================
+
 function aplicarTemaEncargado(color, esPrincipal) {
     const colorPrimario = esPrincipal ? '#E63946' : '#1976D2';
-    
+
     const titulo = document.querySelector('#encargadoPanel .encabezado-encargado h2');
     if (titulo) titulo.style.color = colorPrimario;
-    
+
     document.querySelectorAll('.docente-card, .clase-card, .historial-semana').forEach(el => {
         el.style.borderLeft = `4px solid ${colorPrimario}`;
     });
-    
+
     document.querySelectorAll('.deuda-badge, .profile-level, .semana-numero').forEach(el => {
         if (el.classList.contains('deuda-badge') || el.classList.contains('semana-numero')) {
             el.style.backgroundColor = colorPrimario;
@@ -15451,16 +15589,15 @@ function aplicarTemaEncargado(color, esPrincipal) {
             el.style.border = `1px solid ${colorPrimario}`;
         }
     });
-    
+
     document.querySelectorAll('.docente-card h3, .clase-card h4, .historial-semana .tema-titulo').forEach(el => {
         el.style.color = colorPrimario;
     });
-    
+
     document.querySelectorAll('.detail-item .fas.fa-guitar, .detail-item .fas.fa-music').forEach(el => {
         el.style.color = colorPrimario;
     });
-    
-    // Menú inferior
+
     const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
     menuItems.forEach(item => {
         if (item.classList.contains('active')) {
@@ -15471,23 +15608,23 @@ function aplicarTemaEncargado(color, esPrincipal) {
             item.style.background = 'transparent';
         }
     });
-    
-    // Menú hamburguesa
+
     document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item.active').forEach(el => {
         el.style.color = colorPrimario;
         el.style.background = colorPrimario + '22';
     });
+
     document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item').forEach(el => {
         if (!el.classList.contains('active')) {
             el.style.color = '#333';
             el.style.background = 'transparent';
         }
     });
-    
+
     document.querySelectorAll('.btn-meet, .btn-grabacion, .btn-primary-docente, .btn-temario, .btn-calificar').forEach(el => {
         el.style.background = colorPrimario;
     });
-    
+
     let indicador = document.getElementById('indicadorInstrumento');
     if (!indicador) {
         indicador = document.createElement('div');
@@ -15496,22 +15633,24 @@ function aplicarTemaEncargado(color, esPrincipal) {
         document.body.prepend(indicador);
     }
     indicador.style.background = `linear-gradient(90deg, ${colorPrimario}, ${colorPrimario}88)`;
-    
+
     encargadoTemaActual = esPrincipal ? 'principal' : 'secundario';
 }
 
 // =====================================================
-// 🔥 MODAL CAMBIAR INSTRUMENTO (sin botón "Cerrar")
+// 4. MODAL CAMBIAR INSTRUMENTO (CORREGIDO)
 // =====================================================
+
 function mostrarModalCambioInstrumento() {
     if (!encargadoInstrumentosLista || encargadoInstrumentosLista.length < 2) {
         alert('Este estudiante solo tiene un instrumento.');
         return;
     }
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+
     modal.innerHTML = `
         <div style="background:white;border-radius:12px;padding:25px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
             <h4 style="margin-top:0;color:#E63946;">🎸 Cambiar Instrumento</h4>
@@ -15532,58 +15671,100 @@ function mostrarModalCambioInstrumento() {
             </div>
         </div>
     `;
+
     document.body.appendChild(modal);
     modal.addEventListener('click', function(e) {
         if (e.target === this) this.remove();
     });
 }
 
+// =====================================================
+// 5. SELECCIONAR INSTRUMENTO (CORREGIDO - ACTUALIZA TODAS LAS PESTAÑAS)
+// =====================================================
+
 function seleccionarInstrumentoEncargado(instrumento) {
     console.log('🔄 Instrumento seleccionado:', instrumento);
     encargadoInstrumentoSeleccionado = instrumento;
-    
+
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
-    
+
     const esPrincipal = instrumento === encargadoInstrumentosLista[0];
     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
-    
+
     if (encargadoEstudianteActual) {
-        const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-        const estudiante = inscriptions.find(ins => ins.id == encargadoEstudianteActual);
-        if (estudiante) {
-            const estudianteModificado = {
-                ...estudiante,
-                musical: {
-                    ...estudiante.musical,
-                    instrumentoPrincipal: instrumento
-                }
-            };
-            iniciarClasesTiempoReal(estudianteModificado);
-            iniciarGrabacionesTiempoReal(estudianteModificado);
-            iniciarTemarioTiempoReal(encargadoEstudianteActual, instrumento);
-            iniciarTareasTiempoReal(encargadoEstudianteActual);
-            const pantallaActiva = document.querySelector('.pantalla.active');
-            if (pantallaActiva && pantallaActiva.id === 'pantalla-historial') {
-                cargarHistorialCompleto(encargadoEstudianteActual);
-            }
-            if (pantallaActiva && pantallaActiva.id === 'pantalla-tarea') {
-                iniciarInfoTareaTiempoReal(encargadoEstudianteActual);
-            }
-        }
+        // Actualizar la información del estudiante
+        window.actualizarInfoEstudiante(encargadoEstudianteActual);
+
+        // Recargar los datos de la pestaña activa después de un pequeño delay
+        setTimeout(() => {
+            cargarDatosPestanaActiva(encargadoEstudianteActual);
+        }, 400);
     }
 }
 
 // =====================================================
-// 🔥 EDITAR PERFIL (solo foto)
+// 6. CARGAR DATOS DE LA PESTAÑA ACTIVA (NUEVA FUNCIÓN)
 // =====================================================
+
+function cargarDatosPestanaActiva(estudianteId) {
+    const pantallaActiva = document.querySelector('.pantalla.active');
+    if (!pantallaActiva) return;
+
+    const idPantalla = pantallaActiva.id.replace('pantalla-', '');
+    console.log('📱 Recargando pestaña activa:', idPantalla);
+
+    const select = document.getElementById('selectorEstudianteEnc');
+    const id = parseInt(select?.value) || estudianteId;
+
+    switch (idPantalla) {
+        case 'historial':
+            if (typeof cargarHistorialCompleto === 'function') {
+                cargarHistorialCompleto(id);
+            }
+            break;
+        case 'claseactual':
+            if (typeof iniciarTemarioTiempoReal === 'function') {
+                iniciarTemarioTiempoReal(id, encargadoInstrumentoSeleccionado);
+            }
+            break;
+        case 'tarea':
+            if (typeof iniciarInfoTareaTiempoReal === 'function') {
+                iniciarInfoTareaTiempoReal(id);
+            }
+            break;
+        case 'notas':
+            if (typeof iniciarTareasTiempoReal === 'function') {
+                iniciarTareasTiempoReal(id);
+            }
+            break;
+        case 'pagos':
+            if (typeof iniciarPagosTiempoReal === 'function') {
+                iniciarPagosTiempoReal(id);
+            }
+            break;
+        case 'asistencia':
+            if (typeof iniciarAsistenciaTiempoReal === 'function') {
+                iniciarAsistenciaTiempoReal(id);
+            }
+            break;
+        default:
+            console.log('ℹ️ Pestaña sin actualización automática:', idPantalla);
+    }
+}
+
+// =====================================================
+// 7. EDITAR PERFIL (solo foto)
+// =====================================================
+
 function mostrarModalEditarPerfil() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const fotoActual = currentUser.foto || '';
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
+
     modal.innerHTML = `
         <div style="background:white;border-radius:12px;padding:25px;max-width:400px;width:90%;">
             <h4 style="margin-top:0;color:#E63946;">📸 Editar Perfil</h4>
@@ -15602,11 +15783,12 @@ function mostrarModalEditarPerfil() {
             <button onclick="this.closest('.modal').remove()" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;width:100%;margin-top:10px;">Cerrar</button>
         </div>
     `;
+
     document.body.appendChild(modal);
     modal.addEventListener('click', function(e) {
         if (e.target === this) this.remove();
     });
-    
+
     document.getElementById('fotoPerfilInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -15638,11 +15820,11 @@ function guardarFotoPerfil() {
         alert('No se ha seleccionado ninguna foto.');
         return;
     }
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     currentUser.foto = fotoData;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    
+
     if (window.db) {
         window.db.collection('usuarios').doc(currentUser.username).set({ foto: fotoData }, { merge: true })
             .then(() => {
@@ -15665,164 +15847,26 @@ function guardarFotoPerfil() {
 }
 
 // =====================================================
-// FUNCIONES AUXILIARES
-// =====================================================
-
-function getNombreMes(mes) {
-    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    return meses[mes-1] || mes;
-}
-
-function formatearFecha(fechaISO) {
-    if (!fechaISO) return '';
-    const fecha = new Date(fechaISO);
-    return `${fecha.getDate()}/${fecha.getMonth()+1}/${fecha.getFullYear()}`;
-}
-
-function calcularDeudaEstudiante(estudianteId) {
-    let pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
-    let pagos = pagosData.pagos || [];
-    let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return 0;
-    
-    const mensualidad = estudiante.musical?.mensualidad || 200;
-    const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
-    if (isNaN(fechaIngreso.getTime())) return 0;
-    
-    const añoIngreso = fechaIngreso.getFullYear();
-    const mesIngreso = fechaIngreso.getMonth() + 1;
-    const diaIngreso = fechaIngreso.getDate();
-    
-    let primerMes = mesIngreso;
-    let primerAño = añoIngreso;
-    if (diaIngreso > 20) {
-        primerMes++;
-        if (primerMes > 12) { primerMes = 1; primerAño++; }
-    }
-    
-    const hoy = new Date();
-    const añoActual = hoy.getFullYear();
-    const mesActual = hoy.getMonth() + 1;
-    const diaActual = hoy.getDate();
-    
-    let deuda = 0;
-    for (let año = primerAño; año <= añoActual; año++) {
-        let mesInicio = (año === primerAño) ? primerMes : 1;
-        let mesFin = (año === añoActual) ? mesActual : 12;
-        for (let mes = mesInicio; mes <= mesFin; mes++) {
-            if (año === añoActual && mes === mesActual && diaActual <= 5) continue;
-            const pagado = pagos.some(p => String(p.idEstudiante) === String(estudianteId) && p.mes === mes && p.año === año);
-            if (!pagado) deuda += mensualidad;
-        }
-    }
-    return deuda;
-}
-
-// =====================================================
-// FUNCIONES PARA DETECTAR YOUTUBE Y CONVERTIR ENLACES
-// =====================================================
-
-function extraerIdYouTube(url) {
-    if (!url) return null;
-    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-}
-
-function esVideoYouTube(url) {
-    if (!url) return false;
-    return url.includes('youtube.com') || url.includes('youtu.be');
-}
-
-function convertirTextoAEnlaces(texto) {
-    if (!texto) return 'No especificado';
-    if (texto.includes('<a ')) return texto;
-    
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const partes = texto.split(urlRegex);
-    
-    let resultado = '';
-    for (let i = 0; i < partes.length; i++) {
-        if (i % 2 === 1) {
-            const url = partes[i];
-            if (esVideoYouTube(url)) {
-                const videoId = extraerIdYouTube(url);
-                if (videoId) {
-                    resultado += `
-                        <div style="margin-top:8px;">
-                            <iframe 
-                                src="https://www.youtube.com/embed/${videoId}" 
-                                style="width:100%; height:280px; border-radius:10px; border:none;" 
-                                allowfullscreen
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            ></iframe>
-                            <br>
-                            <a href="${url}" target="_blank" style="color:#E63946; font-size:0.8rem; text-decoration:underline;">
-                                <i class="fas fa-external-link-alt"></i> Abrir en YouTube
-                            </a>
-                        </div>
-                    `;
-                    continue;
-                }
-            }
-            resultado += `<a href="${url}" target="_blank" style="color:#E63946;text-decoration:underline;word-break:break-all;">${url}</a>`;
-        } else {
-            resultado += partes[i];
-        }
-    }
-    
-    return resultado || texto;
-}
-
-function renderizarMaterial(material) {
-    if (!material || material === 'No especificado' || material === '--') {
-        return 'No especificado';
-    }
-    
-    if (esVideoYouTube(material)) {
-        const videoId = extraerIdYouTube(material);
-        if (videoId) {
-            return `
-                <div style="margin-top:5px;">
-                    <iframe 
-                        src="https://www.youtube.com/embed/${videoId}" 
-                        style="width:100%; height:280px; border-radius:10px; border:none; background:#000;" 
-                        allowfullscreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    ></iframe>
-                    <br>
-                    <a href="${material}" target="_blank" style="color:#E63946; font-size:0.8rem; text-decoration:underline;">
-                        <i class="fas fa-external-link-alt"></i> Abrir en YouTube
-                    </a>
-                </div>
-            `;
-        }
-    }
-    
-    return convertirTextoAEnlaces(material);
-}
-
-// =====================================================
-// 1. SELECTOR DE ESTUDIANTES - TIEMPO REAL
+// 8. SELECTOR DE ESTUDIANTES - TIEMPO REAL
 // =====================================================
 
 function iniciarSelectorTiempoReal() {
     console.log('🔄 Iniciando selector de estudiantes en tiempo real...');
-     cargarSelector();
+    cargarSelector();
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     encargadoUserName = currentUser.username;
-    
+
     if (!encargadoUserName) {
         console.error('❌ No se encontró usuario encargado');
         return;
     }
-    
+
     if (encargadoListeners.selector) {
         encargadoListeners.selector();
         encargadoListeners.selector = null;
     }
-    
+
     if (window.db) {
         encargadoListeners.selector = window.db.collection('usuarios')
             .doc(encargadoUserName)
@@ -15830,13 +15874,11 @@ function iniciarSelectorTiempoReal() {
                 if (doc.exists) {
                     const userData = doc.data();
                     console.log('🔄 Usuario encargado actualizado en tiempo real');
-                    
                     const current = JSON.parse(localStorage.getItem('currentUser') || '{}');
                     if (JSON.stringify(current) !== JSON.stringify(userData)) {
                         localStorage.setItem('currentUser', JSON.stringify(userData));
                         console.log('✅ currentUser actualizado');
                     }
-                    
                     cargarSelectorTiempoReal(userData);
                 }
             }, (error) => {
@@ -15852,26 +15894,26 @@ function iniciarSelectorTiempoReal() {
 
 function cargarSelectorTiempoReal(userData) {
     console.log('🔄 Cargando selector de estudiantes...');
-    
     const estudiantesIds = userData.estudiantesIds || [];
     const select = document.getElementById('selectorEstudianteEnc');
+
     if (!select) return;
-    
+
     if (estudiantesIds.length === 0) {
         select.innerHTML = '<option>⚠️ No hay estudiantes asociados</option>';
         const infoDiv = document.getElementById('infoEstudianteEnc');
         if (infoDiv) infoDiv.innerHTML = '<p style="color:red; text-align:center; padding:20px;">No se encontraron estudiantes para este encargado.</p>';
         return;
     }
-    
+
     let inscriptions = [];
-    
+
     if (window.db) {
         if (encargadoListeners.inscripciones) {
             encargadoListeners.inscripciones();
             encargadoListeners.inscripciones = null;
         }
-        
+
         encargadoListeners.inscripciones = window.db.collection('inscripciones')
             .onSnapshot((snapshot) => {
                 const firestoreData = [];
@@ -15894,24 +15936,24 @@ function cargarSelectorTiempoReal(userData) {
 
 function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
     const misEstudiantes = inscriptions.filter(ins => estudiantesIds.includes(String(ins.id)));
-    
     const valorActual = select.value;
+
     select.innerHTML = '';
-    
+
     if (misEstudiantes.length === 0) {
         select.innerHTML = '<option>⚠️ No hay estudiantes asociados</option>';
         const infoDiv = document.getElementById('infoEstudianteEnc');
         if (infoDiv) infoDiv.innerHTML = '<p style="color:red; text-align:center; padding:20px;">No se encontraron estudiantes para este encargado.</p>';
         return;
     }
-    
+
     misEstudiantes.forEach(est => {
         const option = document.createElement('option');
         option.value = est.id;
         option.textContent = `${est.estudiante.nombre} (${est.musical.instrumentoPrincipal})`;
         select.appendChild(option);
     });
-    
+
     let seleccionado = false;
     if (valorActual) {
         for (let i = 0; i < select.options.length; i++) {
@@ -15922,33 +15964,29 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
             }
         }
     }
-    
+
     if (!seleccionado && misEstudiantes.length > 0) {
         select.selectedIndex = 0;
     }
-    
-    // 🔥🔥🔥 CORRECCIÓN: HACER async/await
+
     select.removeEventListener('change', window.handleEstudianteChange);
-    
+
     window.handleEstudianteChange = async function() {
         const id = parseInt(this.value);
         if (id) {
             encargadoEstudianteActual = id;
             encargadoInstrumentoSeleccionado = null;
             encargadoInstrumentosLista = [];
-            // 🔥 AÑADIR await PARA ESPERAR LA FOTO
             await window.actualizarInfoEstudiante(id);
             console.log('✅ Estudiante seleccionado con foto:', id);
         }
     };
-    
+
     select.addEventListener('change', window.handleEstudianteChange);
-    
-    // 🔥🔥🔥 CORRECCIÓN: CARGAR PRIMER ESTUDIANTE CON async/await
+
     if (misEstudiantes.length > 0) {
         const primerId = parseInt(select.value) || parseInt(misEstudiantes[0].id);
         encargadoEstudianteActual = primerId;
-        // Usar setTimeout para asegurar que el DOM esté listo
         setTimeout(async () => {
             await window.actualizarInfoEstudiante(primerId);
             console.log('✅ Estudiante inicial cargado con foto:', primerId);
@@ -15957,17 +15995,17 @@ function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
 }
 
 // =====================================================
-// 2. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE - CON FOTO DESDE FIREBASE
+// 9. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CORREGIDO)
 // =====================================================
 
 window.actualizarInfoEstudiante = async function(estudianteId) {
     console.log('🔄 actualizarInfoEstudiante ID:', estudianteId);
     encargadoEstudianteActual = estudianteId;
-    
+
     limpiarListenersEncargado();
     iniciarListenerFotoEncargado(estudianteId);
-    
-    // 🔥 PRIMERO: INTENTAR CARGAR DESDE FIREBASE (CON FOTO)
+
+    // PRIMERO: INTENTAR CARGAR DESDE FIREBASE (CON FOTO)
     if (window.db) {
         try {
             console.log('☁️ Cargando estudiante desde Firebase para encargado...');
@@ -15976,151 +16014,67 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
                 const estudiante = { id: doc.id, ...doc.data() };
                 await mostrarInfoEstudiante(estudiante);
                 console.log('✅ Estudiante cargado desde Firebase con foto');
-                
+
                 const principal = estudiante.musical?.instrumentoPrincipal || '';
                 const secundario = estudiante.musical?.instrumentoSecundario || '';
                 encargadoInstrumentosLista = [principal];
                 if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
                     encargadoInstrumentosLista.push(secundario);
                 }
+
                 if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
                     encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
                 }
+
                 if (encargadoInstrumentoSeleccionado) {
                     const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
                     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
                 }
+
                 cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
-                
-                // =====================================================
-                // 🔥🔥🔥 NUEVO: ACTUALIZAR LA PESTAÑA QUE ESTÁ VISIBLE
-                // =====================================================
-                setTimeout(function() {
-                    const pantallaActiva = document.querySelector('.pantalla.active');
-                    if (pantallaActiva) {
-                        const idPantalla = pantallaActiva.id.replace('pantalla-', '');
-                        console.log('📱 Pestaña activa detectada:', idPantalla);
-                        
-                        const select = document.getElementById('selectorEstudianteEnc');
-                        const id = parseInt(select?.value);
-                        
-                        switch(idPantalla) {
-                            case 'historial':
-                                if (typeof cargarHistorialCompleto === 'function') {
-                                    console.log('📜 Recargando historial para:', id);
-                                    cargarHistorialCompleto(id);
-                                }
-                                break;
-                            case 'claseactual':
-                                if (typeof iniciarTemarioTiempoReal === 'function') {
-                                    iniciarTemarioTiempoReal(id, encargadoInstrumentoSeleccionado);
-                                }
-                                break;
-                            case 'tarea':
-                                if (typeof iniciarInfoTareaTiempoReal === 'function') {
-                                    iniciarInfoTareaTiempoReal(id);
-                                }
-                                break;
-                            case 'notas':
-                                if (typeof iniciarTareasTiempoReal === 'function') {
-                                    iniciarTareasTiempoReal(id);
-                                }
-                                break;
-                            case 'pagos':
-                                if (typeof iniciarPagosTiempoReal === 'function') {
-                                    iniciarPagosTiempoReal(id);
-                                }
-                                break;
-                            case 'asistencia':
-                                if (typeof iniciarAsistenciaTiempoReal === 'function') {
-                                    iniciarAsistenciaTiempoReal(id);
-                                }
-                                break;
-                            default:
-                                console.log('ℹ️ Pestaña sin actualización automática:', idPantalla);
-                        }
-                    }
-                }, 400);
-                
-                return; // ✅ SALIR SI FUE EXITOSO
+
+                setTimeout(() => {
+                    cargarDatosPestanaActiva(estudianteId);
+                }, 500);
+
+                return;
             }
         } catch (e) {
             console.error('❌ Error cargando desde Firebase:', e);
         }
     }
-    
-    // 🔥 SEGUNDO: FALLBACK - USAR LOCALSTORAGE
+
+    // SEGUNDO: FALLBACK - USAR LOCALSTORAGE
     console.log('📦 Usando fallback: cargando desde localStorage...');
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    
+
     if (estudiante) {
         await mostrarInfoEstudiante(estudiante);
         console.log('📦 Estudiante cargado desde localStorage');
-        
+
         const principal = estudiante.musical?.instrumentoPrincipal || '';
         const secundario = estudiante.musical?.instrumentoSecundario || '';
         encargadoInstrumentosLista = [principal];
         if (secundario && secundario !== 'Ninguno' && secundario !== '' && secundario !== 'null') {
             encargadoInstrumentosLista.push(secundario);
         }
+
         if (!encargadoInstrumentoSeleccionado || !encargadoInstrumentosLista.includes(encargadoInstrumentoSeleccionado)) {
             encargadoInstrumentoSeleccionado = encargadoInstrumentosLista[0] || null;
         }
+
         if (encargadoInstrumentoSeleccionado) {
             const esPrincipal = encargadoInstrumentoSeleccionado === encargadoInstrumentosLista[0];
             aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
         }
+
         cargarDatosEncargado(estudianteId, encargadoInstrumentoSeleccionado);
-        
-        // =====================================================
-        // 🔥🔥🔥 NUEVO: ACTUALIZAR LA PESTAÑA QUE ESTÁ VISIBLE
-        // =====================================================
-        setTimeout(function() {
-            const pantallaActiva = document.querySelector('.pantalla.active');
-            if (pantallaActiva) {
-                const idPantalla = pantallaActiva.id.replace('pantalla-', '');
-                console.log('📱 Pestaña activa detectada (fallback):', idPantalla);
-                
-                const select = document.getElementById('selectorEstudianteEnc');
-                const id = parseInt(select?.value);
-                
-                switch(idPantalla) {
-                    case 'historial':
-                        if (typeof cargarHistorialCompleto === 'function') {
-                            console.log('📜 Recargando historial para:', id);
-                            cargarHistorialCompleto(id);
-                        }
-                        break;
-                    case 'claseactual':
-                        if (typeof iniciarTemarioTiempoReal === 'function') {
-                            iniciarTemarioTiempoReal(id, encargadoInstrumentoSeleccionado);
-                        }
-                        break;
-                    case 'tarea':
-                        if (typeof iniciarInfoTareaTiempoReal === 'function') {
-                            iniciarInfoTareaTiempoReal(id);
-                        }
-                        break;
-                    case 'notas':
-                        if (typeof iniciarTareasTiempoReal === 'function') {
-                            iniciarTareasTiempoReal(id);
-                        }
-                        break;
-                    case 'pagos':
-                        if (typeof iniciarPagosTiempoReal === 'function') {
-                            iniciarPagosTiempoReal(id);
-                        }
-                        break;
-                    case 'asistencia':
-                        if (typeof iniciarAsistenciaTiempoReal === 'function') {
-                            iniciarAsistenciaTiempoReal(id);
-                        }
-                        break;
-                }
-            }
-        }, 400);
-        
+
+        setTimeout(() => {
+            cargarDatosPestanaActiva(estudianteId);
+        }, 500);
+
     } else {
         console.error('❌ Estudiante no encontrado en ninguna fuente');
         const infoDiv = document.getElementById('infoEstudianteEnc');
@@ -16131,38 +16085,13 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 };
 
 // =====================================================
-// CARGAR DATOS DEL ENCARGADO
+// 10. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
 // =====================================================
-function cargarDatosEncargado(estudianteId, instrumento) {
-    if (!estudianteId || !instrumento) return;
-    
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
-    if (!estudiante) return;
-    
-    const estudianteModificado = {
-        ...estudiante,
-        musical: {
-            ...estudiante.musical,
-            instrumentoPrincipal: instrumento
-        }
-    };
-    
-    iniciarPagosTiempoReal(estudianteId);
-    iniciarAsistenciaTiempoReal(estudianteId);
-    iniciarClasesTiempoReal(estudianteModificado);
-    iniciarGrabacionesTiempoReal(estudianteModificado);
-    iniciarTemarioTiempoReal(estudianteId, instrumento);
-    iniciarTareasTiempoReal(estudianteId);
-}
 
-// =====================================================
-// 3. MOSTRAR INFO DEL ESTUDIANTE - CON FOTO DESDE FIREBASE
-// =====================================================
 async function mostrarInfoEstudiante(estudiante) {
     const infoDiv = document.getElementById('infoEstudianteEnc');
     if (!infoDiv) return;
-    
+
     const nombre = estudiante.estudiante?.nombre || 'Sin nombre';
     const nivel = estudiante.estudiante?.nivel || 'Sin nivel';
     const instrumento = estudiante.musical?.instrumentoPrincipal || 'No especificado';
@@ -16171,8 +16100,7 @@ async function mostrarInfoEstudiante(estudiante) {
     const dias = (estudiante.academico?.dias?.length) ? estudiante.academico.dias.join(', ') : 'No especificado';
     const encargadoNombre = estudiante.encargado?.nombre || 'No especificado';
     const telefono = estudiante.encargado?.telefono || 'No especificado';
-    
-    // 🔥🔥🔥 OBTENER LA FOTO DIRECTAMENTE DE FIREBASE
+
     let foto = null;
     let fotoHtml = '';
 
@@ -16191,37 +16119,34 @@ async function mostrarInfoEstudiante(estudiante) {
             }
         } catch (e) {
             console.error('❌ Error al buscar foto en Firebase:', e);
-            // Si falla Firebase, usar la foto del objeto estudiante
             if (estudiante.estudiante?.foto) {
                 foto = estudiante.estudiante.foto;
                 console.log('📸 Usando foto de memoria (fallback)');
             }
         }
     } else {
-        // Si no hay Firebase, usar la foto de memoria
         if (estudiante.estudiante?.foto) {
             foto = estudiante.estudiante.foto;
         }
     }
 
-    // Generar HTML de la foto
     if (foto && foto !== 'null' && foto !== '') {
         fotoHtml = `<img src="${foto}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     } else {
         fotoHtml = `<i class="fas fa-user-circle" style="font-size:60px;color:#ccc;"></i>`;
     }
-    
+
     const deuda = calcularDeudaEstudiante(estudiante.id);
-    
+
     let deudaHtml = '';
     if (deuda > 0) {
         deudaHtml = `<div class="deuda-badge" style="background: #f44336; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin-left: 8px;">💰 Deuda: Q${deuda.toFixed(2)}</div>`;
     } else {
         deudaHtml = `<div class="deuda-badge" style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin-left: 8px;">✅ Al día</div>`;
     }
-    
+
     const instrSecundario = secundario && secundario !== 'Ninguno' ? `<br><small style="color:#888;">Secundario: ${secundario}</small>` : '';
-    
+
     infoDiv.innerHTML = `
         <div class="docente-card" style="position:relative;overflow:hidden;">
             <div class="profile-cover" style="height:80px;background:linear-gradient(135deg,#E63946,#C1121F);"></div>
@@ -16261,15 +16186,15 @@ async function mostrarInfoEstudiante(estudiante) {
             </div>
         </div>
     `;
-    
-    console.log('✅ Info del estudiante actualizada con foto desde Firebase');
+
+    console.log('✅ Info del estudiante actualizada con foto');
 }
 
-  // =====================================================
-// 🔥 TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
 // =====================================================
+// 11. TIEMPO REAL: ESCUCHAR CAMBIOS DE FOTO DEL ESTUDIANTE
+// =====================================================
+
 function iniciarListenerFotoEncargado(estudianteId) {
-    // 🔥 LIMPIAR LISTENER ANTERIOR
     if (listenerFotoEstudiante) {
         listenerFotoEstudiante();
         listenerFotoEstudiante = null;
@@ -16285,12 +16210,8 @@ function iniciarListenerFotoEncargado(estudianteId) {
             if (doc.exists) {
                 const data = doc.data();
                 console.log('📸 Cambio detectado en la foto del estudiante:', estudianteId);
-                
-                // 🔥 ACTUALIZAR LA INFO AUTOMÁTICAMENTE
                 const estudiante = { id: doc.id, ...data };
                 mostrarInfoEstudiante(estudiante);
-                
-                // También actualizar la foto en memoria
                 if (estudiante.estudiante?.foto) {
                     window.fotoTemporalEncargado = estudiante.estudiante.foto;
                     console.log('📸 Foto actualizada en tiempo real ✅');
@@ -16300,14 +16221,14 @@ function iniciarListenerFotoEncargado(estudianteId) {
             console.error('❌ Error en listener de foto:', error);
         });
 }
-  
+
 // =====================================================
-// 4. LIMPIAR LISTENERS
+// 12. LIMPIAR LISTENERS
 // =====================================================
 
 function limpiarListenersEncargado() {
     const keys = ['pagos', 'asistencia', 'clases', 'grabaciones', 'temario', 'tareas', 'notas', 'inscripciones', 'temarioHistorial'];
-    
+
     keys.forEach(key => {
         if (encargadoListeners[key]) {
             try {
@@ -16316,8 +16237,7 @@ function limpiarListenersEncargado() {
             encargadoListeners[key] = null;
         }
     });
-    
-    // 🔥 LIMPIAR LISTENER DE FOTO
+
     if (listenerFotoEstudiante) {
         try {
             listenerFotoEstudiante();
@@ -16328,23 +16248,50 @@ function limpiarListenersEncargado() {
 }
 
 // =====================================================
-// 5. PAGOS - TIEMPO REAL
+// 13. CARGAR DATOS DEL ENCARGADO
+// =====================================================
+
+function cargarDatosEncargado(estudianteId, instrumento) {
+    if (!estudianteId || !instrumento) return;
+
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const estudiante = inscriptions.find(ins => ins.id == estudianteId);
+    if (!estudiante) return;
+
+    const estudianteModificado = {
+        ...estudiante,
+        musical: {
+            ...estudiante.musical,
+            instrumentoPrincipal: instrumento
+        }
+    };
+
+    iniciarPagosTiempoReal(estudianteId);
+    iniciarAsistenciaTiempoReal(estudianteId);
+    iniciarClasesTiempoReal(estudianteModificado);
+    iniciarGrabacionesTiempoReal(estudianteModificado);
+    iniciarTemarioTiempoReal(estudianteId, instrumento);
+    iniciarTareasTiempoReal(estudianteId);
+}
+
+// =====================================================
+// 14. PAGOS - TIEMPO REAL
 // =====================================================
 
 function iniciarPagosTiempoReal(estudianteId) {
     const container = document.getElementById('pagosEstudianteEnc');
     if (!container) return;
-    
+
     if (encargadoListeners.pagos) {
         encargadoListeners.pagos();
         encargadoListeners.pagos = null;
     }
-    
+
     if (!window.db) {
         actualizarPagosLocal(estudianteId, container);
         return;
     }
-    
+
     encargadoListeners.pagos = window.db.collection('pagos')
         .doc('global')
         .onSnapshot((doc) => {
@@ -16367,18 +16314,19 @@ function actualizarPagosLocal(estudianteId, container) {
 
 function renderPagos(estudianteId, pagos, container) {
     const filtrados = pagos.filter(p => String(p.idEstudiante) === String(estudianteId));
-    
+
     if (filtrados.length === 0) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay pagos registrados.</p>';
         return;
     }
-    
+
     filtrados.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
     let html = `<div class="pagos-lista" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
         <div class="pagos-header" style="display:grid;grid-template-columns:1fr 1fr 1.2fr;background:#E63946;color:white;padding:12px 16px;font-weight:bold;font-size:0.85rem;">
             <div>Mes/Año</div><div>Monto</div><div>Fecha pago</div>
         </div>`;
-    
+
     filtrados.forEach(p => {
         html += `<div class="pago-item" style="display:grid;grid-template-columns:1fr 1fr 1.2fr;padding:10px 16px;border-bottom:1px solid #eee;font-size:0.85rem;">
             <div>${getNombreMes(p.mes)} ${p.año}</div>
@@ -16386,35 +16334,35 @@ function renderPagos(estudianteId, pagos, container) {
             <div>${formatearFecha(p.fecha)}</div>
         </div>`;
     });
-    
+
     html += `</div>`;
     container.innerHTML = html;
 }
 
 // =====================================================
-// 6. ASISTENCIA - TIEMPO REAL
+// 15. ASISTENCIA - TIEMPO REAL
 // =====================================================
 
 function iniciarAsistenciaTiempoReal(estudianteId) {
     const container = document.getElementById('asistenciaEstudianteEnc');
     if (!container) return;
-    
+
     if (encargadoListeners.asistencia) {
         encargadoListeners.asistencia();
         encargadoListeners.asistencia = null;
     }
-    
+
     if (!window.db) {
         actualizarAsistenciaLocal(estudianteId, container);
         return;
     }
-    
+
     encargadoListeners.asistencia = window.db.collection('asistencia')
         .where('studentId', '==', String(estudianteId))
         .onSnapshot((snapshot) => {
             const firestoreData = [];
             snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
-            
+
             let locales = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
             let unidos = [...locales];
             firestoreData.forEach(r => {
@@ -16423,7 +16371,7 @@ function iniciarAsistenciaTiempoReal(estudianteId) {
                 }
             });
             localStorage.setItem('historialAsistencia', JSON.stringify(unidos));
-            
+
             renderAsistencia(estudianteId, unidos, container);
         }, (error) => {
             console.error('❌ Error en listener de asistencia:', error);
@@ -16438,18 +16386,19 @@ function actualizarAsistenciaLocal(estudianteId, container) {
 
 function renderAsistencia(estudianteId, historial, container) {
     const filtrados = historial.filter(r => String(r.studentId) === String(estudianteId));
-    
+
     if (filtrados.length === 0) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay registros de asistencia.</p>';
         return;
     }
-    
+
     filtrados.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
     let html = `<div class="asistencia-lista" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
         <div class="asistencia-header" style="display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;background:#E63946;color:white;padding:12px 16px;font-weight:bold;font-size:0.8rem;">
             <div>Fecha</div><div>Estado</div><div>Horario</div><div>Observación</div>
         </div>`;
-    
+
     filtrados.forEach(r => {
         let estadoTexto = r.estado === 'presente' ? '✅ Presente' :
                           (r.estado === 'ausente' ? '❌ Ausente' :
@@ -16457,7 +16406,7 @@ function renderAsistencia(estudianteId, historial, container) {
         let estadoColor = r.estado === 'presente' ? '#2E7D32' :
                           (r.estado === 'ausente' ? '#C62828' :
                           (r.estado === 'justificado' ? '#E65100' : '#0D47A1'));
-        
+
         html += `<div class="asistencia-item" style="display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;padding:10px 16px;border-bottom:1px solid #eee;font-size:0.8rem;">
             <div>${formatearFecha(r.fecha)}</div>
             <div style="font-weight:600;color:${estadoColor};">${estadoTexto}</div>
@@ -16465,37 +16414,37 @@ function renderAsistencia(estudianteId, historial, container) {
             <div style="font-size:0.75rem;color:#666;">${r.observaciones || ''}</div>
         </div>`;
     });
-    
+
     html += `</div>`;
     container.innerHTML = html;
 }
 
 // =====================================================
-// 7. CLASES VIRTUALES - FILTRO POR INSTRUMENTO SELECCIONADO
+// 16. CLASES VIRTUALES - TIEMPO REAL
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
     const container = document.getElementById('clasesEstudianteEnc');
     if (!container) return;
-    
+
     if (encargadoListeners.clases) {
         encargadoListeners.clases();
         encargadoListeners.clases = null;
     }
-    
+
     const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
-    
+
     if (!instrumento || !nivel) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
         return;
     }
-    
+
     if (!window.db) {
         actualizarClasesLocal(instrumento, nivel, container);
         return;
     }
-    
+
     encargadoListeners.clases = window.db.collection('clasesVirtuales')
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
@@ -16506,7 +16455,7 @@ function iniciarClasesTiempoReal(estudiante) {
                     clases.push({ id: doc.id, ...data });
                 }
             });
-            
+
             let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
             clases.forEach(c => {
                 if (!todas.some(t => t.id === c.id)) {
@@ -16514,7 +16463,7 @@ function iniciarClasesTiempoReal(estudiante) {
                 }
             });
             localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
-            
+
             renderClases(clases, container);
         }, (error) => {
             console.error('❌ Error en listener de clases:', error);
@@ -16532,12 +16481,12 @@ function renderClases(clases, container) {
     const ahora = new Date();
     const futuras = clases.filter(c => new Date(c.fechaHora) > ahora)
                           .sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
-    
+
     if (futuras.length === 0) {
         container.innerHTML = '<div class="empty-state" style="text-align:center;padding:40px;color:#888;"><i class="fas fa-video" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>No hay clases próximas para este instrumento y nivel.</div>';
         return;
     }
-    
+
     container.innerHTML = futuras.map(c => `
         <div class="clase-card" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid #2196F3;">
             <div class="clase-header" style="background:#E63946;color:white;padding:12px 16px;font-weight:bold;">
@@ -16563,31 +16512,31 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 8. GRABACIONES - CON FILTRO EN CLIENTE (evita índice)
+// 17. GRABACIONES - TIEMPO REAL
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
     const container = document.getElementById('grabacionesEstudianteEnc');
     if (!container) return;
-    
+
     if (encargadoListeners.grabaciones) {
         encargadoListeners.grabaciones();
         encargadoListeners.grabaciones = null;
     }
-    
+
     const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
-    
+
     if (!instrumento || !nivel) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
         return;
     }
-    
+
     if (!window.db) {
         actualizarGrabacionesLocal(instrumento, nivel, container);
         return;
     }
-    
+
     encargadoListeners.grabaciones = window.db.collection('clasesVirtuales')
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
@@ -16598,7 +16547,7 @@ function iniciarGrabacionesTiempoReal(estudiante) {
                     grabaciones.push({ id: doc.id, ...data });
                 }
             });
-            
+
             let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
             grabaciones.forEach(c => {
                 if (!todas.some(t => t.id === c.id)) {
@@ -16606,7 +16555,7 @@ function iniciarGrabacionesTiempoReal(estudiante) {
                 }
             });
             localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
-            
+
             renderGrabaciones(grabaciones, container);
         }, (error) => {
             console.error('❌ Error en listener de grabaciones:', error);
@@ -16622,12 +16571,12 @@ function actualizarGrabacionesLocal(instrumento, nivel, container) {
 
 function renderGrabaciones(grabaciones, container) {
     grabaciones.sort((a,b) => new Date(b.fechaHora) - new Date(a.fechaHora));
-    
+
     if (grabaciones.length === 0) {
         container.innerHTML = '<div class="empty-state" style="text-align:center;padding:40px;color:#888;"><i class="fas fa-play-circle" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>No hay grabaciones disponibles.</div>';
         return;
     }
-    
+
     container.innerHTML = grabaciones.map(c => `
         <div class="clase-card" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid #FF9800;">
             <div class="clase-header" style="background:#FF9800;color:white;padding:12px 16px;font-weight:bold;">
@@ -16645,32 +16594,32 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 9. TEMARIO / CLASE ACTUAL
+// 18. TEMARIO / CLASE ACTUAL - TIEMPO REAL
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     if (!estudiante) return;
-    
+
     if (encargadoListeners.temario) {
         encargadoListeners.temario();
         encargadoListeners.temario = null;
     }
-    
+
     const instrumento = instrumentoForzado || encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
-    
+
     if (!instrumento || !nivel) {
         document.getElementById('claseTema').textContent = '⚠️ No hay datos de instrumento o nivel';
         return;
     }
-    
+
     if (!window.db) {
         actualizarTemarioLocal(estudianteId, instrumento, nivel);
         return;
     }
-    
+
     encargadoListeners.temario = window.db.collection('temarios')
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
@@ -16681,11 +16630,11 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
                     temario = { id: doc.id, ...data };
                 }
             });
-            
+
             if (temario) {
                 localStorage.setItem('temarios', JSON.stringify([temario]));
             }
-            
+
             renderTemario(estudianteId, temario);
         }, (error) => {
             console.error('❌ Error en listener de temario:', error);
@@ -16703,35 +16652,33 @@ function renderTemario(estudianteId, temario) {
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     if (!estudiante) return;
-    
+
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     if (isNaN(fechaIngreso.getTime())) return;
-    
+
     const hoy = new Date();
     const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
     let semana = Math.floor(diffDias / 7) + 1;
     if (semana < 1) semana = 1;
     if (semana > 44) semana = 44;
-    
+
     document.getElementById('semanaActualTitulo').textContent = `Semana ${semana}`;
     document.getElementById('progresoSemana').textContent = `Semana ${semana} de 44`;
     document.getElementById('progresoBar').style.width = `${(semana / 44) * 100}%`;
-    
+
     if (temario) {
         const semanaData = temario.semanas.find(s => s.numero === semana);
         if (semanaData) {
             document.getElementById('claseTema').textContent = semanaData.tema || 'Sin tema';
             document.getElementById('claseDescripcion').textContent = semanaData.descripcion || 'Sin descripción';
-            
             const material = semanaData.material || 'No especificado';
             const materialHtml = renderizarMaterial(material);
             document.getElementById('claseMaterial').innerHTML = materialHtml;
-            
             document.getElementById('clasePonderacion').textContent = `${semanaData.ponderacion} puntos`;
             return;
         }
     }
-    
+
     document.getElementById('claseTema').textContent = '⚠️ No hay temario disponible';
     document.getElementById('claseDescripcion').textContent = 'El docente aún no ha creado el temario para este instrumento y nivel';
     document.getElementById('claseMaterial').innerHTML = '--';
@@ -16739,33 +16686,33 @@ function renderTemario(estudianteId, temario) {
 }
 
 // =====================================================
-// 10. INFO TAREA
+// 19. INFO TAREA - TIEMPO REAL
 // =====================================================
 
 function iniciarInfoTareaTiempoReal(estudianteId) {
     iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
-    
+
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     if (!estudiante) return;
-    
+
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     if (isNaN(fechaIngreso.getTime())) return;
-    
+
     const hoy = new Date();
     const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
     let semana = Math.floor(diffDias / 7) + 1;
     if (semana < 1) semana = 1;
     if (semana > 44) semana = 44;
-    
+
     document.getElementById('tareaSemanaActual').textContent = `Semana ${semana}`;
-    
+
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
-    
+
     const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
-    
+
     if (temario) {
         const semanaData = temario.semanas.find(s => s.numero === semana);
         document.getElementById('tareaTemaActual').textContent = semanaData ? semanaData.tema : 'Sin tema';
@@ -16775,7 +16722,7 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
 }
 
 // =====================================================
-// 11. ENVIAR TAREA
+// 20. ENVIAR TAREA
 // =====================================================
 
 function enviarTarea() {
@@ -16784,43 +16731,43 @@ function enviarTarea() {
         alert('⚠️ Selecciona un estudiante primero');
         return;
     }
-    
+
     const estudianteId = parseInt(select.value);
     const fileInput = document.getElementById('archivoTarea');
     const comentario = document.getElementById('comentarioTarea').value.trim();
-    
+
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
         alert('⚠️ Selecciona un archivo para subir');
         return;
     }
-    
+
     const file = fileInput.files[0];
     const reader = new FileReader();
-    
+
     reader.onload = function(e) {
         const fileData = e.target.result;
         const fileName = file.name;
-        
+
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
         const estudiante = inscriptions.find(ins => ins.id == estudianteId);
         if (!estudiante) return;
-        
+
         const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
         if (isNaN(fechaIngreso.getTime())) return;
-        
+
         const hoy = new Date();
         const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
         let semana = Math.floor(diffDias / 7) + 1;
         if (semana < 1) semana = 1;
         if (semana > 44) semana = 44;
-        
+
         let tema = 'Sin tema';
         let ponderacion = 0;
-        
+
         const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
         const nivel = estudiante.estudiante?.nivel;
-        
+
         const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
         if (temario) {
             const semanaData = temario.semanas.find(s => s.numero === semana);
@@ -16829,7 +16776,7 @@ function enviarTarea() {
                 ponderacion = semanaData.ponderacion;
             }
         }
-        
+
         const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
         const tarea = {
             id: `tarea_${estudianteId}_${semana}_${Date.now()}`,
@@ -16846,49 +16793,49 @@ function enviarTarea() {
             nota: null,
             comentarioDocente: null
         };
-        
+
         tareas.push(tarea);
         localStorage.setItem('tareasSubidas', JSON.stringify(tareas));
-        
+
         if (window.db) {
             window.db.collection('tareas').doc(tarea.id).set(tarea)
                 .then(() => console.log('☁️ Tarea guardada en Firebase'))
                 .catch(e => console.error('❌ Error:', e));
         }
-        
+
         alert('✅ Tarea enviada correctamente');
         fileInput.value = '';
         document.getElementById('nombreArchivoSeleccionado').textContent = '';
         document.getElementById('comentarioTarea').value = '';
     };
-    
+
     reader.readAsDataURL(file);
 }
 
 // =====================================================
-// 12. NOTAS - TIEMPO REAL
+// 21. NOTAS - TIEMPO REAL
 // =====================================================
 
 function iniciarTareasTiempoReal(estudianteId) {
     const cuerpo = document.getElementById('cuerpoTablaNotas');
     if (!cuerpo) return;
-    
+
     if (encargadoListeners.tareas) {
         encargadoListeners.tareas();
         encargadoListeners.tareas = null;
     }
-    
+
     if (!window.db) {
         actualizarNotasLocal(estudianteId, cuerpo);
         return;
     }
-    
+
     encargadoListeners.tareas = window.db.collection('tareas')
         .where('estudianteId', '==', estudianteId)
         .onSnapshot((snapshot) => {
             const tareas = [];
             snapshot.forEach(doc => tareas.push({ id: doc.id, ...doc.data() }));
-            
+
             let locales = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
             tareas.forEach(t => {
                 if (!locales.some(l => l.id === t.id)) {
@@ -16896,7 +16843,7 @@ function iniciarTareasTiempoReal(estudianteId) {
                 }
             });
             localStorage.setItem('tareasSubidas', JSON.stringify(locales));
-            
+
             renderNotas(tareas, cuerpo);
         }, (error) => {
             console.error('❌ Error en listener de tareas:', error);
@@ -16918,23 +16865,23 @@ function renderNotas(tareasEstudiante, cuerpo) {
         document.getElementById('notaMesActual').textContent = '-';
         return;
     }
-    
+
     tareasEstudiante.sort((a, b) => a.semana - b.semana);
-    
+
     let totalNotas = 0;
     let notasCalificadas = 0;
     let html = '';
-    
+
     tareasEstudiante.forEach(t => {
         const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
         const nota = t.calificada ? t.nota : '-';
         const notaClass = t.calificada && t.nota >= (t.ponderacion * 0.6) ? 'nota-aprobada' : 'nota-reprobada';
-        
+
         if (t.calificada) {
             totalNotas += t.nota;
             notasCalificadas++;
         }
-        
+
         html += `
             <tr>
                 <td style="padding:8px;">Semana ${t.semana}</td>
@@ -16945,13 +16892,13 @@ function renderNotas(tareasEstudiante, cuerpo) {
             </tr>
         `;
     });
-    
+
     cuerpo.innerHTML = html;
-    
+
     const promedio = notasCalificadas > 0 ? (totalNotas / notasCalificadas) : 0;
     document.getElementById('promedioGeneral').textContent = promedio > 0 ? promedio.toFixed(1) : '-';
     document.getElementById('semanasCompletadas').textContent = tareasEstudiante.filter(t => t.calificada).length;
-    
+
     const calificadas = tareasEstudiante.filter(t => t.calificada);
     const ultimas4 = calificadas.slice(-4);
     if (ultimas4.length > 0) {
@@ -16963,19 +16910,19 @@ function renderNotas(tareasEstudiante, cuerpo) {
 }
 
 // =====================================================
-// 13. NAVEGACIÓN DEL PANEL ENCARGADO (con eventos directos)
+// 22. NAVEGACIÓN DEL PANEL ENCARGADO
 // =====================================================
 
 function iniciarNavegacionEncargado() {
     console.log('🔄 Iniciando navegación del panel encargado...');
-    
+
     setTimeout(function() {
         const menuItems = document.querySelectorAll('#encargadoPanel .menu-item');
         const hamburguesaItems = document.querySelectorAll('#menuHamburguesaPanel .menu-hamburguesa-item');
         const btnMenu = document.getElementById('btnMenuHamburguesa');
         const cerrarMenu = document.getElementById('cerrarMenuHamburguesa');
         const overlay = document.getElementById('menuHamburguesaOverlay');
-        
+
         const pantallas = {
             info: document.getElementById('pantalla-info'),
             pagos: document.getElementById('pantalla-pagos'),
@@ -16987,21 +16934,18 @@ function iniciarNavegacionEncargado() {
             notas: document.getElementById('pantalla-notas'),
             historial: document.getElementById('pantalla-historial')
         };
-        
+
         function mostrarPantalla(pantallaId) {
             console.log('📱 Mostrando pantalla:', pantallaId);
-            
-            // Ocultar todas las pantallas
+
             Object.values(pantallas).forEach(p => {
                 if (p) p.classList.remove('active');
             });
-            
-            // Mostrar la seleccionada
+
             if (pantallas[pantallaId]) {
                 pantallas[pantallaId].classList.add('active');
             }
-            
-            // Actualizar menú inferior
+
             menuItems.forEach(item => {
                 item.classList.remove('active');
                 if (item.getAttribute('data-pantalla') === pantallaId) {
@@ -17015,8 +16959,7 @@ function iniciarNavegacionEncargado() {
                     item.style.background = 'transparent';
                 }
             });
-            
-            // Actualizar menú hamburguesa
+
             hamburguesaItems.forEach(item => {
                 item.classList.remove('active');
                 if (item.getAttribute('data-pantalla') === pantallaId) {
@@ -17030,27 +16973,33 @@ function iniciarNavegacionEncargado() {
                     item.style.background = 'transparent';
                 }
             });
-            
-            // Cargar datos según la pantalla
+
             const select = document.getElementById('selectorEstudianteEnc');
             if (select && select.value) {
                 const estudianteId = parseInt(select.value);
-                if (pantallaId === 'claseactual') {
-                    iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
-                }
-                if (pantallaId === 'tarea') {
-                    iniciarInfoTareaTiempoReal(estudianteId);
-                }
-                if (pantallaId === 'notas') {
-                    iniciarTareasTiempoReal(estudianteId);
-                }
-                if (pantallaId === 'historial') {
-                    cargarHistorialCompleto(estudianteId);
+                switch (pantallaId) {
+                    case 'claseactual':
+                        iniciarTemarioTiempoReal(estudianteId, encargadoInstrumentoSeleccionado);
+                        break;
+                    case 'tarea':
+                        iniciarInfoTareaTiempoReal(estudianteId);
+                        break;
+                    case 'notas':
+                        iniciarTareasTiempoReal(estudianteId);
+                        break;
+                    case 'historial':
+                        cargarHistorialCompleto(estudianteId);
+                        break;
+                    case 'pagos':
+                        iniciarPagosTiempoReal(estudianteId);
+                        break;
+                    case 'asistencia':
+                        iniciarAsistenciaTiempoReal(estudianteId);
+                        break;
                 }
             }
         }
-        
-        // Eventos del menú inferior
+
         menuItems.forEach(item => {
             item.removeEventListener('click', window._menuItemHandler);
             window._menuItemHandler = function(e) {
@@ -17063,8 +17012,7 @@ function iniciarNavegacionEncargado() {
             };
             item.addEventListener('click', window._menuItemHandler);
         });
-        
-        // Eventos del menú hamburguesa
+
         hamburguesaItems.forEach(item => {
             item.removeEventListener('click', window._hamburguesaHandler);
             window._hamburguesaHandler = function(e) {
@@ -17085,8 +17033,7 @@ function iniciarNavegacionEncargado() {
             };
             item.addEventListener('click', window._hamburguesaHandler);
         });
-        
-        // Abrir menú hamburguesa
+
         if (btnMenu) {
             btnMenu.removeEventListener('click', window._abrirMenu);
             window._abrirMenu = function(e) {
@@ -17096,8 +17043,7 @@ function iniciarNavegacionEncargado() {
             };
             btnMenu.addEventListener('click', window._abrirMenu);
         }
-        
-        // Cerrar menú hamburguesa
+
         if (cerrarMenu) {
             cerrarMenu.removeEventListener('click', window._cerrarMenu);
             window._cerrarMenu = function() {
@@ -17106,8 +17052,7 @@ function iniciarNavegacionEncargado() {
             };
             cerrarMenu.addEventListener('click', window._cerrarMenu);
         }
-        
-        // Cerrar overlay al hacer clic fuera
+
         if (overlay) {
             overlay.removeEventListener('click', window._cerrarOverlay);
             window._cerrarOverlay = function(e) {
@@ -17118,108 +17063,151 @@ function iniciarNavegacionEncargado() {
             };
             overlay.addEventListener('click', window._cerrarOverlay);
         }
-        
-        // Mostrar pantalla inicial
+
         mostrarPantalla('info');
-        
         console.log('✅ Navegación del encargado inicializada correctamente');
     }, 300);
 }
 
 // =====================================================
-// 14. SWIPE PARA ENCARGADO
+// 23. SWIPE PARA ENCARGADO (CORREGIDO - SOLO HORIZONTAL)
 // =====================================================
 
-function iniciarSwipeEncargado() {
-    console.log('🔄 Iniciando swipe en panel encargado...');
-    const panel = document.getElementById('encargadoPanel');
-    if (!panel) return;
-    
-    let touchStartX = 0, touchEndX = 0;
+function activarSwipeEncargado() {
+    console.log('🔄 Activando swipe horizontal del encargado...');
+
+    const container = document.querySelector('.pantallas-encargado');
+    if (!container) {
+        console.warn('⚠️ Contenedor .pantallas-encargado no encontrado');
+        return;
+    }
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+
     const pantallasConSwipe = ['info', 'claseactual', 'tarea', 'notas', 'historial'];
-    
+
     function getIndiceActual() {
-        const items = document.querySelectorAll('#encargadoPanel .menu-item');
+        const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
         let activo = 'info';
-        items.forEach(item => {
+        items.forEach(function(item) {
             if (item.classList.contains('active')) {
-                activo = item.getAttribute('data-pantalla') || 'info';
+                const pantalla = item.getAttribute('data-pantalla');
+                if (pantalla) activo = pantalla;
             }
         });
-        return pantallasConSwipe.indexOf(activo) !== -1 ? pantallasConSwipe.indexOf(activo) : -1;
+        const index = pantallasConSwipe.indexOf(activo);
+        return index !== -1 ? index : 0;
     }
-    
+
     function cambiarPantalla(direccion) {
         const idx = getIndiceActual();
-        if (idx === -1) return;
         let nuevoIdx = idx + direccion;
         if (nuevoIdx < 0) nuevoIdx = 0;
         if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
+
         if (nuevoIdx !== idx) {
             const nuevaPantalla = pantallasConSwipe[nuevoIdx];
-            const items = document.querySelectorAll('#encargadoPanel .menu-item');
-            items.forEach(item => {
+            console.log('👆 Swipe horizontal a:', nuevaPantalla);
+            const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
+            items.forEach(function(item) {
                 if (item.getAttribute('data-pantalla') === nuevaPantalla) {
                     item.click();
                 }
             });
         }
     }
-    
-    panel.removeEventListener('touchstart', window._swipeStart);
-    panel.removeEventListener('touchend', window._swipeEnd);
-    
-    window._swipeStart = function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-    };
-    window._swipeEnd = function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        const diffX = touchStartX - touchEndX;
-        if (Math.abs(diffX) > 40) {
-            if (diffX > 0) cambiarPantalla(1);
-            else cambiarPantalla(-1);
+
+    container.removeEventListener('touchstart', window._swipeStartHandler);
+    container.removeEventListener('touchmove', window._swipeMoveHandler);
+    container.removeEventListener('touchend', window._swipeEndHandler);
+
+    window._swipeStartHandler = function(e) {
+        const target = e.target.closest('input, select, textarea, button, .deuda-badge, .profile-level, .detail-item');
+        if (target) {
+            isSwiping = false;
+            return;
+        }
+        const touch = e.touches[0];
+        if (touch) {
+            touchStartX = touch.screenX;
+            touchStartY = touch.screenY;
+            isSwiping = true;
         }
     };
-    
-    panel.addEventListener('touchstart', window._swipeStart, { passive: true });
-    panel.addEventListener('touchend', window._swipeEnd, { passive: true });
-    console.log('✅ Swipe activado');
+
+    window._swipeMoveHandler = function(e) {
+        if (!isSwiping) return;
+        const touch = e.touches[0];
+        if (touch) {
+            const deltaX = Math.abs(touch.screenX - touchStartX);
+            const deltaY = Math.abs(touch.screenY - touchStartY);
+            if (deltaX > deltaY && deltaX > 10) {
+                e.preventDefault();
+            }
+        }
+    };
+
+    window._swipeEndHandler = function(e) {
+        if (!isSwiping) return;
+        const touch = e.changedTouches[0];
+        if (touch) {
+            const diffX = touchStartX - touch.screenX;
+            const diffY = touchStartY - touch.screenY;
+
+            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+                if (diffX > 0) {
+                    cambiarPantalla(1);
+                } else {
+                    cambiarPantalla(-1);
+                }
+            }
+        }
+        isSwiping = false;
+    };
+
+    container.addEventListener('touchstart', window._swipeStartHandler, { passive: true });
+    container.addEventListener('touchmove', window._swipeMoveHandler, { passive: false });
+    container.addEventListener('touchend', window._swipeEndHandler, { passive: true });
+
+    console.log('✅ Swipe horizontal del encargado activado (corregido)');
 }
 
 // =====================================================
-// 15. HISTORIAL COMPLETO
+// 24. HISTORIAL COMPLETO
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
     console.log('📜 Cargando historial completo para:', estudianteId);
     const container = document.getElementById('historialCompletoContainer');
     if (!container) return;
-    
+
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == estudianteId);
     if (!estudiante) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No se encontró el estudiante.</p>';
         return;
     }
-    
+
     const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
     const nivel = estudiante.estudiante?.nivel;
-    
+
     if (!instrumento || !nivel) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
         return;
     }
-    
+
     if (!window.db) {
         actualizarHistorialLocal(container, instrumento, nivel);
         return;
     }
-    
+
     if (encargadoListeners.temarioHistorial) {
         encargadoListeners.temarioHistorial();
         encargadoListeners.temarioHistorial = null;
     }
-    
+
     encargadoListeners.temarioHistorial = window.db.collection('temarios')
         .where('nivel', '==', nivel)
         .onSnapshot((snapshot) => {
@@ -17253,7 +17241,6 @@ function renderHistorialCompleto(container, temario) {
         return;
     }
 
-    // Obtener la semana actual del estudiante
     const select = document.getElementById('selectorEstudianteEnc');
     const estudianteId = select ? parseInt(select.value) : null;
     if (!estudianteId) {
@@ -17268,19 +17255,18 @@ function renderHistorialCompleto(container, temario) {
         return;
     }
 
-    // Calcular semana actual
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     if (isNaN(fechaIngreso.getTime())) {
         container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">Fecha de ingreso no válida.</p>`;
         return;
     }
+
     const hoy = new Date();
     const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
     let semanaActual = Math.floor(diffDias / 7) + 1;
     if (semanaActual < 1) semanaActual = 1;
     if (semanaActual > 44) semanaActual = 44;
 
-    // Filtrar semanas: solo las que ya pasaron o la actual (≤ semanaActual)
     const semanasOrdenadas = [...temario.semanas]
         .filter(s => s.numero <= semanaActual)
         .sort((a, b) => a.numero - b.numero);
@@ -17307,7 +17293,6 @@ function renderHistorialCompleto(container, temario) {
     semanasOrdenadas.forEach(s => {
         const materialHtml = renderizarMaterial(s.material || 'No especificado');
 
-        // Determinar si es la semana actual o una semana pasada
         const esActual = (s.numero === semanaActual);
         const badge = esActual 
             ? '<span style="background:#4CAF50;color:white;padding:2px 10px;border-radius:12px;font-size:0.7rem;margin-left:8px;">ACTUAL</span>' 
@@ -17344,7 +17329,6 @@ function renderHistorialCompleto(container, temario) {
         `;
     });
 
-    // Indicador de semanas futuras (si hay más allá de la actual)
     const semanasFuturas = temario.semanas.filter(s => s.numero > semanaActual);
     if (semanasFuturas.length > 0) {
         html += `
@@ -17361,7 +17345,7 @@ function renderHistorialCompleto(container, temario) {
 }
 
 // =====================================================
-// 16. INICIALIZACIÓN
+// 25. INICIALIZACIÓN Y FORZAR NAVEGACIÓN
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -17374,62 +17358,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
 
-document.addEventListener('DOMContentLoaded', function() {
     const userType = localStorage.getItem('userType');
     if (userType === 'encargado') {
         setTimeout(function() {
             iniciarNavegacionEncargado();
             iniciarSelectorTiempoReal();
-            iniciarSwipeEncargado();
+            activarSwipeEncargado();
         }, 500);
     }
 });
 
-setInterval(function() {
-    const encargadoPanel = document.getElementById('encargadoPanel');
-    if (encargadoPanel && encargadoPanel.style.display !== 'none') {
-        const userType = localStorage.getItem('userType');
-        if (userType === 'encargado') {
-            const select = document.getElementById('selectorEstudianteEnc');
-            if (select && (select.options.length <= 1 || select.options[0]?.text?.includes('⚠️'))) {
-                iniciarSelectorTiempoReal();
-            }
-        }
-    }
-}, 5000);
-  
-// =====================================================
-// 🔥 CORRECCIÓN: FORZAR NAVEGACIÓN DEL ENCARGADO AL ENTRAR
-// =====================================================
-
-// Esta función se ejecuta cuando el encargado inicia sesión
 function forzarNavegacionEncargado() {
     console.log('🔄 Forzando navegación del encargado...');
-    
-    // Esperar a que el DOM esté listo
+
     setTimeout(function() {
-        // Buscar el panel del encargado
         const panel = document.getElementById('encargadoPanel');
         if (panel && panel.style.display !== 'none') {
             console.log('📱 Panel encargado visible, iniciando navegación...');
-            
-            // Iniciar navegación
+
             if (typeof iniciarNavegacionEncargado === 'function') {
                 iniciarNavegacionEncargado();
                 console.log('✅ Navegación del encargado forzada');
             }
-            
-            // También forzar el selector de estudiantes
+
             if (typeof iniciarSelectorTiempoReal === 'function') {
                 setTimeout(iniciarSelectorTiempoReal, 300);
+            }
+
+            if (typeof activarSwipeEncargado === 'function') {
+                setTimeout(activarSwipeEncargado, 500);
             }
         }
     }, 500);
 }
 
-// Escuchar cuando se muestra el panel del encargado
 const panelEncargado = document.getElementById('encargadoPanel');
 if (panelEncargado) {
     const observer = new MutationObserver(function(mutations) {
@@ -17445,7 +17408,6 @@ if (panelEncargado) {
     observer.observe(panelEncargado, { attributes: true });
 }
 
-// También ejecutar al cargar la página por si ya está visible
 setTimeout(function() {
     const panel = document.getElementById('encargadoPanel');
     if (panel && panel.style.display !== 'none') {
@@ -17454,7 +17416,6 @@ setTimeout(function() {
     }
 }, 1000);
 
-// 🔥 NUEVO: También forzar cuando el usuario inicia sesión como encargado
 document.addEventListener('DOMContentLoaded', function() {
     const userType = localStorage.getItem('userType');
     if (userType === 'encargado') {
@@ -17464,90 +17425,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('✅ Sistema de navegación forzada para encargado ACTIVADO');
-  
-  // =====================================================
-// 🔥 SWIPE SOLO HORIZONTAL (izquierda/derecha) - SIN AFECTAR SCROLL
-// =====================================================
-
-function activarSwipeEncargado() {
-    console.log('🔄 Activando swipe horizontal del encargado...');
-    
-    const panel = document.getElementById('encargadoPanel');
-    if (!panel) return;
-    
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    // Lista de pantallas que tienen swipe (en orden)
-    const pantallasConSwipe = ['info', 'claseactual', 'tarea', 'notas', 'historial'];
-    
-    function getIndiceActual() {
-        const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
-        let activo = 'info';
-        items.forEach(function(item) {
-            if (item.classList.contains('active')) {
-                const pantalla = item.getAttribute('data-pantalla');
-                if (pantalla) activo = pantalla;
-            }
-        });
-        const index = pantallasConSwipe.indexOf(activo);
-        return index !== -1 ? index : 0;
-    }
-    
-    function cambiarPantalla(direccion) {
-        const idx = getIndiceActual();
-        let nuevoIdx = idx + direccion;
-        
-        if (nuevoIdx < 0) nuevoIdx = 0;
-        if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
-        
-        if (nuevoIdx !== idx) {
-            const nuevaPantalla = pantallasConSwipe[nuevoIdx];
-            console.log('👆 Swipe horizontal a:', nuevaPantalla);
-            
-            const items = document.querySelectorAll('#encargadoPanel .menu-item[data-pantalla]');
-            items.forEach(function(item) {
-                if (item.getAttribute('data-pantalla') === nuevaPantalla) {
-                    item.click();
-                }
-            });
-        }
-    }
-    
-    // Eliminar eventos anteriores
-    panel.removeEventListener('touchstart', window._swipeStartHandler);
-    panel.removeEventListener('touchend', window._swipeEndHandler);
-    
-    // 🔥 NUEVOS EVENTOS: SOLO HORIZONTAL
-    window._swipeStartHandler = function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-    };
-    
-    window._swipeEndHandler = function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        const diffX = touchStartX - touchEndX;
-        
-        // 🔥 SOLO cambiar si movimiento horizontal > 40px
-        if (Math.abs(diffX) > 40) {
-            if (diffX > 0) {
-                cambiarPantalla(1);  // → Siguiente
-            } else {
-                cambiarPantalla(-1); // ← Anterior
-            }
-        }
-    };
-    
-    panel.addEventListener('touchstart', window._swipeStartHandler, { passive: true });
-    panel.addEventListener('touchend', window._swipeEndHandler, { passive: true });
-    
-    console.log('✅ Swipe horizontal del encargado activado');
-}
 
 // =====================================================
-// 🔥 EJECUTAR SWIPE CUANDO EL PANEL ENCARGADO SE MUESTRA
+// 26. SWIPE: EJECUTAR CUANDO EL PANEL SE MUESTRA
 // =====================================================
 
-// 1. Cuando el panel se hace visible
 const panelEncSwipe = document.getElementById('encargadoPanel');
 if (panelEncSwipe) {
     const observerSwipe = new MutationObserver(function(mutations) {
@@ -17563,7 +17445,6 @@ if (panelEncSwipe) {
     observerSwipe.observe(panelEncSwipe, { attributes: true });
 }
 
-// 2. Cuando se cambia de estudiante
 document.addEventListener('DOMContentLoaded', function() {
     const select = document.getElementById('selectorEstudianteEnc');
     if (select) {
@@ -17576,7 +17457,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 3. Si el panel ya está visible al cargar
 setTimeout(function() {
     const panel = document.getElementById('encargadoPanel');
     if (panel && panel.style.display !== 'none') {
@@ -17586,8 +17466,7 @@ setTimeout(function() {
 }, 1200);
 
 console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
-  
-console.log("✅ Bloque 6 cargado: Panel de Encargado - CORREGIDO");
+console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL CORREGIDA");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 7: SISTEMA DE RECIBOS (DEFINITIVO) -->
