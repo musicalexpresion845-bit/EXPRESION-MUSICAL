@@ -12063,8 +12063,33 @@ const frasesMotivacionales = [
     "¡Asombroso! Tu disciplina musical da frutos 🎺"
 ];
 
+// =====================================================
+// 🔥 FUNCIÓN cargarEstudiantesAuto - GLOBAL
+// =====================================================
 
-    // =====================================================
+function cargarEstudiantesAuto() {
+    console.log('📅 cargarEstudiantesAuto() ejecutada');
+    
+    const day = document.getElementById('filter-day')?.value;
+    const schedule = document.getElementById('filter-schedule')?.value;
+    const date = document.getElementById('filter-date')?.value;
+    
+    if (day && schedule && date) {
+        if (typeof asistenciaApp !== 'undefined' && asistenciaApp) {
+            if (!asistenciaApp.inicializada) {
+                asistenciaApp.init();
+            }
+            if (typeof asistenciaApp.cargarEstudiantesAutomaticamente === 'function') {
+                asistenciaApp.cargarEstudiantesAutomaticamente();
+            }
+        }
+    }
+}
+
+// Exponer globalmente
+window.cargarEstudiantesAuto = cargarEstudiantesAuto;
+
+// =====================================================
 // 🔥 SINCRONIZACIÓN EN TIEMPO REAL DE ASISTENCIA
 // =====================================================
 
@@ -12109,6 +12134,7 @@ function iniciarSincronizacionAsistencia() {
             console.error('❌ Error en listener de asistencia:', error);
         });
 }
+
 // =====================================================
 // OBJETO PRINCIPAL DE ASISTENCIA
 // =====================================================
@@ -12117,32 +12143,33 @@ const asistenciaApp = {
     inicializada: false,
     data: { students: [], records: [] },
 
-  init: function() {
-    console.log("🎯 INICIANDO SISTEMA DE ASISTENCIA MEJORADO...");
-    this.inicializarSistemaHistorial();
-    this.inicializarInterfaz();
-    this.configurarEventosCompletos();
-    this.limpiarEstudiantesEscaneados();
-    
-    // 🔥 NUEVO: Iniciar sincronización con Firebase
-    if (typeof iniciarSincronizacionAsistencia === 'function') {
-        iniciarSincronizacionAsistencia();
-        console.log('🔄 Sincronización de asistencia iniciada');
-    }
-    if (window.db) {
-    window.db.collection('inscripciones').onSnapshot((snapshot) => {
-        const firestoreData = [];
-        snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
-        if (firestoreData.length > 0) {
-            localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
-            window.inscriptions = firestoreData;
-            console.log('🔄 Datos de inscripciones actualizados desde Firebase en tiempo real');
+    init: function() {
+        console.log("🎯 INICIANDO SISTEMA DE ASISTENCIA MEJORADO...");
+        this.inicializarSistemaHistorial();
+        this.inicializarInterfaz();
+        this.configurarEventosCompletos();
+        this.limpiarEstudiantesEscaneados();
+        
+        if (typeof iniciarSincronizacionAsistencia === 'function') {
+            iniciarSincronizacionAsistencia();
+            console.log('🔄 Sincronización de asistencia iniciada');
         }
-    });
-}
-    console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
-    this.inicializada = true;
-},
+        
+        if (window.db) {
+            window.db.collection('inscripciones').onSnapshot((snapshot) => {
+                const firestoreData = [];
+                snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+                if (firestoreData.length > 0) {
+                    localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
+                    window.inscriptions = firestoreData;
+                    console.log('🔄 Datos de inscripciones actualizados desde Firebase en tiempo real');
+                }
+            });
+        }
+        
+        console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
+        this.inicializada = true;
+    },
 
     inicializarSistemaHistorial: function() {
         console.log("🔄 Inicializando sistema de historial...");
@@ -12275,10 +12302,6 @@ const asistenciaApp = {
         this.mostrarEstudiantesEnTabla(estudiantesFiltrados, fecha, dia, horario);
     },
 
-    // =====================================================
-    // MOSTRAR ESTUDIANTES EN TABLA
-    // =====================================================
-
     mostrarEstudiantesEnTabla: function(estudiantes, fecha, dia, horario) {
         const tbody = document.getElementById('studentsList');
         if (!tbody) return;
@@ -12348,49 +12371,42 @@ const asistenciaApp = {
         this.actualizarContadores();
     },
 
-  cargarAsistenciaPrevia: function(fecha, dia, horario) {
-    if (!fecha || !dia || !horario) return;
-    
-    // 🔥 SIMPLE: Buscar en el historial
-    const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-    
-    const registros = historial.filter(r => 
-        r.dia === dia && r.horario === horario && r.fecha === fecha
-    );
-    
-    if (registros.length === 0) return;
-    
-    registros.forEach(registro => {
-        const fila = document.querySelector(`tr[data-student-id="${registro.studentId}"]`);
-        if (!fila) return;
+    cargarAsistenciaPrevia: function(fecha, dia, horario) {
+        if (!fecha || !dia || !horario) return;
         
-        const statusCell = fila.querySelector('.attendance-status');
-        const timeCell = fila.querySelector('.attendance-time');
-        if (!statusCell) return;
+        const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        const registros = historial.filter(r => 
+            r.dia === dia && r.horario === horario && r.fecha === fecha
+        );
         
-        // Mostrar estado
-        const estados = {
-            'presente': ['✅ Presente', 'background: #d4edda; color: #155724; border-color: #c3e6cb;'],
-            'ausente': ['❌ Ausente', 'background: #f8d7da; color: #721c24; border-color: #f5c6cb;'],
-            'justificado': ['📝 Justificado', 'background: #fff3cd; color: #856404; border-color: #ffc107;'],
-            'reposicion': ['🔄 Reposición', 'background: #cce5ff; color: #004085; border-color: #b8daff;']
-        };
+        if (registros.length === 0) return;
         
-        const estado = estados[registro.estado];
-        if (estado) {
-            statusCell.innerHTML = estado[0];
-            statusCell.style.cssText = `padding: 8px 12px; border-radius: 6px; text-align: center; border: 1px solid; ${estado[1]}`;
-        }
+        registros.forEach(registro => {
+            const fila = document.querySelector(`tr[data-student-id="${registro.studentId}"]`);
+            if (!fila) return;
+            
+            const statusCell = fila.querySelector('.attendance-status');
+            const timeCell = fila.querySelector('.attendance-time');
+            if (!statusCell) return;
+            
+            const estados = {
+                'presente': ['✅ Presente', 'background: #d4edda; color: #155724; border-color: #c3e6cb;'],
+                'ausente': ['❌ Ausente', 'background: #f8d7da; color: #721c24; border-color: #f5c6cb;'],
+                'justificado': ['📝 Justificado', 'background: #fff3cd; color: #856404; border-color: #ffc107;'],
+                'reposicion': ['🔄 Reposición', 'background: #cce5ff; color: #004085; border-color: #b8daff;']
+            };
+            
+            const estado = estados[registro.estado];
+            if (estado) {
+                statusCell.innerHTML = estado[0];
+                statusCell.style.cssText = `padding: 8px 12px; border-radius: 6px; text-align: center; border: 1px solid; ${estado[1]}`;
+            }
+            
+            if (timeCell) timeCell.textContent = registro.horaRegistro || '--:--';
+        });
         
-        if (timeCell) timeCell.textContent = registro.horaRegistro || '--:--';
-    });
-    
-    this.actualizarContadores();
-},
-
-    // =====================================================
-    // REGISTRO MANUAL DE ASISTENCIA (INDIVIDUAL)
-    // =====================================================
+        this.actualizarContadores();
+    },
 
     abrirRegistroManual: function(studentId = null) {
         if (studentId) {
@@ -12538,10 +12554,6 @@ const asistenciaApp = {
         this.mostrarNotificacionGrande(mensaje, 'success');
     },
 
-    // =====================================================
-    // REGISTRO MASIVO DE ASISTENCIA
-    // =====================================================
-
     registroManualMasivo: function() {
         const estudiantes = estudiantesCargados;
         if (estudiantes.length === 0) {
@@ -12648,10 +12660,6 @@ const asistenciaApp = {
         if (modal) modal.remove();
     },
 
-    // =====================================================
-    // REGISTRAR ESTUDIANTE EN TABLA
-    // =====================================================
-
     registrarEstudianteEnTabla: function(estudiante, estado, fecha, dia, horario) {
         const tbody = document.getElementById('studentsList');
         if (!tbody) return;
@@ -12739,10 +12747,6 @@ const asistenciaApp = {
         this.actualizarContadores();
     },
 
-    // =====================================================
-    // CONTADORES DE ASISTENCIA
-    // =====================================================
-
     actualizarContadores: function() {
         const total = document.querySelectorAll('#studentsList tr[data-student-id]').length;
         const presentes = document.querySelectorAll('.status-presente').length;
@@ -12799,10 +12803,6 @@ const asistenciaApp = {
         estudiantesEscaneados.clear();
     },
 
-    // =====================================================
-    // BUSCAR ESTUDIANTE
-    // =====================================================
-
     buscarEstudianteEnTodaLaBase: function(studentId) {
         let estudiante = estudiantesCargados.find(est =>
             est.id == studentId || (est.id && est.id.toString() === studentId.toString())
@@ -12818,10 +12818,6 @@ const asistenciaApp = {
         return estudiante;
     },
 
-    // =====================================================
-    // CAMBIAR PESTAÑA
-    // =====================================================
-
     cambiarTabAsistencia: function(tabName) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -12835,10 +12831,6 @@ const asistenciaApp = {
             }, 100);
         }
     },
-
-    // =====================================================
-    // HISTORIAL COMPLETO
-    // =====================================================
 
     mostrarHistorialCompleto: function() {
         const historyContent = document.getElementById('history-content');
@@ -12968,10 +12960,6 @@ const asistenciaApp = {
         });
         historyContent.innerHTML = html;
     },
-
-    // =====================================================
-    // FUNCIONES DEL HISTORIAL (FILTRAR, EXPORTAR, LIMPIAR)
-    // =====================================================
 
     filtrarHistorial: function() {
         const searchTerm = document.getElementById('searchStudentHistorial').value.toLowerCase();
@@ -13135,49 +13123,38 @@ const asistenciaApp = {
     },
 
     // =====================================================
-    // GUARDAR EN HISTORIAL
+    // ✅ GUARDAR EN HISTORIAL - CORREGIDO
     // =====================================================
-
-    function guardarEnHistorialCompleto(datos) {
-    try {
-        console.log("💾 Guardando en historial:", datos);
-        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        const nuevoRegistro = {
-            id: datos.id || Date.now(),
-            studentId: datos.id,
-            studentName: datos.nombre,
-            instrumento: datos.instrumento,
-            nivel: datos.nivel,
-            fecha: datos.fecha,
-            dia: datos.dia,
-            horario: datos.horario,
-            estado: datos.estado,
-            tipo: datos.tipo,
-            horaRegistro: datos.horaRegistro,
-            observaciones: datos.observaciones || '',
-            timestamp: new Date().toISOString()
-        };
-        historial.push(nuevoRegistro);
-        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-        // ✅ ELIMINADO: NO SOBRESCRIBIR FIREBASE DESDE LOCAL
-        // El listener en tiempo real de Firebase actualizará localStorage
-        console.log("✅ Guardado local exitoso. Total registros:", historial.length);
-    } catch (error) {
-        console.error("❌ Error guardando en historial:", error);
-    }
-}
-
-    // =====================================================
-    // GUARDAR ASISTENCIA COMPLETA
-    // =====================================================
+    guardarEnHistorialCompleto: function(datos) {
+        try {
+            console.log("💾 Guardando en historial:", datos);
+            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            const nuevoRegistro = {
+                id: datos.id || Date.now(),
+                studentId: datos.id,
+                studentName: datos.nombre,
+                instrumento: datos.instrumento,
+                nivel: datos.nivel,
+                fecha: datos.fecha,
+                dia: datos.dia,
+                horario: datos.horario,
+                estado: datos.estado,
+                tipo: datos.tipo,
+                horaRegistro: datos.horaRegistro,
+                observaciones: datos.observaciones || '',
+                timestamp: new Date().toISOString()
+            };
+            historial.push(nuevoRegistro);
+            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+            console.log("✅ Guardado local exitoso. Total registros:", historial.length);
+        } catch (error) {
+            console.error("❌ Error guardando en historial:", error);
+        }
+    },
 
     guardarAsistenciaCompleta: function() {
         this.mostrarNotificacionGrande('✅ Asistencia guardada correctamente', 'success');
     },
-
-    // =====================================================
-    // MOSTRAR NOTIFICACIONES GRANDES
-    // =====================================================
 
     mostrarNotificacionGrande: function(mensaje, tipo = 'info') {
         const notif = document.createElement('div');
@@ -13206,24 +13183,25 @@ const asistenciaApp = {
 };
 
 // =====================================================
-// INICIALIZACIÓN CUANDO SE MUESTRA ASISTENCIA
-// =====================================================
-// =====================================================
-// EVENTO PARA EL BOTÓN ASISTENCIA - VERSIÓN CORREGIDA
+// 🔥 EVENTO PARA EL BOTÓN ASISTENCIA - LIMPIO
 // =====================================================
 document.addEventListener('DOMContentLoaded', function() {
     const btnAsistencia = document.getElementById('btnAsistencia');
+    
     if (btnAsistencia) {
-        btnAsistencia.addEventListener('click', function(e) {
-            console.log('🔘 Click en Asistencia (desde BLOQUE 4)');
+        // Eliminar todos los listeners anteriores
+        const nuevoBtn = btnAsistencia.cloneNode(true);
+        btnAsistencia.parentNode.replaceChild(nuevoBtn, btnAsistencia);
+        
+        nuevoBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🔘 Click en Asistencia');
             
-            // Mostrar el contenedor de asistencia
             const asistenciaContainer = document.getElementById('asistenciaContainer');
             if (asistenciaContainer) {
                 asistenciaContainer.style.display = 'block';
             }
             
-            // Ocultar otros contenedores
             document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #gestionUsuariosContainer').forEach(c => {
                 if (c) c.style.display = 'none';
             });
@@ -13231,110 +13209,57 @@ document.addEventListener('DOMContentLoaded', function() {
             const welcome = document.getElementById('welcomeMessage');
             if (welcome) welcome.style.display = 'none';
             
-            // Iniciar asistencia
-            if (typeof asistenciaApp !== 'undefined' && asistenciaApp) {
-                if (!asistenciaApp.inicializada) {
-                    asistenciaApp.init();
-                } else {
-                    console.log('✅ Asistencia ya inicializada');
-                    // Forzar recarga de estudiantes
+            setTimeout(function() {
+                if (typeof asistenciaApp !== 'undefined' && asistenciaApp) {
+                    if (!asistenciaApp.inicializada) {
+                        asistenciaApp.init();
+                    }
                     if (typeof asistenciaApp.cargarEstudiantesAutomaticamente === 'function') {
                         asistenciaApp.cargarEstudiantesAutomaticamente();
                     }
                 }
-            } else {
-                console.error('❌ asistenciaApp no está definida');
-                // Intentar inicializar manualmente
-                if (typeof asistenciaApp !== 'undefined') {
-                    asistenciaApp.init();
-                }
-            }
-        });
-    } else {
-        console.warn('⚠️ btnAsistencia no encontrado al cargar la página');
-    }
-});
-
-  // =====================================================
-// 🔥 DÍA AUTOMÁTICO EN ASISTENCIA
-// =====================================================
-
-// Función para obtener el día de la semana actual
-function obtenerDiaActual() {
-    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const hoy = new Date();
-    return dias[hoy.getDay()];
-}
-
-// Función para establecer el día automáticamente al cargar asistencia
-function establecerDiaAutomatico() {
-    const selectDia = document.getElementById('filter-day');
-    if (!selectDia) return;
-    
-    const diaActual = obtenerDiaActual();
-    console.log('📅 Día actual:', diaActual);
-    
-    // Buscar si el día actual existe en el select
-    let encontrado = false;
-    for (let i = 0; i < selectDia.options.length; i++) {
-        if (selectDia.options[i].value === diaActual) {
-            selectDia.selectedIndex = i;
-            encontrado = true;
-            break;
-        }
-    }
-    
-    if (encontrado) {
-        console.log('✅ Día automático seleccionado:', diaActual);
-        // Disparar evento change para cargar estudiantes automáticamente
-        const event = new Event('change');
-        selectDia.dispatchEvent(event);
-    } else {
-        console.log('⚠️ Día actual no encontrado en el select');
-    }
-}
-
-// Función que se ejecuta al cambiar el día
-function cargarEstudiantesAuto() {
-    // Esta función llama a la carga automática de estudiantes
-    if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
-        asistenciaApp.cargarEstudiantesAutomaticamente();
-    }
-}
-
-// Interceptar el clic en el botón de Asistencia para establecer el día automático
-document.addEventListener('DOMContentLoaded', function() {
-    const btnAsistencia = document.getElementById('btnAsistencia');
-    if (btnAsistencia) {
-        const clickOriginal = btnAsistencia.onclick;
-        btnAsistencia.addEventListener('click', function() {
-            // Esperar a que se muestre el contenedor de asistencia
-            setTimeout(function() {
                 establecerDiaAutomatico();
             }, 300);
         });
     }
 });
 
-// También ejecutar cuando se carga la página si ya está visible
-setTimeout(function() {
-    const asistenciaContainer = document.getElementById('asistenciaContainer');
-    if (asistenciaContainer && asistenciaContainer.style.display !== 'none') {
-        establecerDiaAutomatico();
-    }
-}, 1000);
+// =====================================================
+// 🔥 FUNCIONES PARA DÍA AUTOMÁTICO
+// =====================================================
 
-console.log('✅ Día automático activado para asistencia');
-  
-  // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL (SOLO 15 LÍNEAS)
+function obtenerDiaActual() {
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const hoy = new Date();
+    return dias[hoy.getDay()];
+}
+
+function establecerDiaAutomatico() {
+    console.log('📅 Estableciendo día automático...');
+    const selectDia = document.getElementById('filter-day');
+    if (!selectDia) return;
+    
+    const diaActual = obtenerDiaActual();
+    
+    for (let i = 0; i < selectDia.options.length; i++) {
+        if (selectDia.options[i].value === diaActual) {
+            selectDia.selectedIndex = i;
+            console.log('✅ Día automático seleccionado:', diaActual);
+            const event = new Event('change');
+            selectDia.dispatchEvent(event);
+            break;
+        }
+    }
+}
+
+// =====================================================
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL
 // =====================================================
 
 if (window.db) {
     console.log('🔄 Iniciando sincronización de asistencia en tiempo real...');
     
     window.db.collection('asistencia').onSnapshot((snapshot) => {
-        // Guardar en localStorage
         let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
         
         snapshot.forEach(doc => {
@@ -13349,7 +13274,6 @@ if (window.db) {
         
         localStorage.setItem('historialAsistencia', JSON.stringify(historial));
         
-        // Si la tabla de asistencia está visible, recargar estados
         const container = document.getElementById('asistenciaContainer');
         if (container && container.style.display !== 'none') {
             const dia = document.getElementById('filter-day')?.value;
@@ -13360,11 +13284,16 @@ if (window.db) {
                 asistenciaApp.cargarAsistenciaPrevia(fecha, dia, horario);
             }
         }
-        
-        console.log('✅ Asistencia sincronizada');
     }, (error) => console.error('❌ Error:', error));
 }
-  
+
+setTimeout(function() {
+    const asistenciaContainer = document.getElementById('asistenciaContainer');
+    if (asistenciaContainer && asistenciaContainer.style.display !== 'none') {
+        establecerDiaAutomatico();
+    }
+}, 1000);
+
 console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado");
 </script>
   <!-- ============================================ -->
