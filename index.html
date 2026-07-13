@@ -11986,9 +11986,10 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log("✅ Bloque 3 cargado: Sistema de Pagos");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 4: SISTEMA DE ASISTENCIA MEJORADO -->
+<!-- BLOQUE 4: SISTEMA DE ASISTENCIA MEJORADO - CORREGIDO -->
 <!-- ============================================ -->
 <script>
+
 // =====================================================
 // VARIABLES GLOBALES DE ASISTENCIA
 // =====================================================
@@ -12028,7 +12029,6 @@ const frasesMotivacionales = [
 
 function cargarEstudiantesAuto() {
     console.log('📅 cargarEstudiantesAuto() ejecutada');
-    
     const day = document.getElementById('filter-day')?.value;
     const schedule = document.getElementById('filter-schedule')?.value;
     const date = document.getElementById('filter-date')?.value;
@@ -12045,11 +12045,10 @@ function cargarEstudiantesAuto() {
     }
 }
 
-// Exponer globalmente
 window.cargarEstudiantesAuto = cargarEstudiantesAuto;
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL DE ASISTENCIA
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL DE ASISTENCIA - CORREGIDA
 // =====================================================
 
 function iniciarSincronizacionAsistencia() {
@@ -12059,7 +12058,8 @@ function iniciarSincronizacionAsistencia() {
         console.warn('⚠️ Firebase no disponible, asistencia solo local');
         return;
     }
-    
+
+    // 🔥 LISTENER GLOBAL - ESCUCHA TODOS LOS CAMBIOS EN ASISTENCIA
     window.db.collection('asistencia')
         .onSnapshot((snapshot) => {
             console.log('📡 Cambios detectados en asistencia:', snapshot.size);
@@ -12070,22 +12070,27 @@ function iniciarSincronizacionAsistencia() {
             });
             
             if (firestoreData.length > 0) {
-                let locales = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-                let unidos = [...locales];
+                // Guardar en localStorage
+                localStorage.setItem('historialAsistencia', JSON.stringify(firestoreData));
+                console.log('✅ Asistencia sincronizada desde Firebase:', firestoreData.length);
                 
-                firestoreData.forEach(r => {
-                    if (!unidos.some(u => u.id === r.id)) {
-                        unidos.push(r);
+                // Actualizar la vista si está visible
+                const container = document.getElementById('asistenciaContainer');
+                if (container && container.style.display !== 'none') {
+                    const dia = document.getElementById('filter-day')?.value;
+                    const horario = document.getElementById('filter-schedule')?.value;
+                    const fecha = document.getElementById('filter-date')?.value;
+                    
+                    if (dia && horario && fecha && typeof asistenciaApp !== 'undefined') {
+                        asistenciaApp.cargarAsistenciaPrevia(fecha, dia, horario);
                     }
-                });
-                
-                localStorage.setItem('historialAsistencia', JSON.stringify(unidos));
-                console.log('✅ Asistencia sincronizada desde Firebase:', unidos.length);
-                
-                const historyTab = document.querySelector('.tab[data-tab="history"]');
-                if (historyTab && historyTab.classList.contains('active')) {
-                    if (typeof asistenciaApp !== 'undefined' && asistenciaApp.mostrarHistorialCompleto) {
-                        asistenciaApp.mostrarHistorialCompleto();
+                    
+                    // Actualizar historial si está visible
+                    const historyTab = document.querySelector('.tab[data-tab="history"]');
+                    if (historyTab && historyTab.classList.contains('active')) {
+                        if (typeof asistenciaApp !== 'undefined' && asistenciaApp.mostrarHistorialCompleto) {
+                            asistenciaApp.mostrarHistorialCompleto();
+                        }
                     }
                 }
             }
@@ -12101,7 +12106,7 @@ function iniciarSincronizacionAsistencia() {
 const asistenciaApp = {
     inicializada: false,
     data: { students: [], records: [] },
-
+    
     init: function() {
         console.log("🎯 INICIANDO SISTEMA DE ASISTENCIA MEJORADO...");
         this.inicializarSistemaHistorial();
@@ -12114,6 +12119,7 @@ const asistenciaApp = {
             console.log('🔄 Sincronización de asistencia iniciada');
         }
         
+        // Listener de inscripciones en tiempo real
         if (window.db) {
             window.db.collection('inscripciones').onSnapshot((snapshot) => {
                 const firestoreData = [];
@@ -12129,7 +12135,7 @@ const asistenciaApp = {
         console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
         this.inicializada = true;
     },
-
+    
     inicializarSistemaHistorial: function() {
         console.log("🔄 Inicializando sistema de historial...");
         if (!localStorage.getItem('historialAsistencia')) {
@@ -12139,7 +12145,7 @@ const asistenciaApp = {
         const historial = JSON.parse(localStorage.getItem('historialAsistencia')) || [];
         console.log("📊 Historial actual:", historial.length, "registros");
     },
-
+    
     inicializarInterfaz: function() {
         const fechaInput = document.getElementById('filter-date');
         if (fechaInput) {
@@ -12150,7 +12156,7 @@ const asistenciaApp = {
         this.actualizarFechaDisplay();
         this.agregarControlesManuales();
     },
-
+    
     agregarControlesManuales: function() {
         const filters = document.querySelector('.filters');
         if (!filters) return;
@@ -12174,7 +12180,7 @@ const asistenciaApp = {
         `;
         filters.insertAdjacentHTML('afterend', controlesHTML);
     },
-
+    
     actualizarFechaDisplay: function() {
         const fechaElem = document.getElementById('currentDate');
         if (fechaElem) {
@@ -12187,7 +12193,7 @@ const asistenciaApp = {
             });
         }
     },
-
+    
     configurarEventosCompletos: function() {
         const filterDay = document.getElementById('filter-day');
         const filterSchedule = document.getElementById('filter-schedule');
@@ -12220,7 +12226,7 @@ const asistenciaApp = {
             console.error("❌ Error cargando jsQR:", error);
         });
     },
-
+    
     cargarJsRapido: function() {
         return new Promise((resolve, reject) => {
             if (typeof jsQR !== 'undefined') {
@@ -12234,17 +12240,18 @@ const asistenciaApp = {
             document.head.appendChild(script);
         });
     },
-
+    
     cargarEstudiantesAutomaticamente: function() {
         const day = document.getElementById('filter-day')?.value;
         const schedule = document.getElementById('filter-schedule')?.value;
         const date = document.getElementById('filter-date')?.value;
+        
         if (day && schedule && date) {
             this.limpiarEstudiantesEscaneados();
             this.cargarEstudiantesDesdeBaseDatos(day, schedule, date);
         }
     },
-
+    
     cargarEstudiantesDesdeBaseDatos: function(dia, horario, fecha) {
         const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
         const estudiantesFiltrados = inscriptions.filter(inscripcion => {
@@ -12257,13 +12264,15 @@ const asistenciaApp = {
                 return false;
             }
         });
+        
         estudiantesCargados = estudiantesFiltrados;
         this.mostrarEstudiantesEnTabla(estudiantesFiltrados, fecha, dia, horario);
     },
-
+    
     mostrarEstudiantesEnTabla: function(estudiantes, fecha, dia, horario) {
         const tbody = document.getElementById('studentsList');
         if (!tbody) return;
+        
         tbody.innerHTML = '';
         
         if (estudiantes.length === 0) {
@@ -12287,6 +12296,7 @@ const asistenciaApp = {
         estudiantes.forEach((est, index) => {
             const row = document.createElement('tr');
             row.setAttribute('data-student-id', est.id);
+            
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>
@@ -12329,12 +12339,12 @@ const asistenciaApp = {
         this.cargarAsistenciaPrevia(fecha, dia, horario);
         this.actualizarContadores();
     },
-
+    
     cargarAsistenciaPrevia: function(fecha, dia, horario) {
         if (!fecha || !dia || !horario) return;
         
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        const registros = historial.filter(r => 
+        const registros = historial.filter(r =>
             r.dia === dia && r.horario === horario && r.fecha === fecha
         );
         
@@ -12366,7 +12376,86 @@ const asistenciaApp = {
         
         this.actualizarContadores();
     },
-
+    
+    // =====================================================
+    // 🔥 GUARDAR EN HISTORIAL - CON SUBIDA A FIREBASE CORREGIDA
+    // =====================================================
+    
+    guardarEnHistorialCompleto: function(datos) {
+        try {
+            console.log("💾 Guardando en historial:", datos);
+            
+            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            
+            const nuevoRegistro = {
+                id: datos.id || Date.now(),
+                studentId: datos.id,
+                studentName: datos.nombre,
+                instrumento: datos.instrumento,
+                nivel: datos.nivel,
+                fecha: datos.fecha,
+                dia: datos.dia,
+                horario: datos.horario,
+                estado: datos.estado,
+                tipo: datos.tipo,
+                horaRegistro: datos.horaRegistro,
+                observaciones: datos.observaciones || '',
+                timestamp: new Date().toISOString()
+            };
+            
+            // 🔥 VERIFICAR SI YA EXISTE PARA ACTUALIZAR EN LUGAR DE DUPLICAR
+            const index = historial.findIndex(h => 
+                String(h.studentId) === String(datos.id) && 
+                h.fecha === datos.fecha && 
+                h.dia === datos.dia && 
+                h.horario === datos.horario
+            );
+            
+            if (index !== -1) {
+                historial[index] = nuevoRegistro;
+                console.log('🔄 Registro actualizado en historial');
+            } else {
+                historial.push(nuevoRegistro);
+                console.log('➕ Nuevo registro agregado al historial');
+            }
+            
+            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+            console.log("✅ Guardado local exitoso. Total registros:", historial.length);
+            
+            // 🔥🔥🔥 SUBIR A FIREBASE - CORREGIDO
+            if (window.db) {
+                const docId = String(nuevoRegistro.id);
+                console.log('☁️ Subiendo asistencia a Firebase, ID:', docId);
+                
+                window.db.collection('asistencia').doc(docId).set(nuevoRegistro, { merge: true })
+                    .then(() => {
+                        console.log('✅✅✅ ASISTENCIA GUARDADA EN FIREBASE CORRECTAMENTE');
+                        console.log('📋 Datos guardados:', nuevoRegistro);
+                    })
+                    .catch(err => {
+                        console.error('❌ Error guardando asistencia en Firebase:', err);
+                        // Intentar con add() si set() falla
+                        window.db.collection('asistencia').add(nuevoRegistro)
+                            .then(() => {
+                                console.log('✅ Asistencia guardada con add() en Firebase');
+                            })
+                            .catch(err2 => {
+                                console.error('❌ Error también con add():', err2);
+                            });
+                    });
+            } else {
+                console.warn('⚠️ Firebase no disponible, asistencia solo local');
+            }
+            
+        } catch (error) {
+            console.error("❌ Error guardando en historial:", error);
+        }
+    },
+    
+    // =====================================================
+    // RESTO DE FUNCIONES (sin cambios)
+    // =====================================================
+    
     abrirRegistroManual: function(studentId = null) {
         if (studentId) {
             this.registroManualIndividual(studentId);
@@ -12374,14 +12463,14 @@ const asistenciaApp = {
             this.registroManualIndividualPrompt();
         }
     },
-
+    
     registroManualIndividualPrompt: function() {
         const studentId = prompt("Ingrese el ID del estudiante:");
         if (studentId) {
             this.registroManualIndividual(studentId);
         }
     },
-
+    
     registroManualIndividual: function(studentId) {
         const estudiante = this.buscarEstudianteEnTodaLaBase(studentId);
         if (!estudiante) {
@@ -12399,7 +12488,7 @@ const asistenciaApp = {
                     <div class="modal-body">
                         <div style="text-align: center; margin-bottom: 20px;">
                             <div style="width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
-                                ${estudiante.estudiante.foto ?
+                                ${estudiante.estudiante.foto ? 
                                     `<img src="${estudiante.estudiante.foto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` :
                                     `<i class="fas fa-user" style="font-size: 30px; color: #999;"></i>`
                                 }
@@ -12407,7 +12496,6 @@ const asistenciaApp = {
                             <h3>${estudiante.estudiante.nombre}</h3>
                             <p>ID: ${estudiante.id} | ${estudiante.musical?.instrumentoPrincipal || 'No especificado'}</p>
                         </div>
-                        
                         <div class="attendance-options-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
                             <div class="attendance-option-btn" data-status="presente" onclick="asistenciaApp.seleccionarEstadoAsistencia(this, 'presente')" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer; text-align: center; transition: all 0.3s;">
                                 <i class="fas fa-check-circle" style="color: #28a745; font-size: 24px; margin-bottom: 5px;"></i><br>
@@ -12426,7 +12514,6 @@ const asistenciaApp = {
                                 <strong>Reposición</strong>
                             </div>
                         </div>
-                        
                         <div id="reasonContainer" style="display: none;">
                             <label><strong>Razón o justificación:</strong></label>
                             <textarea id="attendanceReason" class="attendance-reason-input" placeholder="Ej: Enfermedad, permiso familiar, etc." rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px;"></textarea>
@@ -12439,16 +12526,18 @@ const asistenciaApp = {
                 </div>
             </div>
         `;
+        
         this.cerrarModal('modalRegistroManual');
         document.body.insertAdjacentHTML('beforeend', modalHTML);
     },
-
+    
     seleccionarEstadoAsistencia: function(element, estado) {
         document.querySelectorAll('.attendance-option-btn').forEach(btn => {
             btn.classList.remove('selected');
             btn.style.borderColor = '#ddd';
             btn.style.background = 'white';
         });
+        
         element.classList.add('selected');
         element.style.borderColor = '#E63946';
         element.style.background = '#fff5f5';
@@ -12459,9 +12548,10 @@ const asistenciaApp = {
         } else {
             reasonContainer.style.display = 'none';
         }
+        
         window.estadoAsistenciaSeleccionado = estado;
     },
-
+    
     confirmarRegistroManual: function(studentId) {
         const estado = window.estadoAsistenciaSeleccionado;
         if (!estado) {
@@ -12480,6 +12570,7 @@ const asistenciaApp = {
         
         let tipoRegistro = '';
         let observaciones = '';
+        
         switch(estado) {
             case 'presente': tipoRegistro = 'asistencia_manual'; observaciones = 'Asistencia registrada manualmente'; break;
             case 'ausente': tipoRegistro = 'inasistencia'; observaciones = razon || 'Inasistencia sin justificación'; break;
@@ -12501,6 +12592,7 @@ const asistenciaApp = {
             horaRegistro: new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }),
             observaciones: observaciones
         });
+        
         this.cerrarModal('modalRegistroManual');
         
         let mensaje = '';
@@ -12510,9 +12602,10 @@ const asistenciaApp = {
             case 'justificado': mensaje = `📝 <strong>${estudiante.estudiante.nombre}</strong><br>Registrado como JUSTIFICADO<br><small>${observaciones}</small>`; break;
             case 'reposicion': mensaje = `🔄 <strong>${estudiante.estudiante.nombre}</strong><br>Registrado como REPOSICIÓN<br><small>${observaciones}</small>`; break;
         }
+        
         this.mostrarNotificacionGrande(mensaje, 'success');
     },
-
+    
     registroManualMasivo: function() {
         const estudiantes = estudiantesCargados;
         if (estudiantes.length === 0) {
@@ -12551,16 +12644,18 @@ const asistenciaApp = {
                 </div>
             </div>
         `;
+        
         this.cerrarModal('modalRegistroMasivo');
         document.body.insertAdjacentHTML('beforeend', modalHTML);
     },
-
+    
     seleccionarEstadoMasivo: function(element, estado) {
         document.querySelectorAll('.attendance-option-btn').forEach(btn => {
             btn.classList.remove('selected');
             btn.style.borderColor = '#ddd';
             btn.style.background = 'white';
         });
+        
         element.classList.add('selected');
         element.style.borderColor = '#E63946';
         element.style.background = '#fff5f5';
@@ -12571,9 +12666,10 @@ const asistenciaApp = {
         } else {
             reasonContainer.style.display = 'none';
         }
+        
         window.estadoMasivoSeleccionado = estado;
     },
-
+    
     confirmarRegistroMasivo: function() {
         const estado = window.estadoMasivoSeleccionado;
         if (!estado) {
@@ -12591,10 +12687,12 @@ const asistenciaApp = {
         estudiantes.forEach(estudiante => {
             let tipoRegistro = '';
             let observaciones = '';
+            
             switch(estado) {
                 case 'presente': tipoRegistro = 'asistencia_masiva'; observaciones = 'Asistencia registrada masivamente'; break;
                 case 'ausente': tipoRegistro = 'inasistencia_masiva'; observaciones = razon || 'Inasistencia registrada masivamente'; break;
             }
+            
             this.registrarEstudianteEnTabla(estudiante, estado, fechaActual, diaActual, horarioActual);
             this.guardarEnHistorialCompleto({
                 id: estudiante.id,
@@ -12610,20 +12708,22 @@ const asistenciaApp = {
                 observaciones: observaciones
             });
         });
+        
         this.cerrarModal('modalRegistroMasivo');
         this.mostrarNotificacionGrande(`✅ ${estudiantes.length} estudiantes registrados como ${estado.toUpperCase()}`, 'success');
     },
-
+    
     cerrarModal: function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.remove();
     },
-
+    
     registrarEstudianteEnTabla: function(estudiante, estado, fecha, dia, horario) {
         const tbody = document.getElementById('studentsList');
         if (!tbody) return;
         
         let filaExistente = document.querySelector(`tr[data-student-id="${estudiante.id}"]`);
+        
         let textoEstado = '';
         let estiloEstado = '';
         
@@ -12643,7 +12743,7 @@ const asistenciaApp = {
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
-                            ${estudiante.estudiante.foto ?
+                            ${estudiante.estudiante.foto ? 
                                 `<img src="${estudiante.estudiante.foto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` :
                                 `<i class="fas fa-user" style="color: #999;"></i>`
                             }
@@ -12677,6 +12777,7 @@ const asistenciaApp = {
                 </td>
             `;
             tbody.appendChild(nuevaFila);
+            
             if (tbody.querySelector('td[colspan]')) {
                 tbody.innerHTML = '';
                 tbody.appendChild(nuevaFila);
@@ -12684,11 +12785,13 @@ const asistenciaApp = {
         } else {
             const statusCell = filaExistente.querySelector('.attendance-status');
             const timeCell = filaExistente.querySelector('.attendance-time');
+            
             if (statusCell) {
                 statusCell.innerHTML = textoEstado;
                 statusCell.className = `attendance-status status-${estado}`;
                 statusCell.style = `padding: 8px 12px; border-radius: 6px; text-align: center; font-size: 14px; transition: all 0.3s ease; border: 1px solid; ${estiloEstado}`;
             }
+            
             if (timeCell) {
                 timeCell.textContent = estado === 'ausente' || estado === 'justificado' ? '--:--' : new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
             }
@@ -12703,9 +12806,10 @@ const asistenciaApp = {
             fecha: fecha
         };
         localStorage.setItem(key, JSON.stringify(data));
+        
         this.actualizarContadores();
     },
-
+    
     actualizarContadores: function() {
         const total = document.querySelectorAll('#studentsList tr[data-student-id]').length;
         const presentes = document.querySelectorAll('.status-presente').length;
@@ -12724,9 +12828,10 @@ const asistenciaApp = {
         
         this.actualizarResumenDetallado(presentes, ausentes, justificados, reposiciones, vacios);
     },
-
+    
     actualizarResumenDetallado: function(presentes, ausentes, justificados, reposiciones, vacios) {
         let resumenDetallado = document.getElementById('resumenDetallado');
+        
         if (!resumenDetallado) {
             const footer = document.querySelector('.footer .summary');
             if (footer) {
@@ -12757,15 +12862,16 @@ const asistenciaApp = {
             `;
         }
     },
-
+    
     limpiarEstudiantesEscaneados: function() {
         estudiantesEscaneados.clear();
     },
-
+    
     buscarEstudianteEnTodaLaBase: function(studentId) {
         let estudiante = estudiantesCargados.find(est =>
             est.id == studentId || (est.id && est.id.toString() === studentId.toString())
         );
+        
         if (!estudiante) {
             const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
             estudiante = inscriptions.find(ins =>
@@ -12774,26 +12880,31 @@ const asistenciaApp = {
                 ins.estudiante.nombre.includes(studentId)
             );
         }
+        
         return estudiante;
     },
-
+    
     cambiarTabAsistencia: function(tabName) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        
         const tabContent = document.getElementById(`${tabName}-tab`);
         const activeTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        
         if (tabContent) tabContent.classList.add('active');
         if (activeTab) activeTab.classList.add('active');
+        
         if (tabName === 'history') {
             setTimeout(() => {
                 this.mostrarHistorialCompleto();
             }, 100);
         }
     },
-
+    
     mostrarHistorialCompleto: function() {
         const historyContent = document.getElementById('history-content');
         if (!historyContent) return;
+        
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
         
         if (historial.length === 0) {
@@ -12808,6 +12919,7 @@ const asistenciaApp = {
         }
         
         historial.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
         let html = `
             <div class="historial-header">
                 <h3><i class="fas fa-history"></i> Historial de Asistencias</h3>
@@ -12883,6 +12995,7 @@ const asistenciaApp = {
                     </div>
                     <div class="registros-fecha">
             `;
+            
             registros.forEach(registro => {
                 let estadoIcon = '', estadoTexto = '';
                 switch(registro.estado) {
@@ -12891,6 +13004,7 @@ const asistenciaApp = {
                     case 'justificado': estadoIcon = '📝'; estadoTexto = 'JUSTIFICADO'; break;
                     case 'reposicion': estadoIcon = '🔄'; estadoTexto = 'REPOSICIÓN'; break;
                 }
+                
                 html += `
                     <div class="registro-item" data-student-name="${(registro.studentName || '').toLowerCase()}" data-student-id="${registro.studentId}">
                         <div class="registro-info">
@@ -12915,17 +13029,21 @@ const asistenciaApp = {
                     </div>
                 `;
             });
+            
             html += `</div></div>`;
         });
+        
         historyContent.innerHTML = html;
     },
-
+    
     filtrarHistorial: function() {
         const searchTerm = document.getElementById('searchStudentHistorial').value.toLowerCase();
         const registros = document.querySelectorAll('.registro-item');
+        
         registros.forEach(registro => {
             const studentName = registro.getAttribute('data-student-name');
             const studentId = registro.getAttribute('data-student-id');
+            
             if (studentName.includes(searchTerm) || studentId.includes(searchTerm)) {
                 registro.style.display = 'flex';
             } else {
@@ -12933,7 +13051,7 @@ const asistenciaApp = {
             }
         });
     },
-
+    
     limpiarBusquedaHistorial: function() {
         document.getElementById('searchStudentHistorial').value = '';
         const registros = document.querySelectorAll('.registro-item');
@@ -12941,14 +13059,16 @@ const asistenciaApp = {
             registro.style.display = 'flex';
         });
     },
-
+    
     generarReporteEstudiante: function(studentId) {
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
         const registrosEstudiante = historial.filter(r => r.studentId == studentId);
+        
         if (registrosEstudiante.length === 0) {
             this.mostrarNotificacionGrande('No hay registros para este estudiante', 'warning');
             return;
         }
+        
         const primerRegistro = registrosEstudiante[0];
         const totalAsistencias = registrosEstudiante.filter(r => r.estado === 'presente').length;
         const totalReposiciones = registrosEstudiante.filter(r => r.estado === 'reposicion').length;
@@ -13005,17 +13125,19 @@ const asistenciaApp = {
         `);
         ventanaImpresion.document.close();
     },
-
+    
     exportarHistorialAsistencia: function() {
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
         if (historial.length === 0) {
             this.mostrarNotificacionGrande('No hay registros para exportar', 'warning');
             return;
         }
+        
         let csvContent = "Fecha,Día,Horario,Estudiante,ID,Instrumento,Nivel,Hora Registro,Estado,Observaciones\n";
         historial.forEach(registro => {
             csvContent += `"${registro.fecha}","${registro.dia}","${registro.horario}","${registro.studentName}","${registro.studentId}","${registro.instrumento}","${registro.nivel}","${registro.horaRegistro}","${registro.estado}","${registro.observaciones || ''}"\n`;
         });
+        
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -13027,7 +13149,7 @@ const asistenciaApp = {
         document.body.removeChild(link);
         this.mostrarNotificacionGrande('📊 Historial exportado correctamente', 'success');
     },
-
+    
     limpiarHistorialAsistencia: function() {
         if (confirm("¿Está seguro que desea limpiar todo el historial de asistencias? Esta acción no se puede deshacer.")) {
             localStorage.setItem('historialAsistencia', JSON.stringify([]));
@@ -13035,17 +13157,20 @@ const asistenciaApp = {
             this.mostrarNotificacionGrande('Historial limpiado correctamente', 'success');
         }
     },
-
+    
     verDetallesRegistro: function(registroId) {
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
         const registro = historial.find(r => r.id === registroId);
+        
         if (!registro) {
             this.mostrarNotificacionGrande('No se encontró el registro', 'error');
             return;
         }
+        
         const fechaCompleta = new Date(registro.timestamp).toLocaleDateString('es-GT', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
+        
         const modalHTML = `
             <div id="modalDetallesRegistro" class="modal" style="display: block;">
                 <div class="modal-content" style="max-width: 500px;">
@@ -13071,50 +13196,21 @@ const asistenciaApp = {
                 </div>
             </div>
         `;
+        
         const modalExistente = document.getElementById('modalDetallesRegistro');
         if (modalExistente) modalExistente.remove();
         document.body.insertAdjacentHTML('beforeend', modalHTML);
     },
-
+    
     cerrarModalDetalles: function() {
         const modal = document.getElementById('modalDetallesRegistro');
         if (modal) modal.remove();
     },
-
-    // =====================================================
-    // ✅ GUARDAR EN HISTORIAL - CORREGIDO
-    // =====================================================
-    guardarEnHistorialCompleto: function(datos) {
-        try {
-            console.log("💾 Guardando en historial:", datos);
-            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-            const nuevoRegistro = {
-                id: datos.id || Date.now(),
-                studentId: datos.id,
-                studentName: datos.nombre,
-                instrumento: datos.instrumento,
-                nivel: datos.nivel,
-                fecha: datos.fecha,
-                dia: datos.dia,
-                horario: datos.horario,
-                estado: datos.estado,
-                tipo: datos.tipo,
-                horaRegistro: datos.horaRegistro,
-                observaciones: datos.observaciones || '',
-                timestamp: new Date().toISOString()
-            };
-            historial.push(nuevoRegistro);
-            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-            console.log("✅ Guardado local exitoso. Total registros:", historial.length);
-        } catch (error) {
-            console.error("❌ Error guardando en historial:", error);
-        }
-    },
-
+    
     guardarAsistenciaCompleta: function() {
         this.mostrarNotificacionGrande('✅ Asistencia guardada correctamente', 'success');
     },
-
+    
     mostrarNotificacionGrande: function(mensaje, tipo = 'info') {
         const notif = document.createElement('div');
         notif.className = `asistencia-notification ${tipo} notificacion-grande`;
@@ -13144,11 +13240,10 @@ const asistenciaApp = {
 // =====================================================
 // 🔥 EVENTO PARA EL BOTÓN ASISTENCIA - LIMPIO
 // =====================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     const btnAsistencia = document.getElementById('btnAsistencia');
-    
     if (btnAsistencia) {
-        // Eliminar todos los listeners anteriores
         const nuevoBtn = btnAsistencia.cloneNode(true);
         btnAsistencia.parentNode.replaceChild(nuevoBtn, btnAsistencia);
         
@@ -13199,7 +13294,6 @@ function establecerDiaAutomatico() {
     if (!selectDia) return;
     
     const diaActual = obtenerDiaActual();
-    
     for (let i = 0; i < selectDia.options.length; i++) {
         if (selectDia.options[i].value === diaActual) {
             selectDia.selectedIndex = i;
@@ -13212,39 +13306,8 @@ function establecerDiaAutomatico() {
 }
 
 // =====================================================
-// 🔥 SINCRONIZACIÓN EN TIEMPO REAL
+// 🔥 INICIAR SISTEMA
 // =====================================================
-
-if (window.db) {
-    console.log('🔄 Iniciando sincronización de asistencia en tiempo real...');
-    
-    window.db.collection('asistencia').onSnapshot((snapshot) => {
-        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        
-        snapshot.forEach(doc => {
-            const data = { id: doc.id, ...doc.data() };
-            const index = historial.findIndex(h => h.id === data.id);
-            if (index !== -1) {
-                historial[index] = data;
-            } else {
-                historial.push(data);
-            }
-        });
-        
-        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-        
-        const container = document.getElementById('asistenciaContainer');
-        if (container && container.style.display !== 'none') {
-            const dia = document.getElementById('filter-day')?.value;
-            const horario = document.getElementById('filter-schedule')?.value;
-            const fecha = document.getElementById('filter-date')?.value;
-            
-            if (dia && horario && fecha && typeof asistenciaApp !== 'undefined') {
-                asistenciaApp.cargarAsistenciaPrevia(fecha, dia, horario);
-            }
-        }
-    }, (error) => console.error('❌ Error:', error));
-}
 
 setTimeout(function() {
     const asistenciaContainer = document.getElementById('asistenciaContainer');
@@ -13253,8 +13316,10 @@ setTimeout(function() {
     }
 }, 1000);
 
-console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado");
+console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado - CORREGIDO");
+
 </script>
+<!-- ============================================ -->
   <!-- ============================================ -->
 <!-- BLOQUE 5: PANEL DE DOCENTE - TIEMPO REAL COMPLETO -->
 <!-- ============================================ -->
