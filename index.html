@@ -8173,7 +8173,51 @@ async function cargarUsuariosYAdmin() {
         localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
     }
     
-  
+    // 1.2 CARGAR DESDE FIRESTORE (EN SEGUNDO PLANO, PERO BLOQUEA EL LOGIN)
+    if (window.db) {
+        try {
+            console.log('☁️ Conectando a Firebase...');
+            const snapshot = await window.db.collection('usuarios').get();
+            console.log(`📥 ${snapshot.size} usuarios encontrados en Firebase`);
+            
+            usuariosFirestore = {};
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.username) {
+                    usuariosFirestore[data.username] = data;
+                }
+            });
+            
+            // 1.3 FUSIONAR: Firestore tiene prioridad, pero admin local se mantiene
+            const unidos = { ...systemUsers, ...usuariosFirestore };
+            
+            // SIEMPRE asegurar que admin exista (en caso de que no esté en Firestore)
+            if (!unidos['admin']) {
+                unidos['admin'] = adminData;
+            }
+            
+            systemUsers = unidos;
+            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            usuariosCargados = true;
+            console.log('✅ Usuarios sincronizados desde Firebase:', Object.keys(systemUsers));
+            
+        } catch(e) {
+            console.error('❌ Error cargando desde Firebase:', e);
+            // Si falla Firebase, usar lo que tenemos en localStorage
+            if (systemUsers['admin']) {
+                usuariosCargados = true;
+                console.log('⚠️ Usando caché local (Firebase no disponible)');
+            } else {
+                systemUsers = { 'admin': adminData };
+                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+                usuariosCargados = true;
+                console.log('⚠️ Usando admin por defecto');
+            }
+        }
+    } else {
+        console.warn('⚠️ Firebase no disponible, usando localStorage');
+        usuariosCargados = true;
+    }
     
     usuariosCargando = false;
     window.systemUsers = systemUsers;
@@ -9717,7 +9761,55 @@ async function loadAllData() {
         return;
     }
 
-    
+    try {
+        console.log('☁️ Cargando desde Firebase...');
+        const snapshot = await window.db.collection('inscripciones').get();
+        const firestoreData = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id;
+            firestoreData.push(data);
+        });
+
+        if (firestoreData.length > 0) {
+            inscriptions = firestoreData;
+            
+            const datosSinFotos = firestoreData.map(item => {
+                const copia = JSON.parse(JSON.stringify(item));
+                if (copia.estudiante) {
+                    delete copia.estudiante.foto;
+                }
+                return copia;
+            });
+            
+            try {
+                localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+                console.log(`✅ Guardados ${datosSinFotos.length} registros SIN FOTOS en localStorage`);
+            } catch (e) {
+                console.warn('⚠️ Error al guardar en localStorage:', e.message);
+            }
+            console.log(`✅ Cargados ${inscriptions.length} desde Firestore CON FOTOS en memoria`);
+        } else {
+            const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            inscriptions = localData;
+            console.log(`📦 Cargados ${inscriptions.length} desde localStorage (sin fotos)`);
+        }
+
+        if (typeof renderTable === 'function') renderTable();
+        if (typeof sincronizarPagosConInscripciones === 'function') sincronizarPagosConInscripciones();
+        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+        
+        window.dispatchEvent(new CustomEvent('inscripciones-cargadas', {
+            detail: inscriptions
+        }));
+
+    } catch (err) {
+        console.error("❌ Error cargando Firestore:", err);
+        const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        inscriptions = localData;
+        if (typeof renderTable === 'function') renderTable();
+    }
+}
 
 // =====================================================
 // 🔥 GUARDAR INSCRIPCIÓN - CORREGIDA
@@ -11059,7 +11151,20 @@ async function iniciarPagos() {
         return;
     }
     
-   
+    try {
+        const doc = await window.db.collection('pagos').doc('global').get();
+        if (doc.exists) {
+            window.datos = doc.data();
+            localStorage.setItem('datosPagos', JSON.stringify(window.datos));
+            console.log("✅ Pagos cargados. Total:", window.datos.pagos?.length);
+        } else {
+            window.datos = { estudiantes: [], pagos: [] };
+            await window.db.collection('pagos').doc('global').set(window.datos);
+        }
+    } catch (e) {
+        console.error("Error cargando Firebase:", e);
+        window.datos = JSON.parse(localStorage.getItem('datosPagos') || '{"estudiantes":[],"pagos":[]}');
+    }
     
     if (!window.datos.estudiantes) window.datos.estudiantes = [];
     if (!window.datos.pagos) window.datos.pagos = [];
@@ -12014,7 +12119,18 @@ const asistenciaApp = {
             console.log('🔄 Sincronización de asistencia iniciada');
         }
         
-      
+        // Listener de inscripciones en tiempo real
+        if (window.db) {
+            window.db.collection('inscripciones').onSnapshot((snapshot) => {
+                const firestoreData = [];
+                snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+                if (firestoreData.length > 0) {
+                    localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
+                    window.inscriptions = firestoreData;
+                    console.log('🔄 Datos de inscripciones actualizados desde Firebase en tiempo real');
+                }
+            });
+        }
         
         console.log("🚀 SISTEMA DE ASISTENCIA MEJORADO LISTO");
         this.inicializada = true;
@@ -13333,7 +13449,26 @@ function iniciarClasesDocenteTiempoReal(username) {
         return;
     }
     
-   
+    docenteListeners.clases = window.db.collection('clasesVirtuales')
+        .where('creadaPor', '==', username)
+        .onSnapshot((snapshot) => {
+            const clases = [];
+            snapshot.forEach(doc => clases.push({ id: doc.id, ...doc.data() }));
+            
+            let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            clases.forEach(c => {
+                if (!todas.some(t => t.id === c.id)) {
+                    todas.push(c);
+                }
+            });
+            localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
+            
+            renderClasesDocente(clases, container, username);
+        }, (error) => {
+            console.error('❌ Error en listener de clases:', error);
+            cargarClasesDocenteLocal(username, container);
+        });
+}
 
 function cargarClasesDocenteLocal(username, container) {
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
@@ -13407,7 +13542,27 @@ function iniciarGrabacionesDocenteTiempoReal(username) {
         return;
     }
     
- 
+    docenteListeners.grabaciones = window.db.collection('clasesVirtuales')
+        .where('creadaPor', '==', username)
+        .where('grabacionUrl', '!=', null)
+        .onSnapshot((snapshot) => {
+            const grabaciones = [];
+            snapshot.forEach(doc => grabaciones.push({ id: doc.id, ...doc.data() }));
+            
+            let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            grabaciones.forEach(c => {
+                if (!todas.some(t => t.id === c.id)) {
+                    todas.push(c);
+                }
+            });
+            localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
+            
+            renderGrabacionesDocente(grabaciones, container);
+        }, (error) => {
+            console.error('❌ Error en listener de grabaciones:', error);
+            cargarGrabacionesDocenteLocal(username, container);
+        });
+}
 
 function cargarGrabacionesDocenteLocal(username, container) {
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
@@ -13438,8 +13593,9 @@ function renderGrabacionesDocente(grabaciones, container) {
         </div>
     `).join('');
 }
+
 // =====================================================
-// 3. ESTUDIANTES DEL DOCENTE - FILTRADO Y AGRUPADO (SOLO LOCAL)
+// 3. ESTUDIANTES DEL DOCENTE - TIEMPO REAL (FILTRADO Y AGRUPADO)
 // =====================================================
 
 function iniciarEstudiantesDocenteTiempoReal() {
@@ -13461,8 +13617,28 @@ function iniciarEstudiantesDocenteTiempoReal() {
         return;
     }
     
-    // 🔥 SOLO CARGAR DATOS LOCALES - SIN LISTENER
-    cargarEstudiantesDocenteLocal(container, instrumentosDocente);
+    if (!window.db) {
+        cargarEstudiantesDocenteLocal(container, instrumentosDocente);
+        return;
+    }
+    
+    docenteListeners.estudiantes = window.db.collection('inscripciones')
+        .onSnapshot((snapshot) => {
+            const firestoreData = [];
+            snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+            
+            if (firestoreData.length > 0) {
+                localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
+                window.inscriptions = firestoreData;
+                renderEstudiantesDocente(firestoreData, container, instrumentosDocente);
+            } else {
+                const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+                renderEstudiantesDocente(localData, container, instrumentosDocente);
+            }
+        }, (error) => {
+            console.error('❌ Error en listener de estudiantes:', error);
+            cargarEstudiantesDocenteLocal(container, instrumentosDocente);
+        });
 }
 
 function cargarEstudiantesDocenteLocal(container, instrumentosDocente) {
@@ -15862,7 +16038,30 @@ function iniciarSelectorTiempoReal() {
         encargadoListeners.selector = null;
     }
 
-   
+    if (window.db) {
+        encargadoListeners.selector = window.db.collection('usuarios')
+            .doc(encargadoUserName)
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    console.log('🔄 Usuario encargado actualizado en tiempo real');
+                    const current = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                    if (JSON.stringify(current) !== JSON.stringify(userData)) {
+                        localStorage.setItem('currentUser', JSON.stringify(userData));
+                        console.log('✅ currentUser actualizado');
+                    }
+                    cargarSelectorTiempoReal(userData);
+                }
+            }, (error) => {
+                console.error('❌ Error en listener de usuario:', error);
+                const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                cargarSelectorTiempoReal(userData);
+            });
+    } else {
+        const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        cargarSelectorTiempoReal(userData);
+    }
+}
 
 function cargarSelectorTiempoReal(userData) {
     console.log('🔄 Cargando selector de estudiantes...');
@@ -15880,7 +16079,31 @@ function cargarSelectorTiempoReal(userData) {
 
     let inscriptions = [];
 
-   
+    if (window.db) {
+        if (encargadoListeners.inscripciones) {
+            encargadoListeners.inscripciones();
+            encargadoListeners.inscripciones = null;
+        }
+
+        encargadoListeners.inscripciones = window.db.collection('inscripciones')
+            .onSnapshot((snapshot) => {
+                const firestoreData = [];
+                snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+                if (firestoreData.length > 0) {
+                    localStorage.setItem('inscriptions', JSON.stringify(firestoreData));
+                    window.inscriptions = firestoreData;
+                    renderSelectorConEstudiantes(firestoreData, estudiantesIds, select);
+                }
+            }, (error) => {
+                console.error('❌ Error en listener de inscripciones:', error);
+                const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+                renderSelectorConEstudiantes(localData, estudiantesIds, select);
+            });
+    } else {
+        const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        renderSelectorConEstudiantes(localData, estudiantesIds, select);
+    }
+}
 
 function renderSelectorConEstudiantes(inscriptions, estudiantesIds, select) {
     const misEstudiantes = inscriptions.filter(ins => estudiantesIds.includes(String(ins.id)));
@@ -16171,7 +16394,27 @@ function iniciarListenerFotoEncargado(estudianteId) {
         listenerFotoEstudiante = null;
     }
 
-   
+    if (!window.db || !estudianteId) return;
+
+    console.log('🔄 Iniciando listener en tiempo real para foto del estudiante:', estudianteId);
+
+    listenerFotoEstudiante = window.db.collection('inscripciones')
+        .doc(String(estudianteId))
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                console.log('📸 Cambio detectado en la foto del estudiante:', estudianteId);
+                const estudiante = { id: doc.id, ...data };
+                datosEstudianteCache = estudiante;
+                mostrarInfoEstudiante(estudiante);
+                if (estudiante.estudiante?.foto) {
+                    window.fotoTemporalEncargado = estudiante.estudiante.foto;
+                    console.log('📸 Foto actualizada en tiempo real ✅');
+                }
+            }
+        }, (error) => {
+            console.error('❌ Error en listener de foto:', error);
+        });
 }
 
 // =====================================================
@@ -16243,7 +16486,24 @@ function iniciarPagosTiempoReal(estudianteId) {
         encargadoListeners.pagos = null;
     }
 
-    
+    if (!window.db) {
+        actualizarPagosLocal(estudianteId, container);
+        return;
+    }
+
+    encargadoListeners.pagos = window.db.collection('pagos')
+        .doc('global')
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const pagosData = doc.data();
+                localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+                window.datos = pagosData;
+                renderPagos(estudianteId, pagosData.pagos || [], container);
+            }
+        }, (error) => {
+            console.error('❌ Error en listener de pagos:', error);
+            actualizarPagosLocal(estudianteId, container);
+        });
 }
 
 function actualizarPagosLocal(estudianteId, container) {
@@ -16291,7 +16551,31 @@ function iniciarAsistenciaTiempoReal(estudianteId) {
         encargadoListeners.asistencia = null;
     }
 
-    
+    if (!window.db) {
+        actualizarAsistenciaLocal(estudianteId, container);
+        return;
+    }
+
+    encargadoListeners.asistencia = window.db.collection('asistencia')
+        .where('studentId', '==', String(estudianteId))
+        .onSnapshot((snapshot) => {
+            const firestoreData = [];
+            snapshot.forEach(doc => firestoreData.push({ id: doc.id, ...doc.data() }));
+
+            let locales = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            let unidos = [...locales];
+            firestoreData.forEach(r => {
+                if (!unidos.some(u => u.id === r.id)) {
+                    unidos.push(r);
+                }
+            });
+            localStorage.setItem('historialAsistencia', JSON.stringify(unidos));
+
+            renderAsistencia(estudianteId, unidos, container);
+        }, (error) => {
+            console.error('❌ Error en listener de asistencia:', error);
+            actualizarAsistenciaLocal(estudianteId, container);
+        });
 }
 
 function actualizarAsistenciaLocal(estudianteId, container) {
@@ -16355,7 +16639,35 @@ function iniciarClasesTiempoReal(estudiante) {
         return;
     }
 
-   
+    if (!window.db) {
+        actualizarClasesLocal(instrumento, nivel, container);
+        return;
+    }
+
+    encargadoListeners.clases = window.db.collection('clasesVirtuales')
+        .where('nivel', '==', nivel)
+        .onSnapshot((snapshot) => {
+            const clases = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    clases.push({ id: doc.id, ...data });
+                }
+            });
+
+            let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            clases.forEach(c => {
+                if (!todas.some(t => t.id === c.id)) {
+                    todas.push(c);
+                }
+            });
+            localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
+
+            renderClases(clases, container);
+        }, (error) => {
+            console.error('❌ Error en listener de clases:', error);
+            actualizarClasesLocal(instrumento, nivel, container);
+        });
 }
 
 function actualizarClasesLocal(instrumento, nivel, container) {
@@ -16419,7 +16731,35 @@ function iniciarGrabacionesTiempoReal(estudiante) {
         return;
     }
 
-  
+    if (!window.db) {
+        actualizarGrabacionesLocal(instrumento, nivel, container);
+        return;
+    }
+
+    encargadoListeners.grabaciones = window.db.collection('clasesVirtuales')
+        .where('nivel', '==', nivel)
+        .onSnapshot((snapshot) => {
+            const grabaciones = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento && data.grabacionUrl) {
+                    grabaciones.push({ id: doc.id, ...data });
+                }
+            });
+
+            let todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            grabaciones.forEach(c => {
+                if (!todas.some(t => t.id === c.id)) {
+                    todas.push(c);
+                }
+            });
+            localStorage.setItem('clasesVirtuales', JSON.stringify(todas));
+
+            renderGrabaciones(grabaciones, container);
+        }, (error) => {
+            console.error('❌ Error en listener de grabaciones:', error);
+            actualizarGrabacionesLocal(instrumento, nivel, container);
+        });
 }
 
 function actualizarGrabacionesLocal(instrumento, nivel, container) {
@@ -16478,7 +16818,31 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         return;
     }
 
-   
+    if (!window.db) {
+        actualizarTemarioLocal(estudianteId, instrumento, nivel);
+        return;
+    }
+
+    encargadoListeners.temario = window.db.collection('temarios')
+        .where('nivel', '==', nivel)
+        .onSnapshot((snapshot) => {
+            let temario = null;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    temario = { id: doc.id, ...data };
+                }
+            });
+
+            if (temario) {
+                localStorage.setItem('temarios', JSON.stringify([temario]));
+            }
+
+            renderTemario(estudianteId, temario);
+        }, (error) => {
+            console.error('❌ Error en listener de temario:', error);
+            actualizarTemarioLocal(estudianteId, instrumento, nivel);
+        });
 }
 
 function actualizarTemarioLocal(estudianteId, instrumento, nivel) {
@@ -16676,7 +17040,30 @@ function iniciarTareasTiempoReal(estudianteId) {
         encargadoListeners.tareas = null;
     }
 
-   
+    if (!window.db) {
+        actualizarNotasLocal(estudianteId, cuerpo);
+        return;
+    }
+
+    encargadoListeners.tareas = window.db.collection('tareas')
+        .where('estudianteId', '==', estudianteId)
+        .onSnapshot((snapshot) => {
+            const tareas = [];
+            snapshot.forEach(doc => tareas.push({ id: doc.id, ...doc.data() }));
+
+            let locales = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+            tareas.forEach(t => {
+                if (!locales.some(l => l.id === t.id)) {
+                    locales.push(t);
+                }
+            });
+            localStorage.setItem('tareasSubidas', JSON.stringify(locales));
+
+            renderNotas(tareas, cuerpo);
+        }, (error) => {
+            console.error('❌ Error en listener de tareas:', error);
+            actualizarNotasLocal(estudianteId, cuerpo);
+        });
 }
 
 function actualizarNotasLocal(estudianteId, cuerpo) {
@@ -17030,7 +17417,32 @@ function cargarHistorialCompleto(estudianteId) {
         return;
     }
 
-   
+    if (!window.db) {
+        actualizarHistorialLocal(container, instrumento, nivel);
+        return;
+    }
+
+    if (encargadoListeners.temarioHistorial) {
+        encargadoListeners.temarioHistorial();
+        encargadoListeners.temarioHistorial = null;
+    }
+
+    encargadoListeners.temarioHistorial = window.db.collection('temarios')
+        .where('nivel', '==', nivel)
+        .onSnapshot((snapshot) => {
+            let temario = null;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.instrumento === instrumento) {
+                    temario = { id: doc.id, ...data };
+                }
+            });
+            if (temario) localStorage.setItem('temarios', JSON.stringify([temario]));
+            renderHistorialCompleto(container, temario);
+        }, (error) => {
+            console.error('❌ Error en listener de historial:', error);
+            actualizarHistorialLocal(container, instrumento, nivel);
+        });
 }
 
 function actualizarHistorialLocal(container, instrumento, nivel) {
@@ -18043,7 +18455,35 @@ window.inicializarFormularioRecibo = function() {
     if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
 };
 
+// =====================================================
+// SINCRONIZACIÓN EN TIEMPO REAL (SOLO LECTURA)
+// =====================================================
 
+function iniciarSincronizacionRecibos() {
+    if (!window.db) {
+        console.warn("⚠️ Firebase no disponible");
+        return;
+    }
+    
+    window.db.collection('recibos').onSnapshot((snapshot) => {
+        let recibosFirestore = [];
+        snapshot.forEach(doc => {
+            recibosFirestore.push({ ...doc.data() });
+        });
+        
+        if (recibosFirestore.length > 0) {
+            localStorage.setItem('historialRecibos', JSON.stringify(recibosFirestore));
+            console.log(`🔄 ${recibosFirestore.length} recibos sincronizados desde Firebase`);
+            
+            const historialSection = document.getElementById('historial-seccion-recibos');
+            if (historialSection && historialSection.style.display !== 'none') {
+                if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+            }
+        }
+    }, (error) => {
+        console.error("❌ Error en listener de recibos:", error);
+    });
+}
 
 // =====================================================
 // INICIALIZAR
@@ -18053,12 +18493,12 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         window.inicializarFormularioRecibo();
         setTimeout(cargarRecibosDesdeFirebase, 1000);
-        
+        setTimeout(iniciarSincronizacionRecibos, 1500);
     });
 } else {
     window.inicializarFormularioRecibo();
     setTimeout(cargarRecibosDesdeFirebase, 1000);
-    
+    setTimeout(iniciarSincronizacionRecibos, 1500);
 }
 
 window.guardarReciboEnLocal = guardarReciboEnLocal;
@@ -19085,10 +19525,280 @@ window.enviarRecordatorioAusencias = function() {
     modal.style.display = 'block';
 };
 
+// =====================================================
+// 🔥 FUNCIÓN: SOLO LEE DESDE FIREBASE - CORREGIDA (NO SOBRESCRIBE)
+// =====================================================
 
+async function sincronizarDesdeFirebase() {
+    if (!window.db) {
+        console.warn("⚠️ Firebase no disponible");
+        return;
+    }
 
+    try {
+        console.log("🔄 LEYENDO datos DESDE Firebase...");
 
+        // 1. LEER INSCRIPCIONES (CON FOTOS) - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const insSnapshot = await window.db.collection('inscripciones').get();
+        let firestoreData = [];
+        insSnapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id;
+            firestoreData.push(data);
+        });
 
+        if (firestoreData.length > 0) {
+            // Verificar si realmente hay cambios en los datos (comparar IDs)
+            const localData = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+            const localIds = localData.map(item => String(item.id));
+            const firestoreIds = firestoreData.map(item => String(item.id));
+            
+            // Solo actualizar si hay diferencias
+            const hayCambios = localIds.length !== firestoreIds.length || 
+                               localIds.some(id => !firestoreIds.includes(id)) ||
+                               firestoreIds.some(id => !localIds.includes(id));
+            
+            if (hayCambios || localData.length === 0) {
+                // Guardar en memoria CON FOTOS
+                window.inscriptions = firestoreData;
+                
+                // Guardar en localStorage SIN FOTOS (para no llenar el storage)
+                const sinFotos = firestoreData.map(item => {
+                    const copia = JSON.parse(JSON.stringify(item));
+                    if (copia.estudiante) delete copia.estudiante.foto;
+                    return copia;
+                });
+                localStorage.setItem('inscriptions', JSON.stringify(sinFotos));
+                console.log(`✅ ${firestoreData.length} inscripciones LEÍDAS desde Firebase`);
+            } else {
+                console.log('📦 No hay cambios en inscripciones, usando caché local');
+            }
+        }
+
+        // 2. LEER PAGOS - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const pagosDoc = await window.db.collection('pagos').doc('global').get();
+        if (pagosDoc.exists) {
+            const pagosData = pagosDoc.data();
+            const localPagos = JSON.parse(localStorage.getItem('datosPagos') || '{}');
+            if (JSON.stringify(localPagos) !== JSON.stringify(pagosData) || Object.keys(localPagos).length === 0) {
+                window.datos = pagosData;
+                localStorage.setItem('datosPagos', JSON.stringify(pagosData));
+                console.log("✅ Pagos LEÍDOS desde Firebase");
+            }
+        }
+
+        // 3. LEER ASISTENCIA - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const asisSnapshot = await window.db.collection('asistencia').get();
+        let asisData = [];
+        asisSnapshot.forEach(doc => asisData.push({ id: doc.id, ...doc.data() }));
+        if (asisData.length > 0) {
+            const localAsis = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            if (localAsis.length !== asisData.length || localAsis.length === 0) {
+                localStorage.setItem('historialAsistencia', JSON.stringify(asisData));
+                console.log(`✅ ${asisData.length} registros de asistencia LEÍDOS`);
+            }
+        }
+
+        // 4. LEER CLASES VIRTUALES - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const clasesSnapshot = await window.db.collection('clasesVirtuales').get();
+        let clasesData = [];
+        clasesSnapshot.forEach(doc => clasesData.push({ id: doc.id, ...doc.data() }));
+        if (clasesData.length > 0) {
+            const localClases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            if (localClases.length !== clasesData.length || localClases.length === 0) {
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clasesData));
+                console.log(`✅ ${clasesData.length} clases virtuales LEÍDAS`);
+            }
+        }
+
+        // 5. LEER TEMARIOS - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const temarioSnapshot = await window.db.collection('temarios').get();
+        let temarioData = [];
+        temarioSnapshot.forEach(doc => temarioData.push({ id: doc.id, ...doc.data() }));
+        if (temarioData.length > 0) {
+            const localTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+            if (localTemarios.length !== temarioData.length || localTemarios.length === 0) {
+                localStorage.setItem('temarios', JSON.stringify(temarioData));
+                console.log(`✅ ${temarioData.length} temarios LEÍDOS`);
+            }
+        }
+
+        // 6. LEER RECIBOS - SOLO ACTUALIZAR SI HAY CAMBIOS
+        const recibosSnapshot = await window.db.collection('recibos').get();
+        let recibosData = [];
+        recibosSnapshot.forEach(doc => recibosData.push(doc.data()));
+        if (recibosData.length > 0) {
+            const localRecibos = JSON.parse(localStorage.getItem('historialRecibos') || '[]');
+            if (localRecibos.length !== recibosData.length || localRecibos.length === 0) {
+                localStorage.setItem('historialRecibos', JSON.stringify(recibosData));
+                console.log(`✅ ${recibosData.length} recibos LEÍDOS`);
+            }
+        }
+
+        console.log("✅ Sincronización DESDE Firebase COMPLETADA");
+
+        // Actualizar vistas solo si es necesario
+        actualizarVistasDespuesDeSincronizar();
+
+    } catch (error) {
+        console.error("❌ Error en sincronización DESDE Firebase:", error);
+    }
+}
+
+// Función para actualizar vistas después de sincronizar
+function actualizarVistasDespuesDeSincronizar() {
+    try {
+        if (document.getElementById('dataTableContainer')?.style.display === 'block') {
+            if (typeof renderTable === 'function') renderTable();
+        }
+        if (document.getElementById('pagosContainer')?.style.display !== 'none') {
+            if (typeof actualizarVista === 'function') actualizarVista();
+        }
+        if (document.getElementById('asistenciaContainer')?.style.display !== 'none') {
+            if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
+                asistenciaApp.cargarEstudiantesAutomaticamente();
+            }
+        }
+        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+        if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+    } catch(e) {
+        console.warn("⚠️ Error actualizando vistas:", e);
+    }
+}
+
+// ✅ Ejecutar UNA VEZ al inicio (con delay para no bloquear)
+setTimeout(sincronizarDesdeFirebase, 3000);
+
+// =====================================================
+// 🔥 SINCRONIZACIÓN EN TIEMPO REAL - SOLO LECTURA (NO SOBRESCRIBE FOTOS)
+// =====================================================
+
+if (window.db) {
+    console.log('🔄 Iniciando listener de inscripciones...');
+    window.db.collection('inscripciones').onSnapshot((snapshot) => {
+        const cambios = snapshot.docChanges();
+        if (cambios.length === 0) return;
+        console.log(`🔄 ${cambios.length} cambio(s) detectado(s)`);
+
+        // LEER TODOS LOS DATOS DE FIREBASE (CON FOTOS)
+        let firestoreData = [];
+        snapshot.forEach(doc => {
+            firestoreData.push({ id: doc.id, ...doc.data() });
+        });
+
+        // ACTUALIZAR LA MEMORIA CON LOS DATOS DE FIREBASE (CON FOTOS)
+        window.inscriptions = firestoreData;
+
+        // GUARDAR EN LOCALSTORAGE PERO SIN FOTOS (para no llenar storage)
+        const datosSinFotos = firestoreData.map(item => {
+            const copia = JSON.parse(JSON.stringify(item));
+            if (copia.estudiante) {
+                delete copia.estudiante.foto;
+            }
+            return copia;
+        });
+        localStorage.setItem('inscriptions', JSON.stringify(datosSinFotos));
+        console.log(`✅ Sincronizados ${firestoreData.length} registros desde Firebase (CON FOTOS en memoria)`);
+
+        // ACTUALIZAR VISTAS SI ESTÁN VISIBLES
+        const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
+        const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
+
+        if (dataTableVisible && typeof renderTable === 'function') {
+            renderTable();
+            console.log('🔄 Tabla actualizada');
+        }
+        if (pagosVisible && typeof sincronizarPagosConInscripciones === 'function') {
+            sincronizarPagosConInscripciones();
+            console.log('🔄 Pagos actualizados');
+        }
+        if (typeof actualizarListaEncargados === 'function') {
+            actualizarListaEncargados();
+        }
+        if (typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
+            asistenciaApp.cargarEstudiantesAutomaticamente();
+        }
+
+        window.dispatchEvent(new CustomEvent('inscripciones-actualizadas', {
+            detail: firestoreData
+        }));
+    }, (error) => {
+        console.error("❌ Error en listener de inscripciones:", error);
+    });
+}
+
+// Sincronización en tiempo real de pagos - SOLO LECTURA
+if (window.db) {
+    window.db.collection('pagos').doc('global').onSnapshot((doc) => {
+        if (doc.exists) {
+            const pagosFirebase = doc.data();
+            localStorage.setItem('datosPagos', JSON.stringify(pagosFirebase));
+            window.datos = pagosFirebase;
+            console.log("🔄 Pagos actualizados automáticamente:", pagosFirebase.pagos?.length);
+            if (typeof actualizarVista === 'function') actualizarVista();
+            else if (typeof actualizarTabla === 'function') actualizarTabla();
+        }
+    }, (error) => {
+        console.error("Error en tiempo real:", error);
+    });
+}
+
+// =====================================================
+// 🔥 Sincronización de USUARIOS - SOLO LECTURA
+// =====================================================
+
+if (window.db) {
+    console.log('🔄 Iniciando listener de usuarios...');
+    window.db.collection('usuarios').onSnapshot((snapshot) => {
+        let usuariosFirestore = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            usuariosFirestore[data.username] = data;
+        });
+
+        let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+        let unidos = { ...locales, ...usuariosFirestore };
+        localStorage.setItem('systemUsers', JSON.stringify(unidos));
+        window.systemUsers = unidos;
+        console.log("🔄 Usuarios actualizados en tiempo real");
+
+        // 🔥 NUEVO: Actualizar currentUser si cambió
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const username = currentUser.username;
+
+        if (username && usuariosFirestore[username]) {
+            const usuarioActualizado = usuariosFirestore[username];
+            const oldData = JSON.stringify(currentUser);
+            const newData = JSON.stringify(usuarioActualizado);
+
+            if (oldData !== newData) {
+                console.log('🔄 Usuario actualizado en Firebase, actualizando currentUser...');
+                localStorage.setItem('currentUser', JSON.stringify(usuarioActualizado));
+
+                // 🔥 Si es encargado, recargar su selector de estudiantes
+                if (usuarioActualizado.tipo === 'encargado') {
+                    console.log('🔄 Encargado detectado, recargando selector...');
+                    if (typeof cargarSelector === 'function') {
+                        cargarSelector();
+                    }
+                    if (typeof window.actualizarInfoEstudiante === 'function') {
+                        const select = document.getElementById('selectorEstudianteEnc');
+                        if (select && select.value) {
+                            window.actualizarInfoEstudiante(parseInt(select.value));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Actualizar tabla de usuarios si está visible
+        if (document.getElementById('gestionUsuariosContainer')?.style.display === 'block') {
+            if (typeof cargarTablaUsuarios === 'function') cargarTablaUsuarios();
+        }
+    }, error => {
+        console.error("❌ Error en listener de usuarios:", error);
+    });
+}
 
 // =====================================================
 // ASIGNACIÓN DE EVENTOS A BOTONES
@@ -19202,8 +19912,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         if (typeof loadAllData === 'function') loadAllData();
     }, 2000);
-  
-   setTimeout(iniciarListenersUnicos, 1000);
 });
 
 // =====================================================
@@ -19827,117 +20535,6 @@ window.mostrarModalUsuario = function() {
     }
 };
 
-  // =====================================================
-// 🔥 LISTENERS ÚNICOS - SOLO 3
-// =====================================================
-
-let listenersActivos = false;
-
-function iniciarListenersUnicos() {
-    if (listenersActivos) return;
-    listenersActivos = true;
-
-    console.log('🔄 Iniciando listeners únicos (SOLO 3)...');
-
-    // =============================================
-    // LISTENER 1: INSCRIPCIONES
-    // =============================================
-    if (window.db) {
-        window.db.collection('inscripciones').onSnapshot((snapshot) => {
-            const cambios = snapshot.docChanges();
-            if (cambios.length === 0) return;
-
-            console.log(`🔄 ${cambios.length} cambios en inscripciones`);
-
-            let firestoreData = [];
-            snapshot.forEach(doc => {
-                firestoreData.push({ id: doc.id, ...doc.data() });
-            });
-
-            window.inscriptions = firestoreData;
-
-            const sinFotos = firestoreData.map(item => {
-                const copia = JSON.parse(JSON.stringify(item));
-                if (copia.estudiante) delete copia.estudiante.foto;
-                return copia;
-            });
-            localStorage.setItem('inscriptions', JSON.stringify(sinFotos));
-
-            const dataTableVisible = document.getElementById('dataTableContainer')?.style.display === 'block';
-            const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
-            const asistenciaVisible = document.getElementById('asistenciaContainer')?.style.display !== 'none';
-
-            if (dataTableVisible && typeof renderTable === 'function') {
-                renderTable();
-            }
-            if (pagosVisible && typeof sincronizarPagosConInscripciones === 'function') {
-                sincronizarPagosConInscripciones();
-            }
-            if (typeof actualizarListaEncargados === 'function') {
-                actualizarListaEncargados();
-            }
-            if (asistenciaVisible && typeof asistenciaApp !== 'undefined' && asistenciaApp.cargarEstudiantesAutomaticamente) {
-                asistenciaApp.cargarEstudiantesAutomaticamente();
-            }
-
-            window.dispatchEvent(new CustomEvent('inscripciones-actualizadas', {
-                detail: firestoreData
-            }));
-        }, (error) => {
-            console.error("❌ Error en listener de inscripciones:", error);
-        });
-    }
-
-    // =============================================
-    // LISTENER 2: PAGOS
-    // =============================================
-    if (window.db) {
-        window.db.collection('pagos').doc('global').onSnapshot((doc) => {
-            if (doc.exists) {
-                const pagosFirebase = doc.data();
-                localStorage.setItem('datosPagos', JSON.stringify(pagosFirebase));
-                window.datos = pagosFirebase;
-                console.log("🔄 Pagos actualizados");
-
-                const pagosVisible = document.getElementById('pagosContainer')?.style.display !== 'none';
-                if (pagosVisible && typeof actualizarVista === 'function') {
-                    actualizarVista();
-                } else if (pagosVisible && typeof actualizarTabla === 'function') {
-                    actualizarTabla();
-                }
-            }
-        }, (error) => {
-            console.error("❌ Error en listener de pagos:", error);
-        });
-    }
-
-    // =============================================
-    // LISTENER 3: USUARIOS
-    // =============================================
-    if (window.db) {
-        window.db.collection('usuarios').onSnapshot((snapshot) => {
-            let usuariosFirestore = {};
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                usuariosFirestore[data.username] = data;
-            });
-
-            let locales = JSON.parse(localStorage.getItem('systemUsers') || '{}');
-            let unidos = { ...locales, ...usuariosFirestore };
-            localStorage.setItem('systemUsers', JSON.stringify(unidos));
-            window.systemUsers = unidos;
-
-            const gestionVisible = document.getElementById('gestionUsuariosContainer')?.style.display === 'block';
-            if (gestionVisible && typeof cargarTablaUsuarios === 'function') {
-                cargarTablaUsuarios();
-            }
-        }, (error) => {
-            console.error("❌ Error en listener de usuarios:", error);
-        });
-    }
-
-    console.log('✅ Listeners únicos iniciados correctamente');
-}
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
 
