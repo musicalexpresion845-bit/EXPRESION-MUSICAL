@@ -15144,7 +15144,7 @@ function eliminarClaseVirtual(claseId) {
 console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente - SIN LISTENERS - TODO FUNCIONA");
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 6: SISTEMA DE ENCARGADOS - VERSIÓN CORREGIDA -->
+<!-- BLOQUE 6: SISTEMA DE ENCARGADOS - VERSIÓN FINAL FUNCIONAL -->
 <!-- ============================================ -->
 
 <script>
@@ -15232,10 +15232,6 @@ function calcularDeudaEstudiante(estudianteId) {
     }
 }
 
-// =====================================================
-// FUNCIONES PARA DETECTAR YOUTUBE Y CONVERTIR ENLACES
-// =====================================================
-
 function extraerIdYouTube(url) {
     if (!url) return null;
     const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/;
@@ -15312,7 +15308,7 @@ function renderizarMaterial(material) {
 }
 
 // =====================================================
-// 1. CARGAR SELECTOR DE ESTUDIANTES PARA ENCARGADO
+// 1. CARGAR SELECTOR DE ESTUDIANTES
 // =====================================================
 
 function cargarSelector() {
@@ -15325,18 +15321,14 @@ function cargarSelector() {
         return;
     }
 
-    // 🔥 CARGAR DESDE LOCALSTORAGE PRIMERO
     const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
     cargarSelectorTiempoReal(userData);
     
-    // También actualizar desde Firebase en segundo plano (solo lectura)
     if (window.db) {
         window.db.collection('usuarios').doc(username).get()
             .then((doc) => {
                 if (doc.exists) {
                     const userDataFirebase = doc.data();
-                    console.log('☁️ Datos del encargado desde Firebase:', userDataFirebase);
-                    // Solo actualizar si hay cambios
                     const current = JSON.parse(localStorage.getItem('currentUser') || '{}');
                     if (JSON.stringify(current.estudiantesIds) !== JSON.stringify(userDataFirebase.estudiantesIds)) {
                         localStorage.setItem('currentUser', JSON.stringify(userDataFirebase));
@@ -15353,7 +15345,7 @@ function cargarSelector() {
 window.cargarSelector = cargarSelector;
 
 // =====================================================
-// 2. FUNCIONES PARA ABRIR/CERRAR MENÚ HAMBURGUESA
+// 2. MENÚ HAMBURGUESA
 // =====================================================
 
 function abrirMenuHamburguesa() {
@@ -15445,7 +15437,7 @@ function aplicarTemaEncargado(color, esPrincipal) {
 }
 
 // =====================================================
-// 4. MODAL CAMBIAR INSTRUMENTO - CIERRE INSTANTÁNEO
+// 4. MODAL CAMBIAR INSTRUMENTO
 // =====================================================
 
 function mostrarModalCambioInstrumento() {
@@ -15558,10 +15550,6 @@ function mostrarModalCambioInstrumento() {
     });
 }
 
-// =====================================================
-// 5. CERRAR MODAL INSTRUMENTO - ELIMINACIÓN DIRECTA
-// =====================================================
-
 function cerrarModalInstrumento() {
     const modal = document.getElementById('modalInstrumentoFlotante');
     if (modal) {
@@ -15572,10 +15560,6 @@ function cerrarModalInstrumento() {
         console.log('✅ Modal eliminado del DOM');
     }
 }
-
-// =====================================================
-// 6. EJECUTAR SELECCIÓN DE INSTRUMENTO
-// =====================================================
 
 function ejecutarSeleccionInstrumento(instrumento) {
     console.log('🔄 Instrumento seleccionado:', instrumento);
@@ -15591,10 +15575,6 @@ function ejecutarSeleccionInstrumento(instrumento) {
         }, 150);
     }
 }
-
-// =====================================================
-// 7. SELECCIONAR INSTRUMENTO (FUNCIÓN LEGACY)
-// =====================================================
 
 function seleccionarInstrumentoEncargado(instrumento) {
     cerrarModalInstrumento();
@@ -15652,7 +15632,7 @@ function cargarDatosPestanaActiva(estudianteId) {
 }
 
 // =====================================================
-// 9. EDITAR PERFIL (solo foto)
+// 9. EDITAR PERFIL
 // =====================================================
 
 function mostrarModalEditarPerfil() {
@@ -15745,7 +15725,7 @@ function guardarFotoPerfil() {
 }
 
 // =====================================================
-// 10. CARGAR SELECTOR TIEMPO REAL - SIN LISTENER
+// 10. SELECTOR DE ESTUDIANTES
 // =====================================================
 
 function iniciarSelectorTiempoReal() {
@@ -15758,13 +15738,8 @@ function iniciarSelectorTiempoReal() {
         return;
     }
 
-    // 🔥 CARGAR DESDE LOCALSTORAGE
     cargarSelectorTiempoReal(currentUser);
 }
-
-// =====================================================
-// CARGAR SELECTOR TIEMPO REAL - SIN LISTENER
-// =====================================================
 
 function cargarSelectorTiempoReal(userData) {
     console.log('🔄 Cargando selector de estudiantes...');
@@ -15780,7 +15755,6 @@ function cargarSelectorTiempoReal(userData) {
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const misEstudiantes = inscriptions.filter(ins => estudiantesIds.includes(String(ins.id)));
 
@@ -15842,7 +15816,7 @@ function cargarSelectorTiempoReal(userData) {
 }
 
 // =====================================================
-// 11. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE (CON CACHÉ)
+// 11. ACTUALIZAR INFORMACIÓN DEL ESTUDIANTE
 // =====================================================
 
 window.actualizarInfoEstudiante = async function(estudianteId) {
@@ -15955,7 +15929,7 @@ window.actualizarInfoEstudiante = async function(estudianteId) {
 };
 
 // =====================================================
-// 12. MOSTRAR INFO DEL ESTUDIANTE CON FOTO
+// 12. MOSTRAR INFO DEL ESTUDIANTE
 // =====================================================
 
 async function mostrarInfoEstudiante(estudiante) {
@@ -16061,7 +16035,7 @@ async function mostrarInfoEstudiante(estudiante) {
 }
 
 // =====================================================
-// 13. LISTENER FOTO - SIN LISTENER
+// 13. LISTENER FOTO
 // =====================================================
 
 function iniciarListenerFotoEncargado(estudianteId) {
@@ -16069,7 +16043,6 @@ function iniciarListenerFotoEncargado(estudianteId) {
         listenerFotoEstudiante();
         listenerFotoEstudiante = null;
     }
-    // ✅ NO HAY LISTENER - Solo se actualiza cuando se selecciona el estudiante
     console.log('📸 Listener de foto desactivado (usa localStorage)');
 }
 
@@ -16130,7 +16103,7 @@ function cargarDatosEncargado(estudianteId, instrumento) {
 }
 
 // =====================================================
-// 16. PAGOS - SIN LISTENER
+// 16. PAGOS
 // =====================================================
 
 function iniciarPagosTiempoReal(estudianteId) {
@@ -16138,7 +16111,6 @@ function iniciarPagosTiempoReal(estudianteId) {
     const container = document.getElementById('pagosEstudianteEnc');
     if (!container) return;
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const pagosData = JSON.parse(localStorage.getItem('datosPagos') || '{"pagos":[]}');
     const pagos = pagosData.pagos || [];
     
@@ -16174,7 +16146,7 @@ function renderPagos(estudianteId, pagos, container) {
 }
 
 // =====================================================
-// 17. ASISTENCIA - SIN LISTENER
+// 17. ASISTENCIA
 // =====================================================
 
 function iniciarAsistenciaTiempoReal(estudianteId) {
@@ -16182,7 +16154,6 @@ function iniciarAsistenciaTiempoReal(estudianteId) {
     const container = document.getElementById('asistenciaEstudianteEnc');
     if (!container) return;
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
     
     renderAsistencia(estudianteId, historial, container);
@@ -16225,7 +16196,7 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 18. CLASES VIRTUALES - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
+// 18. CLASES VIRTUALES - CORREGIDO
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
@@ -16233,7 +16204,6 @@ function iniciarClasesTiempoReal(estudiante) {
     const container = document.getElementById('clasesEstudianteEnc');
     if (!container) return;
 
-    // 🔥 BUSCAR EN PRINCIPAL Y SECUNDARIO
     const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
     const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
     const nivel = estudiante.estudiante?.nivel;
@@ -16262,7 +16232,6 @@ function iniciarClasesTiempoReal(estudiante) {
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const clases = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel);
     
@@ -16305,7 +16274,7 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 19. GRABACIONES - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
+// 19. GRABACIONES - CORREGIDO
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
@@ -16341,7 +16310,6 @@ function iniciarGrabacionesTiempoReal(estudiante) {
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const grabaciones = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel && c.grabacionUrl);
     
@@ -16388,7 +16356,6 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         datosEstudianteCache = estudiante;
     }
 
-    // 🔥 CORRECCIÓN: Buscar en PRINCIPAL y SECUNDARIO
     const nivel = estudiante.estudiante?.nivel;
     const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
     const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
@@ -16421,7 +16388,6 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
     
@@ -16471,7 +16437,7 @@ function renderTemario(estudianteId, temario) {
 }
 
 // =====================================================
-// 21. INFO TAREA - SIN LISTENER
+// 21. INFO TAREA
 // =====================================================
 
 function iniciarInfoTareaTiempoReal(estudianteId) {
@@ -16511,7 +16477,7 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
 }
 
 // =====================================================
-// 22. ENVIAR TAREA - SUBE A FIREBASE
+// 22. ENVIAR TAREA
 // =====================================================
 
 function enviarTarea() {
@@ -16590,7 +16556,6 @@ function enviarTarea() {
         tareas.push(tarea);
         localStorage.setItem('tareasSubidas', JSON.stringify(tareas));
 
-        // 🔥 SUBIR A FIREBASE
         if (window.db) {
             window.db.collection('tareas').doc(tarea.id).set(tarea)
                 .then(() => console.log('☁️ Tarea guardada en Firebase'))
@@ -16607,7 +16572,7 @@ function enviarTarea() {
 }
 
 // =====================================================
-// 23. NOTAS - SIN LISTENER
+// 23. NOTAS
 // =====================================================
 
 function iniciarTareasTiempoReal(estudianteId) {
@@ -16615,7 +16580,6 @@ function iniciarTareasTiempoReal(estudianteId) {
     const cuerpo = document.getElementById('cuerpoTablaNotas');
     if (!cuerpo) return;
 
-    // 🔥 LEER DESDE LOCALSTORAGE
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     const tareasEstudiante = tareas.filter(t => t.estudianteId == estudianteId);
     
@@ -16941,7 +16905,7 @@ function activarSwipeEncargado() {
 }
 
 // =====================================================
-// 26. HISTORIAL COMPLETO - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
+// 26. HISTORIAL COMPLETO - CORREGIDO (FUNCIONAL)
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
@@ -16966,46 +16930,78 @@ function cargarHistorialCompleto(estudianteId) {
     const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
     const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
 
+    console.log(`🔍 Buscando historial para: Principal=${instrumentoPrincipal}, Secundario=${instrumentoSecundario}, Nivel=${nivel}`);
+    console.log(`🔍 Instrumento seleccionado: ${encargadoInstrumentoSeleccionado || 'Ninguno'}`);
+
     let instrumentoBuscado = encargadoInstrumentoSeleccionado;
 
+    // Si NO hay instrumento seleccionado manualmente, buscar automáticamente
     if (!instrumentoBuscado) {
+        // 1. Buscar temario para el instrumento PRINCIPAL
         let temarioEncontrado = temarios.find(t => 
             t.instrumento === instrumentoPrincipal && t.nivel === nivel
         );
+        
         if (temarioEncontrado) {
             instrumentoBuscado = instrumentoPrincipal;
-        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
+            console.log(`✅ Usando instrumento PRINCIPAL: ${instrumentoPrincipal}`);
+        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno' && instrumentoSecundario !== '') {
+            // 2. Si NO hay temario para el principal, buscar en el SECUNDARIO
             temarioEncontrado = temarios.find(t => 
                 t.instrumento === instrumentoSecundario && t.nivel === nivel
             );
             if (temarioEncontrado) {
                 instrumentoBuscado = instrumentoSecundario;
+                console.log(`✅ Usando instrumento SECUNDARIO: ${instrumentoSecundario}`);
             }
         }
     }
 
+    // Si aún no hay instrumento, usar el principal como fallback
     if (!instrumentoBuscado) {
         instrumentoBuscado = instrumentoPrincipal;
+        console.log(`⚠️ Usando instrumento PRINCIPAL como fallback: ${instrumentoPrincipal}`);
     }
 
     if (!instrumentoBuscado || !nivel) {
-        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:#888;">
+            <i class="fas fa-exclamation-circle" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+            <p>No hay datos de instrumento o nivel para este estudiante.</p>
+            <p style="font-size:0.8rem;color:#999;">Instrumento: ${instrumentoBuscado || 'N/A'} | Nivel: ${nivel || 'N/A'}</p>
+        </div>`;
         return;
     }
 
+    // Buscar el temario con el instrumento encontrado
     const temario = temarios.find(t => 
         t.instrumento === instrumentoBuscado && t.nivel === nivel
     );
 
-    renderHistorialCompleto(container, temario || null);
-    console.log(`✅ Historial cargado para: ${instrumentoBuscado}`);
+    if (!temario) {
+        console.log(`❌ No se encontró temario para: ${instrumentoBuscado} - Nivel ${nivel}`);
+        console.log('📚 Temarios disponibles:', temarios.map(t => `${t.instrumento} - ${t.nivel}`));
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:#888;">
+            <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+            <p>No hay temario disponible para <strong>${instrumentoBuscado}</strong> - Nivel <strong>${nivel}</strong></p>
+            <p style="font-size:0.8rem;color:#999;">El docente aún no ha creado el temario para este instrumento y nivel.</p>
+            <p style="font-size:0.7rem;color:#ccc;margin-top:10px;">Instrumentos del estudiante: ${instrumentoPrincipal}${instrumentoSecundario && instrumentoSecundario !== 'Ninguno' ? `, ${instrumentoSecundario}` : ''}</p>
+        </div>`;
+        return;
+    }
+
+    console.log(`✅ Temario encontrado para: ${instrumentoBuscado} - ${temario.semanas.length} semanas`);
+    renderHistorialCompleto(container, temario, instrumentoBuscado);
 }
 
-function renderHistorialCompleto(container, temario) {
+// =====================================================
+// RENDER HISTORIAL COMPLETO - CORREGIDO (FUNCIONAL)
+// =====================================================
+
+function renderHistorialCompleto(container, temario, instrumentoMostrar) {
     if (!temario || !temario.semanas || temario.semanas.length === 0) {
         container.innerHTML = `<div style="text-align:center;padding:40px;color:#888;">
             <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-            <p>No hay semanas disponibles en el temario.</p>
+            <p>No hay semanas disponibles en el temario de <strong>${instrumentoMostrar || temario?.instrumento || 'este instrumento'}</strong>.</p>
         </div>`;
         return;
     }
@@ -17040,24 +17036,28 @@ function renderHistorialCompleto(container, temario) {
     if (semanaActual < 1) semanaActual = 1;
     if (semanaActual > 44) semanaActual = 44;
 
+    // 🔥 CORRECCIÓN: Mostrar TODAS las semanas (pasadas, actual y futuras)
     const semanasOrdenadas = [...temario.semanas]
-        .filter(s => s.numero <= semanaActual)
         .sort((a, b) => a.numero - b.numero);
 
     if (semanasOrdenadas.length === 0) {
         container.innerHTML = `<div style="text-align:center;padding:40px;color:#888;">
             <i class="fas fa-hourglass-start" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-            <p>Aún no hay semanas disponibles. Tu primera clase comenzará en la semana 1.</p>
+            <p>Aún no hay semanas disponibles en el temario.</p>
         </div>`;
         return;
     }
 
+    // Mostrar el instrumento que se está usando
+    const instrumentoNombre = instrumentoMostrar || temario.instrumento || 'Instrumento';
+
     let html = `
-        <div style="margin-bottom:15px;padding:12px;background:#f8f9fa;border-radius:8px;">
+        <div style="margin-bottom:15px;padding:12px;background:#f8f9fa;border-radius:8px;border-left:4px solid #E63946;">
             <h4 style="margin:0;color:#E63946;">📚 ${temario.instrumento} - Nivel ${temario.nivel}</h4>
             <p style="margin:5px 0 0;color:#666;font-size:0.85rem;">
                 Semana actual: <strong>${semanaActual}</strong> de 44 
-                (Mostrando ${semanasOrdenadas.length} semanas disponibles)
+                (Mostrando ${semanasOrdenadas.length} semanas en total)
+                ${instrumentoMostrar ? `<br><span style="font-size:0.75rem;color:#888;">🔍 Mostrando: ${instrumentoMostrar}</span>` : ''}
             </p>
         </div>
         <div style="max-height:500px;overflow-y:auto;padding-right:5px;">
@@ -17065,24 +17065,41 @@ function renderHistorialCompleto(container, temario) {
 
     semanasOrdenadas.forEach(s => {
         const materialHtml = renderizarMaterial(s.material || 'No especificado');
-
         const esActual = (s.numero === semanaActual);
-        const badge = esActual 
-            ? '<span style="background:#4CAF50;color:white;padding:2px 10px;border-radius:12px;font-size:0.7rem;margin-left:8px;">ACTUAL</span>' 
-            : '';
+        const esPasada = (s.numero < semanaActual);
+        const esFutura = (s.numero > semanaActual);
+
+        // 🔥 CORRECCIÓN: Mostrar TODAS las semanas, pero con diferentes estilos
+        let estiloBorde = '#E63946';
+        let badge = '';
+        let estiloFondo = '#fafafa';
+        
+        if (esActual) {
+            estiloBorde = '#4CAF50';
+            badge = '<span style="background:#4CAF50;color:white;padding:2px 10px;border-radius:12px;font-size:0.7rem;margin-left:8px;">🟢 ACTUAL</span>';
+            estiloFondo = '#f0f8ff';
+        } else if (esPasada) {
+            estiloBorde = '#888';
+            badge = '<span style="background:#888;color:white;padding:2px 10px;border-radius:12px;font-size:0.7rem;margin-left:8px;">✅ Completada</span>';
+            estiloFondo = '#f5f5f5';
+        } else if (esFutura) {
+            estiloBorde = '#ccc';
+            badge = '<span style="background:#ccc;color:#666;padding:2px 10px;border-radius:12px;font-size:0.7rem;margin-left:8px;">🔒 Próxima</span>';
+            estiloFondo = '#fafafa';
+        }
 
         html += `
-            <details style="margin-bottom:12px;border:1px solid #ddd;border-radius:8px;background:white;overflow:hidden;">
-                <summary style="cursor:pointer;padding:12px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;background:${esActual ? '#f0f8ff' : '#fafafa'};">
+            <details style="margin-bottom:12px;border:1px solid #ddd;border-radius:8px;background:${estiloFondo};overflow:hidden;border-left:4px solid ${estiloBorde};">
+                <summary style="cursor:pointer;padding:12px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;background:${esActual ? '#e8f5e9' : (esPasada ? '#f5f5f5' : '#fafafa')};">
                     <span>
-                        <span class="semana-numero" style="background:#E63946;color:white;padding:2px 12px;border-radius:20px;font-size:0.75rem;margin-right:10px;">Semana ${s.numero}</span>
+                        <span class="semana-numero" style="background:${esActual ? '#4CAF50' : '#E63946'};color:white;padding:2px 12px;border-radius:20px;font-size:0.75rem;margin-right:10px;">Semana ${s.numero}</span>
                         ${s.tema || 'Sin tema'} ${badge}
                     </span>
                     <span style="color:#888;font-size:0.8rem;">
                         <i class="fas fa-chevron-down"></i>
                     </span>
                 </summary>
-                <div style="padding:16px;">
+                <div style="padding:16px; ${esFutura ? 'opacity:0.6;' : ''}">
                     <div style="margin-bottom:10px;color:#666;">
                         <strong>Descripción:</strong><br>
                         ${s.descripcion || 'Sin descripción'}
@@ -17097,21 +17114,16 @@ function renderHistorialCompleto(container, temario) {
                     ${esActual ? `<div style="margin-top:10px;padding:8px;background:#e8f5e9;border-radius:6px;font-size:0.85rem;color:#2e7d32;">
                         <i class="fas fa-check-circle"></i> Esta es tu semana actual. ¡A practicar!
                     </div>` : ''}
+                    ${esPasada ? `<div style="margin-top:10px;padding:8px;background:#f5f5f5;border-radius:6px;font-size:0.85rem;color:#666;">
+                        <i class="fas fa-check"></i> Semana completada.
+                    </div>` : ''}
+                    ${esFutura ? `<div style="margin-top:10px;padding:8px;background:#fafafa;border-radius:6px;font-size:0.85rem;color:#999;">
+                        <i class="fas fa-lock"></i> Esta semana aún no está disponible.
+                    </div>` : ''}
                 </div>
             </details>
         `;
     });
-
-    const semanasFuturas = temario.semanas.filter(s => s.numero > semanaActual);
-    if (semanasFuturas.length > 0) {
-        html += `
-            <div style="text-align:center;padding:12px;color:#888;font-size:0.85rem;border-top:1px dashed #ddd;margin-top:5px;">
-                <i class="fas fa-clock"></i> 
-                ${semanasFuturas.length} semana(s) futuras aún no disponibles. 
-                Avanza en tu curso para desbloquearlas.
-            </div>
-        `;
-    }
 
     html += `</div>`;
     container.innerHTML = html;
@@ -17239,7 +17251,7 @@ setTimeout(function() {
 }, 1200);
 
 console.log('✅ Sistema de swipe horizontal del encargado ACTIVADO');
-console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL");
+console.log("✅ Bloque 6 cargado: Panel de Encargado - VERSIÓN FINAL FUNCIONAL");
 </script>
 <!-- ============================================ -->
 <!-- ============================================ -->
