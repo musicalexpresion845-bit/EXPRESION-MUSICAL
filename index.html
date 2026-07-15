@@ -16333,7 +16333,7 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 20. TEMARIO - SIN LISTENER
+// 20. TEMARIO - SIN LISTENER (CORREGIDO)
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
@@ -16347,21 +16347,59 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         datosEstudianteCache = estudiante;
     }
 
-    const instrumento = instrumentoForzado || encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
+    // 🔥🔥🔥 CORRECCIÓN: Buscar en PRINCIPAL y SECUNDARIO 🔥🔥🔥
     const nivel = estudiante.estudiante?.nivel;
+    const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
+    const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
+    
+    // 1. Si hay instrumento forzado o seleccionado, usar ESE
+    let instrumento = instrumentoForzado || encargadoInstrumentoSeleccionado;
+    
+    // 2. Si no hay instrumento seleccionado, buscar automáticamente
+    if (!instrumento) {
+        const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+        
+        // 2a. Buscar temario para el instrumento PRINCIPAL
+        let temarioEncontrado = temarios.find(t => 
+            t.instrumento === instrumentoPrincipal && t.nivel === nivel
+        );
+        
+        if (temarioEncontrado) {
+            instrumento = instrumentoPrincipal;
+            console.log(`🔍 Usando instrumento PRINCIPAL: ${instrumentoPrincipal}`);
+        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
+            // 2b. Si NO hay temario para el principal, buscar en el SECUNDARIO
+            temarioEncontrado = temarios.find(t => 
+                t.instrumento === instrumentoSecundario && t.nivel === nivel
+            );
+            if (temarioEncontrado) {
+                instrumento = instrumentoSecundario;
+                console.log(`🔍 Usando instrumento SECUNDARIO: ${instrumentoSecundario}`);
+            }
+        }
+    }
+
+    // Si aún no hay instrumento, usar el principal como fallback
+    if (!instrumento) {
+        instrumento = instrumentoPrincipal;
+    }
 
     if (!instrumento || !nivel) {
         document.getElementById('claseTema').textContent = '⚠️ No hay datos de instrumento o nivel';
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
+    // 🔥 LEER DESDE LOCALSTORAGE con el instrumento encontrado
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
     
     renderTemario(estudianteId, temario || null);
-    console.log('✅ Temario cargado desde localStorage');
+    console.log(`✅ Temario cargado para: ${instrumento} - Nivel ${nivel}`);
 }
+
+// =====================================================
+// 🔥 RENDER TEMARIO - CORREGIDO
+// =====================================================
 
 function renderTemario(estudianteId, temario) {
     let estudiante = datosEstudianteCache;
@@ -16394,14 +16432,19 @@ function renderTemario(estudianteId, temario) {
             const materialHtml = renderizarMaterial(material);
             document.getElementById('claseMaterial').innerHTML = materialHtml;
             document.getElementById('clasePonderacion').textContent = `${semanaData.ponderacion} puntos`;
+            console.log(`✅ Mostrando semana ${semana}: ${semanaData.tema}`);
             return;
         }
     }
 
+    // Si no hay temario o no hay semana
+    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal || '';
     document.getElementById('claseTema').textContent = '⚠️ No hay temario disponible';
-    document.getElementById('claseDescripcion').textContent = 'El docente aún no ha creado el temario para este instrumento y nivel';
+    document.getElementById('claseDescripcion').textContent = 
+        `El docente aún no ha creado el temario para ${instrumento} - Nivel ${estudiante.estudiante?.nivel || ''}`;
     document.getElementById('claseMaterial').innerHTML = '--';
     document.getElementById('clasePonderacion').textContent = '--';
+    console.log(`⚠️ No se encontró temario para: ${instrumento}`);
 }
 
 // =====================================================
