@@ -16225,7 +16225,7 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 18. CLASES VIRTUALES - SIN LISTENER
+// 18. CLASES VIRTUALES - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
@@ -16233,8 +16233,29 @@ function iniciarClasesTiempoReal(estudiante) {
     const container = document.getElementById('clasesEstudianteEnc');
     if (!container) return;
 
-    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
+    // 🔥 BUSCAR EN PRINCIPAL Y SECUNDARIO
+    const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
+    const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
     const nivel = estudiante.estudiante?.nivel;
+
+    let instrumento = encargadoInstrumentoSeleccionado;
+    
+    if (!instrumento) {
+        const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        let hayClasesPrincipal = todas.some(c => c.instrumento === instrumentoPrincipal && c.nivel === nivel);
+        if (hayClasesPrincipal) {
+            instrumento = instrumentoPrincipal;
+        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
+            let hayClasesSecundario = todas.some(c => c.instrumento === instrumentoSecundario && c.nivel === nivel);
+            if (hayClasesSecundario) {
+                instrumento = instrumentoSecundario;
+            }
+        }
+    }
+
+    if (!instrumento) {
+        instrumento = instrumentoPrincipal;
+    }
 
     if (!instrumento || !nivel) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
@@ -16246,7 +16267,7 @@ function iniciarClasesTiempoReal(estudiante) {
     const clases = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel);
     
     renderClases(clases, container);
-    console.log(`✅ ${clases.length} clases cargadas desde localStorage`);
+    console.log(`✅ ${clases.length} clases cargadas para: ${instrumento}`);
 }
 
 function renderClases(clases, container) {
@@ -16284,7 +16305,7 @@ function renderClases(clases, container) {
 }
 
 // =====================================================
-// 19. GRABACIONES - SIN LISTENER
+// 19. GRABACIONES - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
 // =====================================================
 
 function iniciarGrabacionesTiempoReal(estudiante) {
@@ -16292,8 +16313,28 @@ function iniciarGrabacionesTiempoReal(estudiante) {
     const container = document.getElementById('grabacionesEstudianteEnc');
     if (!container) return;
 
-    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
+    const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
+    const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
     const nivel = estudiante.estudiante?.nivel;
+
+    let instrumento = encargadoInstrumentoSeleccionado;
+    
+    if (!instrumento) {
+        const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        let hayGrabacionesPrincipal = todas.some(c => c.instrumento === instrumentoPrincipal && c.nivel === nivel && c.grabacionUrl);
+        if (hayGrabacionesPrincipal) {
+            instrumento = instrumentoPrincipal;
+        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
+            let hayGrabacionesSecundario = todas.some(c => c.instrumento === instrumentoSecundario && c.nivel === nivel && c.grabacionUrl);
+            if (hayGrabacionesSecundario) {
+                instrumento = instrumentoSecundario;
+            }
+        }
+    }
+
+    if (!instrumento) {
+        instrumento = instrumentoPrincipal;
+    }
 
     if (!instrumento || !nivel) {
         container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
@@ -16305,7 +16346,7 @@ function iniciarGrabacionesTiempoReal(estudiante) {
     const grabaciones = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel && c.grabacionUrl);
     
     renderGrabaciones(grabaciones, container);
-    console.log(`✅ ${grabaciones.length} grabaciones cargadas desde localStorage`);
+    console.log(`✅ ${grabaciones.length} grabaciones cargadas para: ${instrumento}`);
 }
 
 function renderGrabaciones(grabaciones, container) {
@@ -16333,7 +16374,7 @@ function renderGrabaciones(grabaciones, container) {
 }
 
 // =====================================================
-// 20. TEMARIO - SIN LISTENER (CORREGIDO)
+// 20. TEMARIO - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
 // =====================================================
 
 function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
@@ -16347,39 +16388,30 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         datosEstudianteCache = estudiante;
     }
 
-    // 🔥🔥🔥 CORRECCIÓN: Buscar en PRINCIPAL y SECUNDARIO 🔥🔥🔥
+    // 🔥 CORRECCIÓN: Buscar en PRINCIPAL y SECUNDARIO
     const nivel = estudiante.estudiante?.nivel;
     const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
     const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
     
-    // 1. Si hay instrumento forzado o seleccionado, usar ESE
     let instrumento = instrumentoForzado || encargadoInstrumentoSeleccionado;
     
-    // 2. Si no hay instrumento seleccionado, buscar automáticamente
     if (!instrumento) {
         const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-        
-        // 2a. Buscar temario para el instrumento PRINCIPAL
         let temarioEncontrado = temarios.find(t => 
             t.instrumento === instrumentoPrincipal && t.nivel === nivel
         );
-        
         if (temarioEncontrado) {
             instrumento = instrumentoPrincipal;
-            console.log(`🔍 Usando instrumento PRINCIPAL: ${instrumentoPrincipal}`);
         } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
-            // 2b. Si NO hay temario para el principal, buscar en el SECUNDARIO
             temarioEncontrado = temarios.find(t => 
                 t.instrumento === instrumentoSecundario && t.nivel === nivel
             );
             if (temarioEncontrado) {
                 instrumento = instrumentoSecundario;
-                console.log(`🔍 Usando instrumento SECUNDARIO: ${instrumentoSecundario}`);
             }
         }
     }
 
-    // Si aún no hay instrumento, usar el principal como fallback
     if (!instrumento) {
         instrumento = instrumentoPrincipal;
     }
@@ -16389,17 +16421,13 @@ function iniciarTemarioTiempoReal(estudianteId, instrumentoForzado) {
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE con el instrumento encontrado
+    // 🔥 LEER DESDE LOCALSTORAGE
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
     
     renderTemario(estudianteId, temario || null);
     console.log(`✅ Temario cargado para: ${instrumento} - Nivel ${nivel}`);
 }
-
-// =====================================================
-// 🔥 RENDER TEMARIO - CORREGIDO
-// =====================================================
 
 function renderTemario(estudianteId, temario) {
     let estudiante = datosEstudianteCache;
@@ -16432,19 +16460,14 @@ function renderTemario(estudianteId, temario) {
             const materialHtml = renderizarMaterial(material);
             document.getElementById('claseMaterial').innerHTML = materialHtml;
             document.getElementById('clasePonderacion').textContent = `${semanaData.ponderacion} puntos`;
-            console.log(`✅ Mostrando semana ${semana}: ${semanaData.tema}`);
             return;
         }
     }
 
-    // Si no hay temario o no hay semana
-    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal || '';
     document.getElementById('claseTema').textContent = '⚠️ No hay temario disponible';
-    document.getElementById('claseDescripcion').textContent = 
-        `El docente aún no ha creado el temario para ${instrumento} - Nivel ${estudiante.estudiante?.nivel || ''}`;
+    document.getElementById('claseDescripcion').textContent = 'El docente aún no ha creado el temario para este instrumento y nivel';
     document.getElementById('claseMaterial').innerHTML = '--';
     document.getElementById('clasePonderacion').textContent = '--';
-    console.log(`⚠️ No se encontró temario para: ${instrumento}`);
 }
 
 // =====================================================
@@ -16918,7 +16941,7 @@ function activarSwipeEncargado() {
 }
 
 // =====================================================
-// 26. HISTORIAL COMPLETO - SIN LISTENER
+// 26. HISTORIAL COMPLETO - CORREGIDO (BUSCA EN PRINCIPAL Y SECUNDARIO)
 // =====================================================
 
 function cargarHistorialCompleto(estudianteId) {
@@ -16937,20 +16960,45 @@ function cargarHistorialCompleto(estudianteId) {
         datosEstudianteCache = estudiante;
     }
 
-    const instrumento = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal;
-    const nivel = estudiante.estudiante?.nivel;
+    // 🔥 CORRECCIÓN: Buscar en PRINCIPAL y SECUNDARIO
+    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+    const nivel = estudiante.estudiante?.nivel || '';
+    const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
+    const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
 
-    if (!instrumento || !nivel) {
+    let instrumentoBuscado = encargadoInstrumentoSeleccionado;
+
+    if (!instrumentoBuscado) {
+        let temarioEncontrado = temarios.find(t => 
+            t.instrumento === instrumentoPrincipal && t.nivel === nivel
+        );
+        if (temarioEncontrado) {
+            instrumentoBuscado = instrumentoPrincipal;
+        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
+            temarioEncontrado = temarios.find(t => 
+                t.instrumento === instrumentoSecundario && t.nivel === nivel
+            );
+            if (temarioEncontrado) {
+                instrumentoBuscado = instrumentoSecundario;
+            }
+        }
+    }
+
+    if (!instrumentoBuscado) {
+        instrumentoBuscado = instrumentoPrincipal;
+    }
+
+    if (!instrumentoBuscado || !nivel) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
         return;
     }
 
-    // 🔥 LEER DESDE LOCALSTORAGE
-    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    const temario = temarios.find(t => t.instrumento === instrumento && t.nivel === nivel);
-    
+    const temario = temarios.find(t => 
+        t.instrumento === instrumentoBuscado && t.nivel === nivel
+    );
+
     renderHistorialCompleto(container, temario || null);
-    console.log('✅ Historial cargado desde localStorage');
+    console.log(`✅ Historial cargado para: ${instrumentoBuscado}`);
 }
 
 function renderHistorialCompleto(container, temario) {
