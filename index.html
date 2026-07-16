@@ -13247,25 +13247,101 @@ console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado - CORREGIDO");
 
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 5: PANEL DE DOCENTE - VERSIÓN CORREGIDA -->
+<!-- BLOQUE 5: PANEL DE DOCENTE - VERSIÓN COMPLETA CORREGIDA (ROBUSTA) -->
 <!-- ============================================ -->
 <script>
 
 // =====================================================
-// 🔥 FUNCIONES DE FILTRADO
+// 🔥 FUNCIONES DE FILTRADO - MUY ROBUSTAS
 // =====================================================
+
+function normalizarTexto(texto) {
+    if (!texto) return '';
+    // Convertir a minúsculas, eliminar espacios extra, eliminar tildes
+    return texto.trim().toLowerCase()
+        .replace(/\s+/g, ' ')  // múltiples espacios a uno solo
+        .replace(/[áäâà]/g, 'a')
+        .replace(/[éëêè]/g, 'e')
+        .replace(/[íïîì]/g, 'i')
+        .replace(/[óöôò]/g, 'o')
+        .replace(/[úüûù]/g, 'u')
+        .replace(/[ñ]/g, 'n')
+        .replace(/[^a-z0-9\s]/g, '') // eliminar caracteres especiales
+        .trim();
+}
+
+function normalizarInstrumento(texto) {
+    if (!texto) return '';
+    // Normalización específica para instrumentos
+    let normalizado = normalizarTexto(texto);
+    // Eliminar "s" al final para plurales
+    if (normalizado.endsWith('s') && normalizado.length > 1) {
+        const sinPlural = normalizado.slice(0, -1);
+        // Verificar si la versión sin plural existe como instrumento común
+        const instrumentosComunes = ['piano', 'guitarra', 'bajo', 'bateria', 'saxofon', 'trompeta', 'canto', 'violin', 'congas', 'flauta', 'clarinete', 'tuba'];
+        if (instrumentosComunes.includes(sinPlural)) {
+            return sinPlural;
+        }
+    }
+    return normalizado;
+}
 
 function estudianteCoincideConDocente(estudiante, instrumentosDocente) {
     if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
         return false;
     }
-    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim();
-    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim();
-    for (const instr of instrumentosDocente) {
-        const instrTrim = instr.trim();
-        if (instrTrim === principal) return true;
-        if (secundario && instrTrim === secundario) return true;
+    
+    // Obtener instrumentos del estudiante (normalizados)
+    const principal = normalizarInstrumento(estudiante.musical?.instrumentoPrincipal);
+    const secundario = normalizarInstrumento(estudiante.musical?.instrumentoSecundario);
+    
+    // Si el estudiante no tiene instrumento principal, no coincide
+    if (!principal) return false;
+    
+    // Normalizar instrumentos del docente
+    const instrumentosDocenteNorm = instrumentosDocente.map(i => normalizarInstrumento(i));
+    
+    // LOG para depuración
+    console.log(`🔍 Verificando estudiante: ${estudiante.estudiante?.nombre || 'Sin nombre'}`);
+    console.log(`   Principal: "${principal}" (original: "${estudiante.musical?.instrumentoPrincipal}")`);
+    console.log(`   Secundario: "${secundario}" (original: "${estudiante.musical?.instrumentoSecundario}")`);
+    console.log(`   Docente instrumentos: ${instrumentosDocenteNorm.join(', ')}`);
+    
+    // Verificar si el instrumento principal coincide con alguno del docente
+    if (instrumentosDocenteNorm.includes(principal)) {
+        console.log(`   ✅ COINCIDE por instrumento principal: "${principal}"`);
+        return true;
     }
+    
+    // Verificar si el instrumento secundario coincide (si existe)
+    if (secundario && secundario !== 'ninguno' && instrumentosDocenteNorm.includes(secundario)) {
+        console.log(`   ✅ COINCIDE por instrumento secundario: "${secundario}"`);
+        return true;
+    }
+    
+    // 🔥 VERIFICACIÓN ADICIONAL: buscar coincidencia parcial
+    // Por si hay diferencias de escritura (ej: "saxofon" vs "saxofón")
+    for (const instrDoc of instrumentosDocenteNorm) {
+        // Si el instrumento del docente está contenido en el principal del estudiante
+        if (instrDoc.length > 3 && principal.includes(instrDoc)) {
+            console.log(`   ✅ COINCIDE por coincidencia parcial: "${instrDoc}" en "${principal}"`);
+            return true;
+        }
+        // Si el principal del estudiante está contenido en el instrumento del docente
+        if (principal.length > 3 && instrDoc.includes(principal)) {
+            console.log(`   ✅ COINCIDE por coincidencia parcial inversa: "${principal}" en "${instrDoc}"`);
+            return true;
+        }
+        // Verificar también con el secundario
+        if (secundario && secundario !== 'ninguno' && secundario.length > 3) {
+            if (instrDoc.includes(secundario) || secundario.includes(instrDoc)) {
+                console.log(`   ✅ COINCIDE por coincidencia parcial en secundario: "${instrDoc}" ↔ "${secundario}"`);
+                return true;
+            }
+        }
+    }
+    
+    console.log(`   ❌ NO coincide`);
     return false;
 }
 
@@ -13273,13 +13349,36 @@ function obtenerInstrumentoCoincidente(estudiante, instrumentosDocente) {
     if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
         return null;
     }
-    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim();
-    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim();
-    for (let instr of instrumentosDocente) {
-        const instrTrim = instr.trim();
-        if (instrTrim === principal) return instr;
-        if (secundario && instrTrim === secundario) return instr;
+    
+    const principal = normalizarInstrumento(estudiante.musical?.instrumentoPrincipal);
+    const secundario = normalizarInstrumento(estudiante.musical?.instrumentoSecundario);
+    
+    if (!principal) return null;
+    
+    const instrumentosDocenteNorm = instrumentosDocente.map(i => normalizarInstrumento(i));
+    
+    // Buscar coincidencia exacta (case-insensitive)
+    for (const instr of instrumentosDocente) {
+        const instrNorm = normalizarInstrumento(instr);
+        if (instrNorm === principal) return instr;
+        if (secundario && secundario !== 'ninguno' && instrNorm === secundario) return instr;
     }
+    
+    // Buscar coincidencia parcial
+    for (const instr of instrumentosDocente) {
+        const instrNorm = normalizarInstrumento(instr);
+        if (instrNorm.length > 3) {
+            if (principal.includes(instrNorm) || instrNorm.includes(principal)) {
+                return instr;
+            }
+            if (secundario && secundario !== 'ninguno' && secundario.length > 3) {
+                if (secundario.includes(instrNorm) || instrNorm.includes(secundario)) {
+                    return instr;
+                }
+            }
+        }
+    }
+    
     return null;
 }
 
@@ -13421,21 +13520,27 @@ function renderGrabacionesDocente(grabaciones, container) {
 }
 
 // =====================================================
-// 3. ESTUDIANTES DEL DOCENTE
+// 3. ESTUDIANTES DEL DOCENTE - CORREGIDO (ROBUSTO)
 // =====================================================
 
 function iniciarEstudiantesDocenteTiempoReal() {
     console.log('👨‍🎓 Cargando estudiantes del docente');
     const container = document.getElementById('listaEstudiantesDocente');
     if (!container) return;
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
     console.log('🎸 [DOCENTE] Instrumentos asignados:', instrumentosDocente);
+    
     if (instrumentosDocente.length === 0) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados. Contacta a la secretaría.</p>';
         return;
     }
+    
+    // Cargar inscripciones desde localStorage o Firebase
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    // Si no hay datos locales, cargar desde Firebase
     if (inscriptions.length === 0 && window.db) {
         window.db.collection('inscripciones').get().then((snapshot) => {
             const firebaseData = [];
@@ -13448,16 +13553,40 @@ function iniciarEstudiantesDocenteTiempoReal() {
         }).catch(err => console.error('Error cargando inscripciones:', err));
         return;
     }
+    
     renderEstudiantesDocente(inscriptions, container, instrumentosDocente);
 }
 
 function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) {
     console.log('🔍 [DOCENTE] Filtrando estudiantes...');
+    console.log('📋 [DOCENTE] Total inscripciones:', inscriptions.length);
+    console.log('🎸 [DOCENTE] Instrumentos docente:', instrumentosDocente);
+    
+    // Mostrar TODOS los estudiantes activos que coinciden con los instrumentos del docente
     const estudiantesFiltrados = inscriptions.filter(ins => {
+        // Solo estudiantes activos
         if ((ins.estado || 'activo') !== 'activo') return false;
-        return estudianteCoincideConDocente(ins, instrumentosDocente);
+        
+        // Verificar si coincide con los instrumentos del docente
+        const coincide = estudianteCoincideConDocente(ins, instrumentosDocente);
+        
+        return coincide;
     });
-    console.log(`🎯 [DOCENTE] Coinciden: ${estudiantesFiltrados.length}`);
+    
+    console.log(`🎯 [DOCENTE] Coinciden: ${estudiantesFiltrados.length} de ${inscriptions.filter(i => (i.estado || 'activo') === 'activo').length} estudiantes activos`);
+    
+    // 🔥 MOSTRAR TODOS LOS ESTUDIANTES QUE NO COINCIDEN PARA DEPURACIÓN
+    const noCoinciden = inscriptions.filter(ins => {
+        if ((ins.estado || 'activo') !== 'activo') return false;
+        return !estudianteCoincideConDocente(ins, instrumentosDocente);
+    });
+    if (noCoinciden.length > 0) {
+        console.log('❌ Estudiantes que NO coinciden:');
+        noCoinciden.forEach(ins => {
+            console.log(`   - ${ins.estudiante?.nombre || 'Sin nombre'}: Principal="${ins.musical?.instrumentoPrincipal || 'N/A'}", Secundario="${ins.musical?.instrumentoSecundario || 'N/A'}"`);
+        });
+    }
+    
     if (estudiantesFiltrados.length === 0) {
         container.innerHTML = `
             <div style="background:#fff3cd;padding:15px;border-radius:8px;border:1px solid #ffc107;margin-bottom:15px;">
@@ -13465,24 +13594,37 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
                 <p style="margin:5px 0 0;color:#856404;font-size:0.9rem;">
                     Tus instrumentos: <strong>${instrumentosDocente.join(', ')}</strong>
                 </p>
+                <p style="margin:5px 0 0;color:#856404;font-size:0.85rem;">
+                    Total estudiantes activos: <strong>${inscriptions.filter(i => (i.estado || 'activo') === 'activo').length}</strong>
+                </p>
             </div>
         `;
         return;
     }
+    
+    // Agrupar por instrumento (mostrar todos los instrumentos que coinciden)
     const grupos = {};
     estudiantesFiltrados.forEach(est => {
-        const principal = est.musical?.instrumentoPrincipal || '';
-        const secundario = est.musical?.instrumentoSecundario || '';
+        const principal = normalizarInstrumento(est.musical?.instrumentoPrincipal);
+        const secundario = normalizarInstrumento(est.musical?.instrumentoSecundario);
+        
+        // Buscar coincidencia con instrumentos del docente
         for (const instr of instrumentosDocente) {
-            const instrTrim = instr.trim();
-            if (instrTrim === principal || (secundario && instrTrim === secundario)) {
-                if (!grupos[instrTrim]) grupos[instrTrim] = [];
-                if (!grupos[instrTrim].find(e => e.id === est.id)) {
-                    grupos[instrTrim].push(est);
+            const instrNorm = normalizarInstrumento(instr);
+            if (instrNorm === principal) {
+                if (!grupos[instr]) grupos[instr] = [];
+                if (!grupos[instr].find(e => e.id === est.id)) {
+                    grupos[instr].push(est);
+                }
+            } else if (secundario && secundario !== 'ninguno' && instrNorm === secundario) {
+                if (!grupos[instr]) grupos[instr] = [];
+                if (!grupos[instr].find(e => e.id === est.id)) {
+                    grupos[instr].push(est);
                 }
             }
         }
     });
+    
     let html = `
         <div style="margin-bottom:15px;padding:10px;background:#f8f9fa;border-radius:8px;border:1px solid #ddd;">
             <strong style="color:#E63946;">🎸 Tus instrumentos:</strong>
@@ -13490,8 +13632,13 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
             <span style="margin-left:10px;color:#888;font-size:0.85rem;">(${estudiantesFiltrados.length} estudiantes únicos)</span>
         </div>
     `;
+    
+    // Ordenar instrumentos alfabéticamente
     Object.keys(grupos).sort().forEach(instr => {
         const estudiantes = grupos[instr];
+        // Ordenar estudiantes alfabéticamente
+        estudiantes.sort((a, b) => (a.estudiante?.nombre || '').localeCompare(b.estudiante?.nombre || ''));
+        
         html += `
             <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;" open>
                 <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
@@ -13501,8 +13648,8 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
                     ${estudiantes.map(est => {
                         const principal = est.musical?.instrumentoPrincipal || 'N/A';
                         const secundario = est.musical?.instrumentoSecundario ? ` (Secundario: ${est.musical.instrumentoSecundario})` : '';
-                        const coincidePrincipal = principal === instr;
-                        const coincideSecundario = est.musical?.instrumentoSecundario === instr;
+                        const coincidePrincipal = normalizarInstrumento(principal) === normalizarInstrumento(instr);
+                        const coincideSecundario = normalizarInstrumento(est.musical?.instrumentoSecundario) === normalizarInstrumento(instr);
                         const coincidePor = coincidePrincipal ? '✅ Principal' : (coincideSecundario ? '🔄 Secundario' : '');
                         return `
                             <div style="border-bottom:1px solid #eee;padding:8px 0;display:flex;justify-content:space-between;align-items:center;">
@@ -13527,6 +13674,7 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
             </details>
         `;
     });
+    
     container.innerHTML = html;
 }
 
@@ -13629,7 +13777,7 @@ function verProgresoEstudiante(estudianteId) {
 }
 
 // =====================================================
-// 5. TAREAS SUBIDAS - CON VISTA PREVIA Y AGRUPACIÓN POR INSTRUMENTO Y ESTUDIANTE
+// 5. TAREAS SUBIDAS - CON VISTA PREVIA Y AGRUPACIÓN
 // =====================================================
 
 function iniciarTareasDocenteTiempoReal() {
@@ -13694,11 +13842,11 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
         return t;
     });
 
-    // Filtrar por instrumento del docente
+    // Filtrar por instrumento del docente (case-insensitive)
     let tareasFiltradas = tareasConInstrumento.filter(t => {
-        const instrTarea = (t.instrumento || '').trim().toLowerCase();
+        const instrTarea = normalizarInstrumento(t.instrumento);
         if (!instrTarea) return false;
-        return instrumentosDocente.some(instr => instr.trim().toLowerCase() === instrTarea);
+        return instrumentosDocente.some(instr => normalizarInstrumento(instr) === instrTarea);
     });
 
     console.log(`📝 [RENDER] Tareas FINALES: ${tareasFiltradas.length}`);
@@ -13766,8 +13914,9 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
         const calificadasInst = tareasDelInstrumento.filter(t => t.calificada).length;
         const pendientesInst = tareasDelInstrumento.filter(t => !t.calificada).length;
 
+        // ✅ CERRADO POR DEFECTO
         html += `
-            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;border-left:4px solid #E63946;" open>
+            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;border-left:4px solid #E63946;">
                 <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
                     <span>
                         <i class="fas fa-guitar" style="color:#E63946;"></i> 
@@ -13797,13 +13946,14 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
             // Verificar si el estudiante tiene este instrumento como principal o secundario
             let etiquetaInstrumento = '';
             if (estudianteInfo) {
-                const principal = estudianteInfo.musical?.instrumentoPrincipal || '';
-                const secundario = estudianteInfo.musical?.instrumentoSecundario || '';
-                if (principal === instrumento && secundario === instrumento) {
+                const principal = normalizarInstrumento(estudianteInfo.musical?.instrumentoPrincipal);
+                const secundario = normalizarInstrumento(estudianteInfo.musical?.instrumentoSecundario);
+                const instrNorm = normalizarInstrumento(instrumento);
+                if (principal === instrNorm && secundario === instrNorm) {
                     etiquetaInstrumento = '⭐ Principal y 🔄 Secundario (mismo material)';
-                } else if (principal === instrumento) {
+                } else if (principal === instrNorm) {
                     etiquetaInstrumento = '⭐ Principal';
-                } else if (secundario === instrumento) {
+                } else if (secundario === instrNorm) {
                     etiquetaInstrumento = '🔄 Secundario';
                 }
             }
@@ -13813,8 +13963,9 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
             const calificadasEst = tareasEst.filter(t => t.calificada).length;
             const pendientesEst = tareasEst.filter(t => !t.calificada).length;
 
+            // ✅ CERRADO POR DEFECTO
             html += `
-                <details style="margin-bottom:10px;border:1px solid #eee;border-radius:6px;padding:8px;background:#fafafa;" open>
+                <details style="margin-bottom:10px;border:1px solid #eee;border-radius:6px;padding:8px;background:#fafafa;">
                     <summary style="cursor:pointer;font-weight:600;padding:6px 10px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5;">
                         <span>
                             <i class="fas fa-user-graduate" style="color:#E63946;"></i>
@@ -13831,13 +13982,13 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
                     <div style="margin-top:8px;padding:0 8px;">
             `;
 
-            // --- 5. MOSTRAR TAREAS DEL ESTUDIANTE CON VISTA PREVIA DEL ARCHIVO ---
+            // --- 5. MOSTRAR TAREAS DEL ESTUDIANTE ---
             tareasEst.forEach(t => {
                 const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
                 const nota = t.nota !== undefined && t.nota !== null ? t.nota : '-';
                 const instrumentoTarea = t.instrumento || 'N/A';
 
-                // Generar vista previa del archivo
+                // Vista previa del archivo
                 let vistaPrevia = '';
                 if (t.archivoUrl) {
                     const mimeMatch = t.archivoUrl.match(/^data:([^;]+);/);
@@ -13929,13 +14080,13 @@ function filtrarTareas() {
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
 
     tareas = tareas.filter(t => {
-        const instrTarea = t.instrumento || '';
+        const instrTarea = normalizarInstrumento(t.instrumento);
         if (!instrTarea) return false;
-        return instrumentosDocente.some(instr => instr.trim().toLowerCase() === instrTarea.trim().toLowerCase());
+        return instrumentosDocente.some(instr => normalizarInstrumento(instr) === instrTarea);
     });
 
     if (instrumento) {
-        tareas = tareas.filter(t => t.instrumento === instrumento);
+        tareas = tareas.filter(t => normalizarInstrumento(t.instrumento) === normalizarInstrumento(instrumento));
     }
     if (semana) {
         tareas = tareas.filter(t => t.semana === parseInt(semana));
@@ -14074,11 +14225,11 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
         return t;
     });
 
-    // FILTRAR POR INSTRUMENTO
+    // FILTRAR POR INSTRUMENTO (case-insensitive)
     let tareasFiltradas = tareasConInstrumento.filter(t => {
-        const instrTarea = (t.instrumento || '').trim().toLowerCase();
+        const instrTarea = normalizarInstrumento(t.instrumento);
         if (!instrTarea) return false;
-        return instrumentosDocente.some(instr => instr.trim().toLowerCase() === instrTarea);
+        return instrumentosDocente.some(instr => normalizarInstrumento(instr) === instrTarea);
     });
 
     console.log(`📝 [PENDIENTES] Tareas después de filtrar por instrumento: ${tareasFiltradas.length}`);
@@ -14094,49 +14245,24 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
 
     pendientes.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
 
+    // 🔥 SI NO HAY TAREAS PENDIENTES - MENSAJE LIMPIO (SIN MOSTRAR TAREAS DE OTROS)
     if (pendientes.length === 0) {
-        let html = `
-            <div style="background:#fff3cd;padding:15px;border-radius:8px;border:1px solid #ffc107;margin-bottom:15px;">
-                <h4 style="margin:0;color:#856404;">⚠️ No hay tareas pendientes de calificar</h4>
-                <p style="margin:5px 0 0;color:#856404;font-size:0.9rem;">
-                    Tus instrumentos: <strong>${instrumentosDocente.join(', ')}</strong>
+        container.innerHTML = `
+            <div style="background:#d4edda;padding:20px;border-radius:8px;border:1px solid #c3e6cb;text-align:center;margin:20px 0;">
+                <i class="fas fa-check-circle" style="color:#28a745;font-size:48px;display:block;margin-bottom:15px;"></i>
+                <h4 style="color:#155724;margin:0;font-size:1.2rem;">✅ No hay tareas pendientes para tus instrumentos</h4>
+                <p style="color:#155724;margin:10px 0 0 0;font-size:0.95rem;">
+                    Todos los estudiantes han entregado sus tareas o ya están calificadas.
                 </p>
-                <p style="margin:5px 0 0;color:#856404;font-size:0.85rem;">
-                    Total tareas: <strong>${tareas.length}</strong> |
-                    Tareas que coinciden: <strong>${tareasFiltradas.length}</strong> |
-                    Pendientes: <strong>${pendientes.length}</strong>
+                <p style="color:#155724;margin:5px 0 0 0;font-size:0.85rem;opacity:0.8;">
+                    Tus instrumentos: <strong>${instrumentosDocente.join(', ')}</strong>
                 </p>
             </div>
         `;
-        if (tareas.length > 0) {
-            html += `
-                <details style="border:1px solid #ddd;border-radius:8px;padding:10px;background:white;margin-top:10px;" open>
-                    <summary style="cursor:pointer;font-weight:bold;padding:5px;color:#E63946;">
-                        📋 Ver todas las tareas (${tareas.length})
-                    </summary>
-                    <div style="margin-top:10px;max-height:400px;overflow-y:auto;">
-                        ${tareas.map(t => {
-                            const nombreEst = estudiantesMap[t.estudianteId] || t.estudianteNombre || 'Sin nombre';
-                            const instr = t.instrumento || 'N/A';
-                            const coincide = instrumentosDocente.some(i => i.trim().toLowerCase() === instr.trim().toLowerCase());
-                            return `
-                                <div style="padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;flex-wrap:wrap;${coincide ? 'background:#d4edda;' : ''}">
-                                    <span><strong>${nombreEst}</strong></span>
-                                    <span style="color:#888;">Instrumento: ${instr}</span>
-                                    <span style="color:#888;">Calificada: ${t.calificada}</span>
-                                    <span style="color:#888;">Semana: ${t.semana}</span>
-                                    ${coincide ? '<span style="color:#4CAF50;">✅ Coincide</span>' : '<span style="color:#E63946;">❌ No coincide</span>'}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </details>
-            `;
-        }
-        container.innerHTML = html;
         return;
     }
 
+    // 🔥 SI HAY TAREAS PENDIENTES - MOSTRAR NORMAL (CON BOTONES DE CALIFICAR)
     // AGRUPAR POR INSTRUMENTO
     const tareasPorInstrumento = {};
     pendientes.forEach(t => {
@@ -14154,6 +14280,7 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
             <span style="margin-left:10px;color:#888;font-size:0.85rem;">(${pendientes.length} tareas por calificar)</span>
         </div>
     `;
+
     instrumentosOrdenados.forEach(instrumento => {
         const tareasInst = tareasPorInstrumento[instrumento];
         html += `
@@ -14168,8 +14295,8 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
                         const estudiante = inscriptions.find(ins => ins.id == t.estudianteId);
                         let esPrincipal = false;
                         if (estudiante) {
-                            const principal = estudiante.musical?.instrumentoPrincipal || '';
-                            esPrincipal = principal === instrumentoTarea;
+                            const principal = normalizarInstrumento(estudiante.musical?.instrumentoPrincipal);
+                            esPrincipal = principal === normalizarInstrumento(instrumentoTarea);
                         }
                         return `
                             <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5;">
@@ -14199,6 +14326,20 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
             </details>
         `;
     });
+
+    // Resumen estadístico
+    const totalPendientes = pendientes.length;
+    const totalEstudiantes = new Set(pendientes.map(t => t.estudianteId)).size;
+
+    html += `
+        <div style="margin-top:15px;padding:12px;background:#f8f9fa;border-radius:8px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;border-top:1px solid #ddd;">
+            <span><strong>📊 Resumen:</strong></span>
+            <span>⏳ Pendientes: <strong style="color:#FF9800;">${totalPendientes}</strong></span>
+            <span>👨‍🎓 Estudiantes: <strong style="color:#E63946;">${totalEstudiantes}</strong></span>
+            <span>🎸 Instrumentos: <strong>${instrumentosOrdenados.length}</strong></span>
+        </div>
+    `;
+
     container.innerHTML = html;
 }
 
@@ -14211,12 +14352,10 @@ function generarVistaPreviaArchivo(dataUrl, nombreArchivo) {
         return `<span style="color:#666;">No hay archivo subido.</span>`;
     }
 
-    // Detectar tipo de archivo desde el data URL o por extensión
     const mimeMatch = dataUrl.match(/^data:([^;]+);/);
     const mimeType = mimeMatch ? mimeMatch[1] : '';
     const extension = nombreArchivo ? nombreArchivo.split('.').pop().toLowerCase() : '';
 
-    // --- IMAGEN ---
     if (mimeType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) {
         return `
             <div style="margin-top:10px;">
@@ -14228,7 +14367,6 @@ function generarVistaPreviaArchivo(dataUrl, nombreArchivo) {
         `;
     }
 
-    // --- PDF ---
     if (mimeType === 'application/pdf' || extension === 'pdf') {
         return `
             <div style="margin-top:10px;">
@@ -14240,7 +14378,6 @@ function generarVistaPreviaArchivo(dataUrl, nombreArchivo) {
         `;
     }
 
-    // --- VIDEO ---
     if (mimeType.startsWith('video/') || ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(extension)) {
         return `
             <div style="margin-top:10px;">
@@ -14255,7 +14392,6 @@ function generarVistaPreviaArchivo(dataUrl, nombreArchivo) {
         `;
     }
 
-    // --- AUDIO ---
     if (mimeType.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'flac'].includes(extension)) {
         return `
             <div style="margin-top:10px; padding:15px; background:#f8f9fa; border-radius:8px; border:1px solid #ddd;">
@@ -14270,7 +14406,6 @@ function generarVistaPreviaArchivo(dataUrl, nombreArchivo) {
         `;
     }
 
-    // --- OTROS ARCHIVOS ---
     return `
         <div style="margin-top:10px; padding:20px; background:#f8f9fa; border-radius:8px; border:1px dashed #ddd; text-align:center;">
             <i class="fas fa-file" style="font-size:36px; color:#999; display:block; margin-bottom:10px;"></i>
@@ -14633,7 +14768,7 @@ function guardarSemanaTemario() {
     }
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
+    if (!currentUser.instrumentos || !currentUser.instrumentos.some(i => normalizarInstrumento(i) === normalizarInstrumento(instrumento))) {
         alert(`⚠️ No tienes asignado el instrumento "${instrumento}".`);
         return;
     }
@@ -14743,14 +14878,16 @@ function guardarTemarioCompleto() {
         alert('⚠️ Selecciona un nivel');
         return;
     }
-    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
+    if (!currentUser.instrumentos || !currentUser.instrumentos.some(i => normalizarInstrumento(i) === normalizarInstrumento(instrumento))) {
         alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes guardar temario para él.`);
         return;
     }
 
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     let temarioExistente = temarios.find(t =>
-        t.instrumento === instrumento && t.nivel === nivel && t.docenteId === currentUser.username
+        normalizarInstrumento(t.instrumento) === normalizarInstrumento(instrumento) && 
+        normalizarTexto(t.nivel) === normalizarTexto(nivel) && 
+        t.docenteId === currentUser.username
     );
 
     function notificarCambio(temario) {
@@ -14855,99 +14992,178 @@ function cargarTemarioExistente() {
 }
 
 // =====================================================
-// 11. GUARDAR CLASE VIRTUAL
+// 11. GUARDAR CLASE VIRTUAL - CON LOGS DE DEPURACIÓN
 // =====================================================
 
 function guardarClaseVirtualDocente() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser || !currentUser.username) {
-        alert('❌ No se encontró el usuario docente.');
-        return;
-    }
-    const titulo = document.getElementById('docTituloClase');
-    const instrumento = document.getElementById('docInstrumentoClase');
-    const nivel = document.getElementById('docNivelClase');
-    const fechaHora = document.getElementById('docFechaHoraClase');
-    const meetLink = document.getElementById('docMeetLink');
-    const duracion = document.getElementById('docDuracion');
-    const descripcion = document.getElementById('docDescripcionClase');
-
-    if (!titulo || !fechaHora) {
-        alert('❌ Error: No se encontraron los campos del formulario.');
-        return;
-    }
-    const tituloVal = titulo.value.trim();
-    const fechaHoraVal = fechaHora.value;
-    if (!tituloVal || !fechaHoraVal) {
-        alert('❌ Completa el título y la fecha/hora de la clase.');
-        return;
-    }
-    if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento.value)) {
-        alert(`⚠️ No tienes asignado el instrumento "${instrumento.value}".`);
-        return;
-    }
-
-    const nuevaClase = {
-        titulo: tituloVal,
-        instrumento: instrumento ? instrumento.value : 'Piano',
-        nivel: nivel ? nivel.value : 'Principiante',
-        fechaHora: new Date(fechaHoraVal).toISOString(),
-        meetLink: meetLink ? meetLink.value.trim() : '',
-        duracion: duracion ? parseInt(duracion.value) || 60 : 60,
-        descripcion: descripcion ? descripcion.value : '',
-        grabacionUrl: null,
-        creadaPor: currentUser.username,
-        fechaCreacion: new Date().toISOString()
-    };
-
-    function finalizarCreacionClase(id, claseData) {
-        claseData.id = id;
-        let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        if (!clases.some(c => c.id === id)) {
-            clases.push(claseData);
-            localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+    console.log('🟢🟢🟢 FUNCIÓN EJECUTADA - Crear Clase');
+    
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        console.log('👤 currentUser:', currentUser);
+        
+        if (!currentUser || !currentUser.username) {
+            alert('❌ No se encontró el usuario docente.');
+            console.error('❌ currentUser no encontrado');
+            return;
         }
-        if (window.db && !claseData.id.startsWith('clase_')) {
-            window.db.collection('clasesVirtuales').doc(id).set(claseData, { merge: true })
-                .then(() => console.log('☁️ Clase guardada en Firebase'))
-                .catch(e => console.error('❌ Error en Firebase:', e));
-        }
-        alert('✅ Clase virtual creada correctamente.');
-        titulo.value = '';
-        if (meetLink) meetLink.value = '';
-        if (descripcion) descripcion.value = '';
-        if (fechaHora) fechaHora.value = '';
-        iniciarClasesDocenteTiempoReal(currentUser.username);
-        const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
-            document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-        if (menuClases) menuClases.click();
-    }
 
-    if (window.db) {
-        const btnCrear = document.getElementById('btnCrearClaseVirtual');
-        const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
-        if (btnCrear) btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-        window.db.collection('clasesVirtuales').add(nuevaClase)
-            .then((docRef) => {
-                console.log('✅ Clase guardada en Firebase con ID:', docRef.id);
-                finalizarCreacionClase(docRef.id, nuevaClase);
-                if (btnCrear) btnCrear.innerHTML = textoOriginal;
-            })
-            .catch((error) => {
-                console.error('❌ Error al guardar en Firebase:', error);
-                alert('❌ Error al guardar en Firebase: ' + error.message + '. La clase se guardará localmente.');
-                const idLocal = Date.now();
-                nuevaClase.id = idLocal;
-                finalizarCreacionClase(idLocal, nuevaClase);
-                if (btnCrear) btnCrear.innerHTML = textoOriginal;
-            });
-    } else {
-        const idLocal = Date.now();
-        nuevaClase.id = idLocal;
-        finalizarCreacionClase(idLocal, nuevaClase);
-        alert('⚠️ Firebase no disponible. La clase se guardó solo localmente.');
+        const titulo = document.getElementById('docTituloClase');
+        const instrumento = document.getElementById('docInstrumentoClase');
+        const nivel = document.getElementById('docNivelClase');
+        const fechaHora = document.getElementById('docFechaHoraClase');
+        const meetLink = document.getElementById('docMeetLink');
+        const duracion = document.getElementById('docDuracion');
+        const descripcion = document.getElementById('docDescripcionClase');
+
+        console.log('📋 Elementos del DOM:', {
+            titulo: titulo ? '✅ encontrado' : '❌ NO',
+            instrumento: instrumento ? '✅ encontrado' : '❌ NO',
+            nivel: nivel ? '✅ encontrado' : '❌ NO',
+            fechaHora: fechaHora ? '✅ encontrado' : '❌ NO',
+            meetLink: meetLink ? '✅ encontrado' : '❌ NO',
+            duracion: duracion ? '✅ encontrado' : '❌ NO',
+            descripcion: descripcion ? '✅ encontrado' : '❌ NO'
+        });
+
+        if (!titulo || !instrumento || !fechaHora) {
+            alert('❌ Error: No se encontraron los campos del formulario.');
+            console.error('❌ Campos faltantes');
+            return;
+        }
+
+        const tituloVal = titulo.value.trim();
+        const instrumentoVal = instrumento.value;
+        const nivelVal = nivel ? nivel.value : 'Principiante';
+        const fechaHoraVal = fechaHora.value;
+        const meetLinkVal = meetLink ? meetLink.value.trim() : '';
+        const duracionVal = duracion ? parseInt(duracion.value) || 60 : 60;
+        const descripcionVal = descripcion ? descripcion.value.trim() : '';
+
+        console.log('📝 Datos del formulario:', {
+            titulo: tituloVal,
+            instrumento: instrumentoVal,
+            nivel: nivelVal,
+            fechaHora: fechaHoraVal,
+            meetLink: meetLinkVal,
+            duracion: duracionVal,
+            descripcion: descripcionVal
+        });
+
+        if (!tituloVal) {
+            alert('❌ Completa el título de la clase.');
+            titulo.focus();
+            return;
+        }
+
+        if (!fechaHoraVal) {
+            alert('❌ Selecciona la fecha y hora de la clase.');
+            fechaHora.focus();
+            return;
+        }
+
+        if (!instrumentoVal) {
+            alert('❌ Selecciona un instrumento.');
+            instrumento.focus();
+            return;
+        }
+
+        // Verificar instrumento
+        if (!currentUser.instrumentos || !currentUser.instrumentos.some(i => normalizarInstrumento(i) === normalizarInstrumento(instrumentoVal))) {
+            alert(`⚠️ No tienes asignado el instrumento "${instrumentoVal}". Contacta a la secretaría.`);
+            return;
+        }
+
+        const nuevaClase = {
+            titulo: tituloVal,
+            instrumento: instrumentoVal,
+            nivel: nivelVal,
+            fechaHora: new Date(fechaHoraVal).toISOString(),
+            meetLink: meetLinkVal,
+            duracion: duracionVal,
+            descripcion: descripcionVal,
+            grabacionUrl: null,
+            creadaPor: currentUser.username,
+            fechaCreacion: new Date().toISOString()
+        };
+
+        console.log('📦 Nueva clase:', nuevaClase);
+
+        function finalizarCreacionClase(id, claseData) {
+            console.log('✅ Finalizando creación con ID:', id);
+            claseData.id = id;
+            
+            let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+            if (!clases.some(c => c.id === id)) {
+                clases.push(claseData);
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+                console.log('💾 Clase guardada en localStorage. Total:', clases.length);
+            }
+
+            if (window.db) {
+                window.db.collection('clasesVirtuales').doc(id).set(claseData, { merge: true })
+                    .then(() => console.log('☁️ Clase guardada en Firebase'))
+                    .catch(e => console.error('❌ Error en Firebase:', e));
+            }
+
+            alert('✅ Clase virtual creada correctamente.');
+            
+            titulo.value = '';
+            if (meetLink) meetLink.value = '';
+            if (descripcion) descripcion.value = '';
+            if (fechaHora) fechaHora.value = '';
+            
+            if (typeof iniciarClasesDocenteTiempoReal === 'function') {
+                iniciarClasesDocenteTiempoReal(currentUser.username);
+            }
+            
+            const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
+                document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
+            if (menuClases) menuClases.click();
+        }
+
+        // Guardar en Firebase
+        if (window.db) {
+            const btnCrear = document.getElementById('btnCrearClaseVirtual');
+            const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
+            if (btnCrear) {
+                btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+                btnCrear.disabled = true;
+            }
+            
+            console.log('☁️ Guardando en Firebase...');
+            window.db.collection('clasesVirtuales').add(nuevaClase)
+                .then((docRef) => {
+                    console.log('✅ Clase guardada en Firebase con ID:', docRef.id);
+                    finalizarCreacionClase(docRef.id, nuevaClase);
+                    if (btnCrear) {
+                        btnCrear.innerHTML = textoOriginal;
+                        btnCrear.disabled = false;
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Error al guardar en Firebase:', error);
+                    alert('❌ Error al guardar en Firebase: ' + error.message);
+                    if (btnCrear) {
+                        btnCrear.innerHTML = textoOriginal;
+                        btnCrear.disabled = false;
+                    }
+                });
+        } else {
+            const idLocal = 'clase_' + Date.now();
+            finalizarCreacionClase(idLocal, nuevaClase);
+            alert('⚠️ Firebase no disponible. La clase se guardó solo localmente.');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en guardarClaseVirtualDocente:', error);
+        alert('❌ Error: ' + error.message);
     }
 }
+
+// 👇 Exponer la función globalmente
+window.guardarClaseVirtualDocente = guardarClaseVirtualDocente;
+console.log('✅ Función guardarClaseVirtualDocente registrada globalmente');
 
 // =====================================================
 // 12. AGREGAR GRABACIÓN A CLASE
@@ -15068,7 +15284,7 @@ function mostrarCalificacionesDocente() {
             const tareasEstudiante = tareas.filter(t => {
                 if (t.estudianteId != est.id) return false;
                 const instrTarea = t.instrumento || '';
-                return instrTarea === instr;
+                return normalizarInstrumento(instrTarea) === normalizarInstrumento(instr);
             });
             const calificadas = tareasEstudiante.filter(t => t.calificada);
             const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
