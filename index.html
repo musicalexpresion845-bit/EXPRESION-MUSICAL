@@ -13247,67 +13247,66 @@ console.log("✅ Bloque 4 cargado: Sistema de Asistencia Mejorado - CORREGIDO");
 
 </script>
 <!-- ============================================ -->
-<!-- BLOQUE 5: PANEL DE DOCENTE - VERSIÓN CORREGIDA -->
+<!-- BLOQUE 5: PANEL DE DOCENTE - VERSIÓN FINAL -->
 <!-- ============================================ -->
 
 <script>
 // =====================================================
-// 🔥 FUNCIÓN CENTRAL DE FILTRADO
+// 🔥 FUNCIONES DE FILTRADO (PRINCIPAL Y SECUNDARIO)
 // =====================================================
+
 function estudianteCoincideConDocente(estudiante, instrumentosDocente) {
     if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
         return false;
     }
 
-    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim().toLowerCase();
-    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim().toLowerCase();
+    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim();
+    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim();
 
-    return instrumentosDocente.some(instr => {
-        const instrTrim = (instr || '').trim().toLowerCase();
-        return instrTrim === principal || (secundario && instrTrim === secundario);
-    });
+    for (const instr of instrumentosDocente) {
+        const instrTrim = instr.trim();
+        if (instrTrim === principal) return true;
+        if (secundario && instrTrim === secundario) return true;
+    }
+
+    return false;
 }
 
-// =====================================================
-// 🔥 OBTENER EL INSTRUMENTO QUE COINCIDE
-// =====================================================
 function obtenerInstrumentoCoincidente(estudiante, instrumentosDocente) {
     if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) {
         return null;
     }
 
-    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim().toLowerCase();
-    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim().toLowerCase();
+    const principal = (estudiante.musical?.instrumentoPrincipal || '').trim();
+    const secundario = (estudiante.musical?.instrumentoSecundario || '').trim();
 
     for (let instr of instrumentosDocente) {
-        const instrTrim = (instr || '').trim().toLowerCase();
+        const instrTrim = instr.trim();
         if (instrTrim === principal) return instr;
         if (secundario && instrTrim === secundario) return instr;
     }
+
     return null;
 }
 
-// =====================================================
-// 🔥 OBTENER EL INSTRUMENTO DE UNA TAREA
-// =====================================================
 function obtenerInstrumentoTarea(tarea, inscriptions, temarios) {
-    const estudiante = inscriptions.find(ins => ins.id == tarea.estudianteId);
+    const estudiante = inscriptions.find(ins => String(ins.id) === String(tarea.estudianteId));
     if (!estudiante) return null;
-    
+
     const instrumentos = [
         estudiante.musical?.instrumentoPrincipal,
         estudiante.musical?.instrumentoSecundario
     ].filter(Boolean);
-    
+
     const nivel = estudiante.estudiante?.nivel;
-    
+
     for (let instr of instrumentos) {
-        const temario = temarios.find(t => 
+        const temario = temarios.find(t =>
             t.instrumento === instr && t.nivel === nivel
         );
         if (temario) return instr;
     }
-    
+
     return estudiante.musical?.instrumentoPrincipal || null;
 }
 
@@ -13328,22 +13327,21 @@ function mostrarPanelDocenteVirtual() {
     console.log('🎓 Mostrando panel docente');
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
-    
+
     docenteUserName = currentUser.username;
-    
+
     const docentePanel = document.getElementById('docentePanelVirtual');
     if (docentePanel) docentePanel.style.display = 'block';
-    
-    // Cargar todos los datos desde localStorage
+
+    // Cargar todo
     iniciarClasesDocenteTiempoReal(docenteUserName);
     iniciarGrabacionesDocenteTiempoReal(docenteUserName);
     iniciarEstudiantesDocenteTiempoReal();
     iniciarTareasDocenteTiempoReal();
     iniciarTemarioDocenteTiempoReal();
-    
     iniciarNavegacionDocenteEncargado();
     iniciarSwipeDocenteEncargado();
-    
+
     setTimeout(function() {
         cargarInstrumentosDocenteEnSelects();
         cargarFiltroInstrumentosDocente();
@@ -13351,33 +13349,32 @@ function mostrarPanelDocenteVirtual() {
 }
 
 // =====================================================
-// 1. CLASES VIRTUALES - SIN LISTENER
+// 1. CLASES VIRTUALES
 // =====================================================
 
 function iniciarClasesDocenteTiempoReal(username) {
-    console.log('📚 Cargando clases del docente (desde localStorage)');
+    console.log('📚 Cargando clases del docente');
     const container = document.getElementById('misClasesVirtuales');
     if (!container) return;
-    
-    // 🔥 LEER DESDE LOCALSTORAGE
+
     const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const misClases = clases.filter(c => c.creadaPor === username);
-    
     renderClasesDocente(misClases, container, username);
-    console.log(`✅ ${misClases.length} clases cargadas`);
 }
 
 function renderClasesDocente(clases, container, username) {
     clases.sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
-    
+
     if (clases.length === 0) {
-        container.innerHTML = `<div class="empty-state" style="text-align:center;padding:40px;color:#888;">
-            <i class="fas fa-calendar-alt" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-            No has creado clases virtuales aún.
-        </div>`;
+        container.innerHTML = `
+            <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
+                <i class="fas fa-calendar-alt" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+                No has creado clases virtuales aún.
+            </div>
+        `;
         return;
     }
-    
+
     container.innerHTML = clases.map(c => `
         <div class="clase-card" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid #2196F3;">
             <div class="clase-header" style="background:#E63946;color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
@@ -13409,7 +13406,7 @@ function renderClasesDocente(clases, container, username) {
             </div>
         </div>
     `).join('');
-    
+
     container.querySelectorAll('.agregar-grabacion').forEach(btn => {
         btn.addEventListener('click', function() {
             const claseId = this.getAttribute('data-id');
@@ -13419,33 +13416,32 @@ function renderClasesDocente(clases, container, username) {
 }
 
 // =====================================================
-// 2. GRABACIONES - SIN LISTENER
+// 2. GRABACIONES
 // =====================================================
 
 function iniciarGrabacionesDocenteTiempoReal(username) {
-    console.log('🎥 Cargando grabaciones del docente (desde localStorage)');
+    console.log('🎥 Cargando grabaciones del docente');
     const container = document.getElementById('grabacionesVirtualesDocente');
     if (!container) return;
-    
-    // 🔥 LEER DESDE LOCALSTORAGE
+
     const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const grabaciones = clases.filter(c => c.creadaPor === username && c.grabacionUrl);
-    
     renderGrabacionesDocente(grabaciones, container);
-    console.log(`✅ ${grabaciones.length} grabaciones cargadas`);
 }
 
 function renderGrabacionesDocente(grabaciones, container) {
     grabaciones.sort((a,b) => new Date(b.fechaHora) - new Date(a.fechaHora));
-    
+
     if (grabaciones.length === 0) {
-        container.innerHTML = `<div class="empty-state" style="text-align:center;padding:40px;color:#888;">
-            <i class="fas fa-video" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-            No has subido grabaciones aún.
-        </div>`;
+        container.innerHTML = `
+            <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
+                <i class="fas fa-video" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+                No has subido grabaciones aún.
+            </div>
+        `;
         return;
     }
-    
+
     container.innerHTML = grabaciones.map(c => `
         <div class="clase-card" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid #FF9800;">
             <div class="clase-header" style="background:#FF9800;color:white;padding:12px 16px;">
@@ -13463,60 +13459,100 @@ function renderGrabacionesDocente(grabaciones, container) {
 }
 
 // =====================================================
-// 3. ESTUDIANTES DEL DOCENTE - SIN LISTENER
+// 3. ESTUDIANTES DEL DOCENTE - CORREGIDO
 // =====================================================
 
 function iniciarEstudiantesDocenteTiempoReal() {
-    console.log('👨‍🎓 Cargando estudiantes del docente (desde localStorage)');
+    console.log('👨‍🎓 Cargando estudiantes del docente');
     const container = document.getElementById('listaEstudiantesDocente');
     if (!container) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
-    
+
     console.log('🎸 [DOCENTE] Instrumentos asignados:', instrumentosDocente);
-    
+
     if (instrumentosDocente.length === 0) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados. Contacta a la secretaría.</p>';
         return;
     }
-    
-    // 🔥 LEER DESDE LOCALSTORAGE
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+
+    // Cargar inscripciones desde localStorage
+    let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+
+    // Si no hay en localStorage, intentar desde Firebase
+    if (inscriptions.length === 0 && window.db) {
+        window.db.collection('inscripciones').get().then((snapshot) => {
+            const firebaseData = [];
+            snapshot.forEach(doc => firebaseData.push({ id: doc.id, ...doc.data() }));
+            if (firebaseData.length > 0) {
+                localStorage.setItem('inscriptions', JSON.stringify(firebaseData));
+                inscriptions = firebaseData;
+                renderEstudiantesDocente(inscriptions, container, instrumentosDocente);
+            }
+        }).catch(err => console.error('Error cargando inscripciones:', err));
+        return;
+    }
+
     renderEstudiantesDocente(inscriptions, container, instrumentosDocente);
-    console.log(`✅ ${inscriptions.length} estudiantes cargados`);
 }
 
 function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) {
-    console.log('🔍 [DOCENTE] Aplicando filtro con instrumentos:', instrumentosDocente);
-    
+    console.log('🔍 [DOCENTE] Filtrando estudiantes...');
+
+    // Filtrar estudiantes que coinciden con PRINCIPAL o SECUNDARIO
     const estudiantesFiltrados = inscriptions.filter(ins => {
         if ((ins.estado || 'activo') !== 'activo') return false;
         return estudianteCoincideConDocente(ins, instrumentosDocente);
     });
-    
-    console.log(`🎯 [DOCENTE] Total estudiantes que coinciden: ${estudiantesFiltrados.length} de ${inscriptions.length}`);
-    
+
+    console.log(`🎯 [DOCENTE] Coinciden: ${estudiantesFiltrados.length}`);
+
     if (estudiantesFiltrados.length === 0) {
-        container.innerHTML = `<p style="text-align:center;padding:20px;color:#888;">
-            No hay estudiantes asignados a tus instrumentos: ${instrumentosDocente.join(', ')}
-        </p>`;
+        container.innerHTML = `
+            <div style="background:#fff3cd;padding:15px;border-radius:8px;border:1px solid #ffc107;margin-bottom:15px;">
+                <h4 style="margin:0;color:#856404;">⚠️ No hay estudiantes que coincidan con tus instrumentos</h4>
+                <p style="margin:5px 0 0;color:#856404;font-size:0.9rem;">
+                    Tus instrumentos: <strong>${instrumentosDocente.join(', ')}</strong>
+                </p>
+            </div>
+        `;
         return;
     }
-    
+
+    // Agrupar por instrumento COINCIDENTE
     const grupos = {};
+
     estudiantesFiltrados.forEach(est => {
-        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente);
-        const clave = instrumentoCoincidente || est.musical?.instrumentoPrincipal || 'Sin instrumento';
-        if (!grupos[clave]) grupos[clave] = [];
-        grupos[clave].push(est);
+        const principal = est.musical?.instrumentoPrincipal || '';
+        const secundario = est.musical?.instrumentoSecundario || '';
+
+        for (const instr of instrumentosDocente) {
+            const instrTrim = instr.trim();
+            if (instrTrim === principal || (secundario && instrTrim === secundario)) {
+                if (!grupos[instrTrim]) grupos[instrTrim] = [];
+                if (!grupos[instrTrim].find(e => e.id === est.id)) {
+                    grupos[instrTrim].push(est);
+                }
+            }
+        }
     });
-    
-    let html = '';
+
+    // Mostrar instrumentos del docente
+    let html = `
+        <div style="margin-bottom:15px;padding:10px;background:#f8f9fa;border-radius:8px;border:1px solid #ddd;">
+            <strong style="color:#E63946;">🎸 Tus instrumentos:</strong>
+            ${instrumentosDocente.map(i => `<span style="display:inline-block;background:#E63946;color:white;padding:2px 10px;border-radius:12px;margin:2px;font-size:0.8rem;">${i}</span>`).join('')}
+            <span style="margin-left:10px;color:#888;font-size:0.85rem;">(${estudiantesFiltrados.length} estudiantes únicos)</span>
+        </div>
+    `;
+
+    // Mostrar grupos por instrumento
     Object.keys(grupos).sort().forEach(instr => {
         const estudiantes = grupos[instr];
+
         html += `
-            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;">
+            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;" open>
                 <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
                     <i class="fas fa-guitar"></i> ${instr} (${estudiantes.length} estudiantes)
                 </summary>
@@ -13524,7 +13560,10 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
                     ${estudiantes.map(est => {
                         const principal = est.musical?.instrumentoPrincipal || 'N/A';
                         const secundario = est.musical?.instrumentoSecundario ? ` (Secundario: ${est.musical.instrumentoSecundario})` : '';
-                        const coincidePor = (estudianteCoincideConDocente(est, [instr]) && est.musical?.instrumentoPrincipal === instr) ? '✅ Principal' : '🔄 Secundario';
+                        const coincidePrincipal = principal === instr;
+                        const coincideSecundario = est.musical?.instrumentoSecundario === instr;
+                        const coincidePor = coincidePrincipal ? '✅ Principal' : (coincideSecundario ? '🔄 Secundario' : '');
+
                         return `
                             <div style="border-bottom:1px solid #eee;padding:8px 0;display:flex;justify-content:space-between;align-items:center;">
                                 <div>
@@ -13536,7 +13575,8 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
                                         | <span style="color:#E63946;">${coincidePor}</span>
                                     </small>
                                 </div>
-                                <button class="btn-small" onclick="verProgresoEstudiante('${est.id}')" 
+                                <button class="btn-small"
+                                    onclick="verProgresoEstudiante('${est.id}')"
                                     style="padding:6px 12px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.75rem;">
                                     Ver Progreso
                                 </button>
@@ -13547,20 +13587,20 @@ function renderEstudiantesDocente(inscriptions, container, instrumentosDocente) 
             </details>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 // =====================================================
-// 🔥 VER PROGRESO ESTUDIANTE
+// 4. VER PROGRESO ESTUDIANTE
 // =====================================================
 
 function verProgresoEstudiante(estudianteId) {
     console.log('📊 Ver progreso:', estudianteId);
-    
+
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => String(ins.id) === String(estudianteId));
-    
+
     if (!estudiante) {
         alert('❌ Estudiante no encontrado');
         return;
@@ -13568,10 +13608,9 @@ function verProgresoEstudiante(estudianteId) {
 
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     const tareasEstudiante = tareas.filter(t => String(t.estudianteId) === String(estudianteId));
-    
     const calificadas = tareasEstudiante.filter(t => t.calificada === true);
     const pendientes = tareasEstudiante.filter(t => t.calificada !== true);
-    
+
     let promedio = 'Sin calif.';
     if (calificadas.length > 0) {
         const total = calificadas.reduce((sum, t) => sum + (t.nota || 0), 0);
@@ -13580,10 +13619,10 @@ function verProgresoEstudiante(estudianteId) {
 
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = 'background:white;border-radius:12px;padding:25px;max-width:600px;width:90%;max-height:90vh;overflow-y:auto;position:relative;';
-    
+
     let html = `
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:15px;">
             <h4 style="margin:0;color:#E63946;">📊 Progreso de ${estudiante.estudiante.nombre}</h4>
@@ -13622,6 +13661,7 @@ function verProgresoEstudiante(estudianteId) {
             const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
             const nota = t.calificada ? t.nota : '-';
             const color = t.calificada && t.nota >= 7 ? '#4CAF50' : '#E63946';
+
             html += `
                 <tr style="border-bottom:1px solid #eee;">
                     <td style="padding:10px;">Semana ${t.semana}</td>
@@ -13641,95 +13681,150 @@ function verProgresoEstudiante(estudianteId) {
             <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:8px 20px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;">Cerrar</button>
         </div>
     `;
-    
+
     modalContent.innerHTML = html;
     overlay.appendChild(modalContent);
     document.body.appendChild(overlay);
-    
+
     overlay.addEventListener('click', function(e) {
         if (e.target === this) {
             this.remove();
         }
     });
-    
-    function handleKeyDown(e) {
+
+    document.addEventListener('keydown', function cerrarEscape(e) {
         if (e.key === 'Escape') {
             if (overlay && overlay.parentNode) {
                 overlay.remove();
-                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keydown', cerrarEscape);
             }
         }
-    }
-    document.addEventListener('keydown', handleKeyDown);
+    });
 }
 
 // =====================================================
-// 4. TAREAS SUBIDAS - SIN LISTENER
+// 5. TAREAS SUBIDAS - CON CARGA DESDE FIREBASE
 // =====================================================
 
 function iniciarTareasDocenteTiempoReal() {
-    console.log('📝 Cargando tareas del docente (desde localStorage)');
+    console.log('📝 Cargando tareas del docente');
     const container = document.getElementById('tareasListContainer');
     if (!container) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
-    
+
     if (instrumentosDocente.length === 0) {
         container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No tienes instrumentos asignados.</p>';
         return;
     }
-    
-    // 🔥 LEER DESDE LOCALSTORAGE
-    const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
-    renderTareasDocente(tareas, container, inscriptions, instrumentosDocente, temarios);
-    console.log(`✅ ${tareas.length} tareas cargadas`);
+
+    // Cargar inscripciones y temarios
+    let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+
+    // 🔥 FORZAR CARGA DE TAREAS DESDE FIREBASE
+    if (window.db) {
+        console.log('☁️ Cargando tareas desde Firebase...');
+        window.db.collection('tareas').get().then((snapshot) => {
+            const firebaseTareas = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                firebaseTareas.push({ id: doc.id, ...data });
+            });
+            
+            if (firebaseTareas.length > 0) {
+                localStorage.setItem('tareasSubidas', JSON.stringify(firebaseTareas));
+                console.log(`✅ ${firebaseTareas.length} tareas cargadas desde Firebase`);
+                renderTareasDocente(firebaseTareas, container, inscriptions, instrumentosDocente, temarios);
+            } else {
+                console.log('ℹ️ No hay tareas en Firebase');
+                let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+                renderTareasDocente(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+            }
+        }).catch(err => {
+            console.error('❌ Error cargando tareas desde Firebase:', err);
+            let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+            renderTareasDocente(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+        });
+    } else {
+        let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+        renderTareasDocente(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+    }
 }
 
 function renderTareasDocente(tareas, container, inscriptions, instrumentosDocente, temarios) {
+    console.log('📝 [TAREAS] Total tareas:', tareas.length);
+
+    // Obtener IDs de estudiantes que coinciden con los instrumentos del docente
     const idsEstudiantesDocente = inscriptions
-        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .filter(ins => {
+            if ((ins.estado || 'activo') !== 'activo') return false;
+            return estudianteCoincideConDocente(ins, instrumentosDocente);
+        })
         .map(ins => ins.id);
-    
+
+    console.log('📝 [TAREAS] Estudiantes que coinciden:', idsEstudiantesDocente.length);
+
+    // Filtrar tareas SOLO de estudiantes que coinciden
     let tareasFiltradas = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId));
-    
+
+    // Filtrar por instrumento de la tarea
     tareasFiltradas = tareasFiltradas.filter(t => {
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
-        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+        if (!instrumentoTarea) return false;
+        return instrumentosDocente.some(instr => instr.trim() === instrumentoTarea.trim());
     });
-    
+
+    console.log('📝 [TAREAS] Tareas filtradas (solo las tuyas):', tareasFiltradas.length);
+
     const estudiantesMap = {};
     inscriptions.forEach(ins => {
         estudiantesMap[ins.id] = ins.estudiante?.nombre || 'Sin nombre';
     });
-    
+
     tareasFiltradas.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
-    
+
     if (tareasFiltradas.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
                 <p>No hay tareas subidas para tus instrumentos.</p>
+                <p style="font-size:0.85rem;color:#999;margin-top:10px;">
+                    Instrumentos del docente: <strong>${instrumentosDocente.join(', ')}</strong>
+                </p>
+                <p style="font-size:0.8rem;color:#999;margin-top:5px;">
+                    Total tareas en sistema: <strong>${tareas.length}</strong> | Tareas filtradas: <strong>0</strong>
+                </p>
             </div>
         `;
         return;
     }
-    
+
     let html = '';
     tareasFiltradas.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
         const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
         const nota = t.nota !== undefined && t.nota !== null ? t.nota : '-';
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
-        
+
+        const estudiante = inscriptions.find(ins => ins.id == t.estudianteId);
+        let esPrincipal = false;
+        if (estudiante) {
+            const principal = estudiante.musical?.instrumentoPrincipal || '';
+            esPrincipal = principal === instrumentoTarea;
+        }
+
         html += `
             <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
+                    <div class="semana" style="color:#666;font-size:14px;">
+                        Semana ${t.semana} - ${t.tema || 'Sin tema'}
+                        <span style="color:#E63946;font-size:12px;">
+                            (${instrumentoTarea} ${esPrincipal ? '⭐ Principal' : '🔄 Secundario'})
+                        </span>
+                    </div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
@@ -13743,57 +13838,59 @@ function renderTareasDocente(tareas, container, inscriptions, instrumentosDocent
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 // =====================================================
-// 5. FILTRAR TAREAS
+// 6. FILTRAR TAREAS
 // =====================================================
 
 function filtrarTareas() {
     const instrumento = document.getElementById('filtroTareaInstrumento')?.value || '';
     const semana = document.getElementById('filtroTareaSemana')?.value || '';
-    
     const container = document.getElementById('tareasListContainer');
     if (!container) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
-    
+
     let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
+
     const idsEstudiantesDocente = inscriptions
-        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .filter(ins => {
+            if ((ins.estado || 'activo') !== 'activo') return false;
+            return estudianteCoincideConDocente(ins, instrumentosDocente);
+        })
         .map(ins => ins.id);
-    
+
     tareas = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId));
-    
+
     tareas = tareas.filter(t => {
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
-        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+        return instrumentoTarea && instrumentosDocente.some(instr => instr.trim() === instrumentoTarea.trim());
     });
-    
+
     if (instrumento) {
         tareas = tareas.filter(t => {
             const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
             return instrumentoTarea === instrumento;
         });
     }
-    
+
     if (semana) {
         tareas = tareas.filter(t => t.semana === parseInt(semana));
     }
-    
+
     const estudiantesMap = {};
     inscriptions.forEach(ins => {
         estudiantesMap[ins.id] = ins.estudiante?.nombre || 'Sin nombre';
     });
-    
+
     tareas.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
-    
+
     if (tareas.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
@@ -13803,19 +13900,31 @@ function filtrarTareas() {
         `;
         return;
     }
-    
+
     let html = '';
     tareas.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
         const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
         const nota = t.nota !== undefined && t.nota !== null ? t.nota : '-';
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
-        
+
+        const estudiante = inscriptions.find(ins => ins.id == t.estudianteId);
+        let esPrincipal = false;
+        if (estudiante) {
+            const principal = estudiante.musical?.instrumentoPrincipal || '';
+            esPrincipal = principal === instrumentoTarea;
+        }
+
         html += `
-            <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
+            <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
+                    <div class="semana" style="color:#666;font-size:14px;">
+                        Semana ${t.semana} - ${t.tema || 'Sin tema'}
+                        <span style="color:#E63946;font-size:12px;">
+                            (${instrumentoTarea} ${esPrincipal ? '⭐ Principal' : '🔄 Secundario'})
+                        </span>
+                    </div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
@@ -13828,64 +13937,112 @@ function filtrarTareas() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 // =====================================================
-// 6. TAREAS PENDIENTES
+// 7. TAREAS PENDIENTES DE CALIFICAR - CON CARGA DESDE FIREBASE
 // =====================================================
 
 function cargarTareasPendientes() {
-    console.log('⏳ Cargando tareas pendientes (desde localStorage)');
+    console.log('⏳ Cargando tareas pendientes');
     const container = document.getElementById('calificarListContainer');
     if (!container) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
-    
-    let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+
     let inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
+
+    // 🔥 FORZAR CARGA DE TAREAS DESDE FIREBASE
+    if (window.db) {
+        console.log('☁️ Cargando tareas pendientes desde Firebase...');
+        window.db.collection('tareas').get().then((snapshot) => {
+            const firebaseTareas = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                firebaseTareas.push({ id: doc.id, ...data });
+            });
+            
+            if (firebaseTareas.length > 0) {
+                localStorage.setItem('tareasSubidas', JSON.stringify(firebaseTareas));
+                console.log(`✅ ${firebaseTareas.length} tareas cargadas desde Firebase`);
+                renderTareasPendientes(firebaseTareas, container, inscriptions, instrumentosDocente, temarios);
+            } else {
+                console.log('ℹ️ No hay tareas en Firebase');
+                let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+                renderTareasPendientes(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+            }
+        }).catch(err => {
+            console.error('❌ Error cargando tareas desde Firebase:', err);
+            let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+            renderTareasPendientes(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+        });
+    } else {
+        let tareasLocal = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+        renderTareasPendientes(tareasLocal, container, inscriptions, instrumentosDocente, temarios);
+    }
+}
+
+function renderTareasPendientes(tareas, container, inscriptions, instrumentosDocente, temarios) {
     const idsEstudiantesDocente = inscriptions
-        .filter(ins => estudianteCoincideConDocente(ins, instrumentosDocente))
+        .filter(ins => {
+            if ((ins.estado || 'activo') !== 'activo') return false;
+            return estudianteCoincideConDocente(ins, instrumentosDocente);
+        })
         .map(ins => ins.id);
-    
+
     let pendientes = tareas.filter(t => idsEstudiantesDocente.includes(t.estudianteId) && !t.calificada);
-    
+
     pendientes = pendientes.filter(t => {
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
-        return instrumentoTarea && instrumentosDocente.includes(instrumentoTarea);
+        return instrumentoTarea && instrumentosDocente.some(instr => instr.trim() === instrumentoTarea.trim());
     });
-    
+
     pendientes.sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
-    
+
     const estudiantesMap = {};
     inscriptions.forEach(ins => {
         estudiantesMap[ins.id] = ins.estudiante?.nombre || 'Sin nombre';
     });
-    
+
     if (pendientes.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-clipboard-list" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
                 <p>No hay tareas pendientes de calificar de tus estudiantes.</p>
+                <p style="font-size:0.85rem;color:#999;margin-top:10px;">
+                    Instrumentos del docente: <strong>${instrumentosDocente.join(', ')}</strong>
+                </p>
             </div>
         `;
         return;
     }
-    
+
     let html = '';
     pendientes.forEach(t => {
         const nombreEstudiante = estudiantesMap[t.estudianteId] || t.estudianteNombre || t.estudianteId;
         const instrumentoTarea = obtenerInstrumentoTarea(t, inscriptions, temarios) || 'N/A';
-        
+
+        const estudiante = inscriptions.find(ins => ins.id == t.estudianteId);
+        let esPrincipal = false;
+        if (estudiante) {
+            const principal = estudiante.musical?.instrumentoPrincipal || '';
+            esPrincipal = principal === instrumentoTarea;
+        }
+
         html += `
-            <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;transition:background 0.3s;">
+            <div class="tarea-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #eee;">
                 <div class="tarea-info" style="flex:1;">
                     <div class="estudiante" style="font-weight:600;">${nombreEstudiante}</div>
-                    <div class="semana" style="color:#666;font-size:14px;">Semana ${t.semana} - ${t.tema || 'Sin tema'} <span style="color:#E63946;font-size:12px;">(${instrumentoTarea})</span></div>
+                    <div class="semana" style="color:#666;font-size:14px;">
+                        Semana ${t.semana} - ${t.tema || 'Sin tema'}
+                        <span style="color:#E63946;font-size:12px;">
+                            (${instrumentoTarea} ${esPrincipal ? '⭐ Principal' : '🔄 Secundario'})
+                        </span>
+                    </div>
                     <div style="font-size:12px;color:#666;">
                         <i class="fas fa-file"></i> ${t.nombreArchivo || 'Archivo'}
                         ${t.fechaSubida ? `- ${new Date(t.fechaSubida).toLocaleDateString()}` : ''}
@@ -13900,38 +14057,40 @@ function cargarTareasPendientes() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 // =====================================================
-// 7. CALIFICAR TAREA
+// 8. CALIFICAR TAREA
 // =====================================================
 
 function abrirModalCalificar(tareaId) {
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     const tarea = tareas.find(t => t.id === tareaId);
-    
+
     if (!tarea) {
         alert('❌ No se encontró la tarea');
         return;
     }
-    
+
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const estudiante = inscriptions.find(ins => ins.id == tarea.estudianteId);
     const nombreEstudiante = estudiante?.estudiante?.nombre || tarea.estudianteNombre || tarea.estudianteId;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
+
     if (!estudiante || !estudianteCoincideConDocente(estudiante, instrumentosDocente)) {
         alert('❌ No puedes calificar esta tarea porque el estudiante no te pertenece.');
         return;
     }
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal modal-calificar';
     modal.style.display = 'block';
     modal.style.zIndex = '10000';
+
     modal.innerHTML = `
         <div class="modal-content" style="max-width:600px;margin:5% auto;background:white;border-radius:12px;padding:25px;max-height:90vh;overflow-y:auto;">
             <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding-bottom:15px;border-bottom:1px solid #eee;">
@@ -13943,22 +14102,18 @@ function abrirModalCalificar(tareaId) {
                 <p><strong>Semana:</strong> ${tarea.semana}</p>
                 <p><strong>Tema:</strong> ${tarea.tema || 'Sin tema'}</p>
                 <p><strong>Ponderación máxima:</strong> ${tarea.ponderacion || 'No definida'} puntos</p>
-                
                 <div style="margin:15px 0;padding:10px;background:#f8f9fa;border-radius:5px;">
                     <p><strong>Archivo subido:</strong></p>
                     ${tarea.archivoUrl ? `<a href="${tarea.archivoUrl}" target="_blank" style="color:#E63946;">Ver archivo</a>` : '<span style="color:#666;">No hay archivo</span>'}
                 </div>
-                
                 <div class="input-group" style="margin-bottom:15px;">
                     <label style="display:block;font-weight:600;margin-bottom:5px;color:#555;">Comentario del estudiante:</label>
                     <p style="padding:10px;background:#f5f5f5;border-radius:5px;">${tarea.comentario || 'Sin comentario'}</p>
                 </div>
-                
                 <div class="input-group" style="margin-bottom:15px;">
                     <label style="display:block;font-weight:600;margin-bottom:5px;color:#555;">Nota (0 - ${tarea.ponderacion || 10}):</label>
                     <input type="number" id="notaCalificacion" min="0" max="${tarea.ponderacion || 10}" step="0.5" placeholder="Ej: 2.5" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:5px;">
                 </div>
-                
                 <div class="input-group" style="margin-bottom:15px;">
                     <label style="display:block;font-weight:600;margin-bottom:5px;color:#555;">Retroalimentación:</label>
                     <textarea id="comentarioCalificacion" rows="3" placeholder="Escribe tu retroalimentación..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:5px;resize:vertical;"></textarea>
@@ -13970,84 +14125,82 @@ function abrirModalCalificar(tareaId) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 
 function guardarCalificacion(tareaId) {
     const nota = parseFloat(document.getElementById('notaCalificacion')?.value);
     const comentario = document.getElementById('comentarioCalificacion')?.value?.trim() || '';
-    
+
     if (isNaN(nota) || nota < 0) {
         alert('⚠️ Ingresa una nota válida');
         return;
     }
-    
+
     let tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
     const index = tareas.findIndex(t => t.id === tareaId);
-    
+
     if (index === -1) {
         alert('❌ No se encontró la tarea');
         return;
     }
-    
+
     tareas[index].nota = nota;
     tareas[index].comentarioDocente = comentario;
     tareas[index].calificada = true;
     tareas[index].fechaCalificacion = new Date().toISOString();
-    
+
     localStorage.setItem('tareasSubidas', JSON.stringify(tareas));
-    
+
     if (window.db) {
         window.db.collection('tareas').doc(tareaId).set(tareas[index])
             .then(() => console.log('☁️ Calificación guardada en Firebase'))
             .catch(e => console.error('❌ Error:', e));
     }
-    
+
     alert('✅ Tarea calificada correctamente');
-    
+
     const modal = document.querySelector('.modal-calificar');
     if (modal) modal.remove();
-    
+
     iniciarTareasDocenteTiempoReal();
     cargarTareasPendientes();
     mostrarCalificacionesDocente();
 }
 
 // =====================================================
-// 8. TEMARIO - SIN LISTENER
+// 9. TEMARIO
 // =====================================================
 
 function iniciarTemarioDocenteTiempoReal() {
-    console.log('📖 Cargando temarios del docente (desde localStorage)');
+    console.log('📖 Cargando temarios del docente');
     const container = document.getElementById('semanasList');
     if (!container) return;
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
-    
+
     if (!username) {
         container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No se encontró el usuario docente.</p>';
         return;
     }
-    
-    // 🔥 LEER DESDE LOCALSTORAGE
+
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const misTemarios = temarios.filter(t => t.docenteId === username);
-    
     renderTemarioDocente(misTemarios, container);
-    console.log(`✅ ${misTemarios.length} temarios cargados`);
 }
 
 function renderTemarioDocente(temarios, container) {
     if (!container) return;
-    
+
     if (temarios.length === 0) {
         container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay temarios guardados para tu usuario.</p>';
         return;
     }
-    
+
     let html = '';
+
     temarios.forEach(t => {
         html += `
             <div style="border:1px solid #ddd;border-radius:8px;padding:15px;margin-bottom:10px;background:white;">
@@ -14072,60 +14225,56 @@ function renderTemarioDocente(temarios, container) {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 function cargarTemarioPorId(temarioId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const username = currentUser.username;
-    
+
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.id === temarioId && t.docenteId === username);
-    
+
     if (!temario) {
         alert('⚠️ Temario no encontrado o no pertenece a tu usuario');
         return;
     }
-    
+
     temarioTemporal.semanas = [...temario.semanas];
     temarioActual = temario;
     mostrarVistaPreviaTemario();
-    
+
     document.getElementById('temarioInstrumento').value = temario.instrumento;
     document.getElementById('temarioNivel').value = temario.nivel;
     document.getElementById('temarioInstrumento').disabled = true;
     document.getElementById('temarioNivel').disabled = true;
-    
+
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
-
-// =====================================================
-// 8.1 ELIMINAR TEMARIO COMPLETO
-// =====================================================
 
 function eliminarTemarioCompleto(temarioId) {
     if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODO este temario? Esta acción no se puede deshacer.')) {
         return;
     }
-    
+
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
     const temario = temarios.find(t => t.id === temarioId);
-    
+
     if (!temario) {
         alert('❌ Temario no encontrado');
         return;
     }
-    
+
     temarios = temarios.filter(t => t.id !== temarioId);
     localStorage.setItem('temarios', JSON.stringify(temarios));
-    
+
     if (window.db) {
         window.db.collection('temarios').doc(temarioId).delete()
             .then(() => console.log('☁️ Temario eliminado de Firebase'))
             .catch(e => console.error('❌ Error eliminando temario:', e));
     }
-    
+
     if (temarioActual && temarioActual.id === temarioId) {
         temarioActual = null;
         temarioTemporal.semanas = [];
@@ -14135,30 +14284,27 @@ function eliminarTemarioCompleto(temarioId) {
         document.getElementById('temarioInstrumento').disabled = false;
         document.getElementById('temarioNivel').disabled = false;
     }
-    
+
     alert('✅ Temario eliminado correctamente');
     iniciarTemarioDocenteTiempoReal();
 }
 
-// =====================================================
-// 8.2 MOSTRAR VISTA PREVIA - ACORDEÓN
-// =====================================================
-
 function mostrarVistaPreviaTemario() {
     const container = document.getElementById('semanasList');
     if (!container) return;
-    
+
     if (temarioTemporal.semanas.length === 0) {
         container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No hay semanas agregadas aún.</p>';
         return;
     }
-    
+
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
-    
+
     let html = '';
+
     temarioTemporal.semanas.forEach(s => {
         const esEdicion = (semanaEnEdicion === s.numero);
-        
+
         html += `
             <div class="temario-card" style="background:white;border-radius:12px;padding:15px 20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-left:4px solid ${esEdicion ? '#FF9800' : '#E63946'};">
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;" onclick="toggleSemana(${s.numero})">
@@ -14199,20 +14345,16 @@ function mostrarVistaPreviaTemario() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
-
-// =====================================================
-// toggleSemana
-// =====================================================
 
 function toggleSemana(numero) {
     const contenido = document.getElementById(`contenido-${numero}`);
     const icono = document.getElementById(`icono-${numero}`);
-    
+
     if (!contenido || !icono) return;
-    
+
     if (contenido.style.display === 'none') {
         contenido.style.display = 'block';
         icono.innerHTML = '<i class="fas fa-chevron-up"></i>';
@@ -14221,78 +14363,70 @@ function toggleSemana(numero) {
         icono.innerHTML = '<i class="fas fa-chevron-down"></i>';
     }
 }
-
 window.toggleSemana = toggleSemana;
-
-// =====================================================
-// 8.3 EDITAR SEMANA
-// =====================================================
 
 function editarSemanaTemario(numeroSemana) {
     const semana = temarioTemporal.semanas.find(s => s.numero === numeroSemana);
+
     if (!semana) {
         alert('❌ Semana no encontrada');
         return;
     }
-    
+
     document.getElementById('temarioSemana').value = semana.numero;
     document.getElementById('temarioTema').value = semana.tema || '';
     document.getElementById('temarioDescripcion').value = semana.descripcion || '';
     document.getElementById('temarioMaterial').value = semana.material || '';
     document.getElementById('temarioPonderacion').value = semana.ponderacion || 2.5;
-    
+
     semanaEnEdicion = numeroSemana;
+
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Actualizar Semana';
         btnGuardar.style.background = '#FF9800';
     }
+
     document.getElementById('temarioTema').focus();
     document.querySelector('.form-temario').scrollIntoView({ behavior: 'smooth' });
 }
 
-// =====================================================
-// 8.4 ELIMINAR SEMANA
-// =====================================================
-
 function eliminarSemanaTemario(numeroSemana) {
-    console.log(`🗑️ Eliminando Semana ${numeroSemana}...`);
     if (!confirm(`⚠️ ¿Estás seguro de eliminar la Semana ${numeroSemana}?`)) return;
-    
+
     temarioTemporal.semanas = temarioTemporal.semanas.filter(s => s.numero !== numeroSemana);
     temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
+
     mostrarVistaPreviaTemario();
-    
+
     if (temarioActual) {
         temarioActual.semanas = temarioActual.semanas.filter(s => s.numero !== numeroSemana);
         temarioActual.semanas.sort((a, b) => a.numero - b.numero);
         temarioActual.fechaActualizacion = new Date().toISOString();
-        
+
         let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const index = temarios.findIndex(t => t.id === temarioActual.id);
+
         if (index !== -1) {
             temarios[index] = temarioActual;
             localStorage.setItem('temarios', JSON.stringify(temarios));
         }
+
         if (window.db) {
             window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
                 .then(() => console.log('☁️ Semana eliminada de Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
+
         alert(`✅ Semana ${numeroSemana} eliminada de ${temarioActual.instrumento} - ${temarioActual.nivel}`);
     } else {
         alert(`✅ Semana ${numeroSemana} eliminada (aún no guardada en Firebase)`);
     }
 }
 
-// =====================================================
-// 8.5 GUARDAR SEMANA
-// =====================================================
-
 function guardarSemanaTemario() {
     console.log('🟢 Guardando/Actualizando semana...');
-    console.log('semanaEnEdicion:', semanaEnEdicion);
-    
+
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
     let semana = parseInt(document.getElementById('temarioSemana')?.value);
@@ -14300,40 +14434,43 @@ function guardarSemanaTemario() {
     const descripcion = document.getElementById('temarioDescripcion')?.value?.trim();
     const material = document.getElementById('temarioMaterial')?.value?.trim();
     const ponderacion = parseFloat(document.getElementById('temarioPonderacion')?.value);
-    
+
     if (!instrumento || !nivel) {
         alert('⚠️ Selecciona un Instrumento y Nivel primero');
         return;
     }
+
     if (!tema) {
         alert('⚠️ Ingresa un tema para la semana');
         return;
     }
+
     if (isNaN(semana) || semana < 1 || semana > 44) {
         alert('⚠️ La semana debe ser entre 1 y 44');
         return;
     }
+
     if (isNaN(ponderacion) || ponderacion < 0) {
         alert('⚠️ La ponderación debe ser un número válido');
         return;
     }
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
     if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
         alert(`⚠️ No tienes asignado el instrumento "${instrumento}".`);
         return;
     }
-    
-    // CASO 1: EDITANDO UNA SEMANA EXISTENTE
+
+    // EDITANDO SEMANA EXISTENTE
     if (semanaEnEdicion !== null) {
-        console.log('✏️ ACTUALIZANDO semana:', semanaEnEdicion);
-        
         const index = temarioTemporal.semanas.findIndex(s => s.numero === semanaEnEdicion);
+
         if (index === -1) {
             alert('❌ Error: La semana que intentas editar no existe');
             return;
         }
-        
+
         temarioTemporal.semanas[index] = {
             numero: semanaEnEdicion,
             tema: tema,
@@ -14341,10 +14478,10 @@ function guardarSemanaTemario() {
             material: material,
             ponderacion: ponderacion
         };
-        console.log('✅ Semana actualizada en memoria temporal');
 
         if (temarioActual) {
             const idx = temarioActual.semanas.findIndex(s => s.numero === semanaEnEdicion);
+
             if (idx !== -1) {
                 temarioActual.semanas[idx] = {
                     numero: semanaEnEdicion,
@@ -14353,22 +14490,22 @@ function guardarSemanaTemario() {
                     material: material,
                     ponderacion: ponderacion
                 };
+
                 temarioActual.fechaActualizacion = new Date().toISOString();
-                
+
                 let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
                 const tIndex = temarios.findIndex(t => t.id === temarioActual.id);
+
                 if (tIndex !== -1) {
                     temarios[tIndex] = temarioActual;
                     localStorage.setItem('temarios', JSON.stringify(temarios));
-                    console.log('✅ Guardado en localStorage');
                 }
-                
+
                 if (window.db) {
                     window.db.collection('temarios').doc(temarioActual.id).set(temarioActual, { merge: true })
                         .then(() => console.log('☁️ Semana actualizada en Firebase'))
                         .catch(e => console.error('❌ Error en Firebase:', e));
                 }
-                console.log('✅ Semana actualizada en Firebase/localStorage');
             }
         }
 
@@ -14379,11 +14516,10 @@ function guardarSemanaTemario() {
         if (btnGuardar) {
             btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
             btnGuardar.style.background = '#E63946';
-            btnGuardar.style.color = 'white';
         }
 
-        alert(`✅ Semana ${semanaEditada} ACTUALIZADA correctamente en ${instrumento} - ${nivel}`);
-        
+        alert(`✅ Semana ${semanaEditada} ACTUALIZADA correctamente`);
+
         temarioTemporal.semanas.sort((a, b) => a.numero - b.numero);
         mostrarVistaPreviaTemario();
 
@@ -14396,10 +14532,9 @@ function guardarSemanaTemario() {
         return;
     }
 
-    // CASO 2: NUEVA SEMANA
-    console.log('➕ NUEVA semana');
-    
+    // NUEVA SEMANA
     const semanaDuplicada = temarioTemporal.semanas.some(s => s.numero === semana);
+
     if (semanaDuplicada) {
         alert(`❌ La Semana ${semana} YA EXISTE. Usa el botón "Editar" para modificarla.`);
         return;
@@ -14407,6 +14542,7 @@ function guardarSemanaTemario() {
 
     if (temarioActual) {
         const existeEnGuardado = temarioActual.semanas.some(s => s.numero === semana);
+
         if (existeEnGuardado) {
             alert(`❌ La Semana ${semana} YA EXISTE en el temario guardado. Usa "Editar" para modificarla.`);
             return;
@@ -14430,84 +14566,90 @@ function guardarSemanaTemario() {
     document.getElementById('temarioSemana').value = semana + 1;
     document.getElementById('temarioPonderacion').value = 2.5;
 
-    alert(`✅ Semana ${semana} guardada en ${instrumento} - ${nivel}`);
+    alert(`✅ Semana ${semana} guardada correctamente`);
 }
 
-// =====================================================
-// 8.6 GUARDAR TEMARIO COMPLETO
-// =====================================================
-
 function guardarTemarioCompleto() {
-    console.log('🟢 Guardando temario COMPLETO...');
     if (temarioTemporal.semanas.length === 0) {
         alert('⚠️ Debes agregar al menos una semana al temario');
         return;
     }
-    
+
     const instrumento = document.getElementById('temarioInstrumento')?.value;
     const nivel = document.getElementById('temarioNivel')?.value;
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
+
     if (!currentUser.username) {
         alert('⚠️ No se encontró el usuario docente');
         return;
     }
+
     if (!instrumento) {
         alert('⚠️ Selecciona un instrumento');
         return;
     }
+
     if (!nivel) {
         alert('⚠️ Selecciona un nivel');
         return;
     }
+
     if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento)) {
         alert(`⚠️ No tienes asignado el instrumento "${instrumento}". No puedes guardar temario para él.`);
         return;
     }
-    
+
     let temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    let temarioExistente = temarios.find(t => 
+
+    let temarioExistente = temarios.find(t =>
         t.instrumento === instrumento && t.nivel === nivel && t.docenteId === currentUser.username
     );
-    
+
     function notificarCambio(temario) {
         let todosTemarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         const index = todosTemarios.findIndex(t => t.id === temario.id);
+
         if (index !== -1) {
             todosTemarios[index] = temario;
         } else {
             todosTemarios.push(temario);
         }
+
         localStorage.setItem('temarios', JSON.stringify(todosTemarios));
-        
-        // 🔥 SUBIR A FIREBASE
+
         if (window.db) {
             window.db.collection('temarios').doc(temario.id).set(temario, { merge: true })
                 .then(() => console.log('☁️ Temario guardado en Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
-        console.log('📦 Temario guardado localmente y en Firebase');
     }
-    
+
     if (temarioExistente) {
         let semanaDuplicada = null;
+
         for (const semanaNueva of temarioTemporal.semanas) {
             if (temarioExistente.semanas.some(s => s.numero === semanaNueva.numero)) {
                 semanaDuplicada = semanaNueva.numero;
                 break;
             }
         }
+
         if (semanaDuplicada) {
             alert(`❌ La Semana ${semanaDuplicada} YA EXISTE en ${instrumento} - ${nivel}\n💡 Usa el botón "Editar" para modificarla.`);
             return;
         }
+
         temarioExistente.semanas = [...temarioExistente.semanas, ...temarioTemporal.semanas];
         temarioExistente.semanas.sort((a, b) => a.numero - b.numero);
         temarioExistente.fechaActualizacion = new Date().toISOString();
+
         notificarCambio(temarioExistente);
-        alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}\n📌 Total semanas: ${temarioExistente.semanas.length}`);
+
+        alert(`✅ Temario "${instrumento} - ${nivel}" ACTUALIZADO\n📌 Semanas agregadas: ${temarioTemporal.semanas.length}`);
     } else {
         const temarioId = `temario_${instrumento}_${nivel}_${Date.now()}`;
+
         const temario = {
             id: temarioId,
             instrumento: instrumento,
@@ -14518,17 +14660,21 @@ function guardarTemarioCompleto() {
             fechaActualizacion: new Date().toISOString(),
             semanas: temarioTemporal.semanas
         };
+
         notificarCambio(temario);
+
         alert(`✅ Temario "${instrumento} - ${nivel}" CREADO\n📌 Semanas: ${temario.semanas.length}`);
     }
-    
+
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
+
     semanaEnEdicion = null;
     temarioTemporal = { semanas: [] };
+
     document.getElementById('temarioTema').value = '';
     document.getElementById('temarioDescripcion').value = '';
     document.getElementById('temarioMaterial').value = '';
@@ -14536,59 +14682,70 @@ function guardarTemarioCompleto() {
     document.getElementById('temarioPonderacion').value = 2.5;
     document.getElementById('temarioInstrumento').disabled = false;
     document.getElementById('temarioNivel').disabled = false;
+
     mostrarVistaPreviaTemario();
     iniciarTemarioDocenteTiempoReal();
 }
 
-// =====================================================
-// 8.7 CARGAR TEMARIO EXISTENTE
-// =====================================================
-
 function cargarTemarioExistente() {
     const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+
     if (temarios.length === 0) {
         alert('⚠️ No hay temarios guardados para tu usuario');
         return;
     }
+
     let lista = 'Selecciona un temario para cargar:\n\n';
     temarios.forEach((t, i) => {
         lista += `${i+1}. ${t.instrumento} - ${t.nivel} (${t.semanas?.length || 0} semanas)\n`;
     });
+
     const seleccion = prompt(lista + '\n\nIngresa el número del temario:');
+
     if (!seleccion) return;
+
     const idx = parseInt(seleccion) - 1;
+
     if (isNaN(idx) || idx < 0 || idx >= temarios.length) {
         alert('❌ Selección inválida');
         return;
     }
+
     const temario = temarios[idx];
+
     temarioActual = temario;
     temarioTemporal.semanas = [...temario.semanas];
+
     mostrarVistaPreviaTemario();
+
     document.getElementById('temarioInstrumento').value = temario.instrumento;
     document.getElementById('temarioNivel').value = temario.nivel;
     document.getElementById('temarioInstrumento').disabled = true;
     document.getElementById('temarioNivel').disabled = true;
+
     semanaEnEdicion = null;
+
     const btnGuardar = document.querySelector('.btn-temario[onclick="guardarSemanaTemario()"]');
     if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Semana';
         btnGuardar.style.background = '#E63946';
     }
+
     alert(`✅ Temario "${temario.instrumento} - ${temario.nivel}" cargado (${temario.semanas.length} semanas)`);
 }
 
 // =====================================================
-// 9. GUARDAR CLASE VIRTUAL
+// 10. GUARDAR CLASE VIRTUAL
 // =====================================================
 
 function guardarClaseVirtualDocente() {
-    console.log('🟢 Intentando crear clase...');
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
     if (!currentUser || !currentUser.username) {
-        alert('❌ No se encontró el usuario docente. Por favor, cierra sesión y vuelve a entrar.');
+        alert('❌ No se encontró el usuario docente.');
         return;
     }
+
     const titulo = document.getElementById('docTituloClase');
     const instrumento = document.getElementById('docInstrumentoClase');
     const nivel = document.getElementById('docNivelClase');
@@ -14596,23 +14753,25 @@ function guardarClaseVirtualDocente() {
     const meetLink = document.getElementById('docMeetLink');
     const duracion = document.getElementById('docDuracion');
     const descripcion = document.getElementById('docDescripcionClase');
-    
+
     if (!titulo || !fechaHora) {
-        alert('❌ Error: No se encontraron los campos del formulario. Recarga la página.');
+        alert('❌ Error: No se encontraron los campos del formulario.');
         return;
     }
+
     const tituloVal = titulo.value.trim();
     const fechaHoraVal = fechaHora.value;
+
     if (!tituloVal || !fechaHoraVal) {
         alert('❌ Completa el título y la fecha/hora de la clase.');
         return;
     }
-    
+
     if (!currentUser.instrumentos || !currentUser.instrumentos.includes(instrumento.value)) {
-        alert(`⚠️ No tienes asignado el instrumento "${instrumento.value}". No puedes crear clase para él.`);
+        alert(`⚠️ No tienes asignado el instrumento "${instrumento.value}".`);
         return;
     }
-    
+
     const nuevaClase = {
         titulo: tituloVal,
         instrumento: instrumento ? instrumento.value : 'Piano',
@@ -14625,37 +14784,44 @@ function guardarClaseVirtualDocente() {
         creadaPor: currentUser.username,
         fechaCreacion: new Date().toISOString()
     };
-    
+
     function finalizarCreacionClase(id, claseData) {
         claseData.id = id;
+
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+
         if (!clases.some(c => c.id === id)) {
             clases.push(claseData);
             localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
         }
-        
-        // 🔥 SUBIR A FIREBASE
+
         if (window.db && !claseData.id.startsWith('clase_')) {
             window.db.collection('clasesVirtuales').doc(id).set(claseData, { merge: true })
                 .then(() => console.log('☁️ Clase guardada en Firebase'))
                 .catch(e => console.error('❌ Error en Firebase:', e));
         }
-        
+
         alert('✅ Clase virtual creada correctamente.');
+
         titulo.value = '';
         if (meetLink) meetLink.value = '';
         if (descripcion) descripcion.value = '';
         if (fechaHora) fechaHora.value = '';
+
         iniciarClasesDocenteTiempoReal(currentUser.username);
-        const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') || 
+
+        const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
                           document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
+
         if (menuClases) menuClases.click();
     }
-    
+
     if (window.db) {
         const btnCrear = document.getElementById('btnCrearClaseVirtual');
         const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
+
         if (btnCrear) btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
         window.db.collection('clasesVirtuales').add(nuevaClase)
             .then((docRef) => {
                 console.log('✅ Clase guardada en Firebase con ID:', docRef.id);
@@ -14679,24 +14845,28 @@ function guardarClaseVirtualDocente() {
 }
 
 // =====================================================
-// 10. AGREGAR GRABACIÓN A CLASE
+// 11. AGREGAR GRABACIÓN A CLASE
 // =====================================================
 
 function agregarGrabacionClase(claseId) {
     const url = prompt('Ingrese la URL de la grabación (YouTube, Drive, etc.):');
+
     if (url && url.trim()) {
         let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
         const index = clases.findIndex(c => String(c.id) === String(claseId));
+
         if (index !== -1) {
             clases[index].grabacionUrl = url.trim();
             localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
-            
+
             if (window.db) {
                 window.db.collection('clasesVirtuales').doc(String(claseId)).set(clases[index], { merge: true })
                     .then(() => console.log('☁️ Grabación guardada en Firebase'))
                     .catch(console.error);
             }
+
             alert('✅ Grabación agregada correctamente.');
+
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             if (currentUser.username) {
                 iniciarClasesDocenteTiempoReal(currentUser.username);
@@ -14707,17 +14877,17 @@ function agregarGrabacionClase(claseId) {
 }
 
 // =====================================================
-// 11. CARGAR INSTRUMENTOS DEL DOCENTE EN SELECTS
+// 12. CARGAR INSTRUMENTOS DEL DOCENTE EN SELECTS
 // =====================================================
 
 function cargarInstrumentosDocenteEnSelects() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentos = currentUser.instrumentos || [];
-    console.log('🎸 Instrumentos del docente para selects:', instrumentos);
-    
+
     const selectTemario = document.getElementById('temarioInstrumento');
     if (selectTemario) {
         selectTemario.innerHTML = '';
+
         if (instrumentos.length === 0) {
             selectTemario.innerHTML = '<option value="">No tienes instrumentos asignados</option>';
         } else {
@@ -14728,12 +14898,14 @@ function cargarInstrumentosDocenteEnSelects() {
                 selectTemario.appendChild(option);
             });
         }
+
         selectTemario.disabled = false;
     }
-    
+
     const selectClase = document.getElementById('docInstrumentoClase');
     if (selectClase) {
         selectClase.innerHTML = '';
+
         if (instrumentos.length === 0) {
             selectClase.innerHTML = '<option value="">No tienes instrumentos asignados</option>';
         } else {
@@ -14747,37 +14919,295 @@ function cargarInstrumentosDocenteEnSelects() {
     }
 }
 
-// =====================================================
-// Cargar filtro de instrumentos
-// =====================================================
-
 function cargarFiltroInstrumentosDocente() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentos = currentUser.instrumentos || [];
+
     const selectFiltro = document.getElementById('filtroTareaInstrumento');
     if (!selectFiltro) return;
-    
+
     const valorActual = selectFiltro.value;
     selectFiltro.innerHTML = '<option value="">Todos los instrumentos</option>';
+
     instrumentos.forEach(instr => {
         const option = document.createElement('option');
         option.value = instr;
         option.textContent = instr;
         selectFiltro.appendChild(option);
     });
+
     if (valorActual && instrumentos.includes(valorActual)) {
         selectFiltro.value = valorActual;
     }
-    console.log('🔧 Filtro de instrumentos cargado con:', instrumentos);
 }
 
 // =====================================================
-// NAVEGACIÓN DEL DOCENTE
+// 13. MOSTRAR CALIFICACIONES DEL DOCENTE
+// =====================================================
+
+function mostrarCalificacionesDocente() {
+    const container = document.getElementById('tablaCalificacionesDocente');
+    if (!container) return;
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentosDocente = currentUser.instrumentos || [];
+
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
+    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+
+    const estudiantesFiltrados = inscriptions.filter(ins => {
+        if ((ins.estado || 'activo') !== 'activo') return false;
+        return estudianteCoincideConDocente(ins, instrumentosDocente);
+    });
+
+    if (estudiantesFiltrados.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:20px;">No tienes estudiantes asignados</p>`;
+        return;
+    }
+
+    const grupos = {};
+
+    estudiantesFiltrados.forEach(est => {
+        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente) || est.musical?.instrumentoPrincipal || 'Sin instrumento';
+        if (!grupos[instrumentoCoincidente]) grupos[instrumentoCoincidente] = [];
+        grupos[instrumentoCoincidente].push(est);
+    });
+
+    let html = '';
+
+    Object.keys(grupos).sort().forEach(instr => {
+        const estudiantes = grupos[instr];
+
+        const estudiantesConPromedio = estudiantes.map(est => {
+            const tareasEstudiante = tareas.filter(t => {
+                if (t.estudianteId != est.id) return false;
+                const instrTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
+                return instrTarea === instr;
+            });
+
+            const calificadas = tareasEstudiante.filter(t => t.calificada);
+            const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
+            const promedio = calificadas.length > 0 ? (total / calificadas.length) : 0;
+
+            return {
+                ...est,
+                promedio: promedio,
+                tareasCount: tareasEstudiante.length,
+                calificadasCount: calificadas.length
+            };
+        });
+
+        estudiantesConPromedio.sort((a, b) => b.promedio - a.promedio);
+
+        html += `
+            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;" open>
+                <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
+                    <i class="fas fa-guitar"></i> ${instr} (${estudiantesConPromedio.length} estudiantes)
+                </summary>
+                <div style="margin-top:10px;padding:0 8px;">
+                    <table style="width:100%; border-collapse:collapse; margin-top:5px;">
+                        <thead>
+                            <tr style="background:#f8f9fa; border-bottom:1px solid #ddd;">
+                                <th style="padding:6px; text-align:left; font-size:0.8rem;">Estudiante</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Promedio</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Tareas</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Calificadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${estudiantesConPromedio.map(est => {
+                                const promedioStr = est.promedio > 0 ? est.promedio.toFixed(1) : 'Sin calif.';
+                                const colorPromedio = (est.promedio > 0 && est.promedio >= 7) ? '#4CAF50' : '#E63946';
+
+                                return `
+                                    <tr style="border-bottom:1px solid #eee;">
+                                        <td style="padding:6px; font-weight:600;">${est.estudiante.nombre}</td>
+                                        <td style="padding:6px; text-align:center; font-weight:bold; color:${colorPromedio};">${promedioStr}</td>
+                                        <td style="padding:6px; text-align:center;">${est.tareasCount}</td>
+                                        <td style="padding:6px; text-align:center;">${est.calificadasCount}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        `;
+    });
+
+    html += `
+        <div style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:5px; font-size:12px; color:#888;">
+            <i class="fas fa-info-circle"></i>
+            <strong>Nota:</strong> Los promedios se calculan sobre las tareas calificadas para este instrumento.
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// =====================================================
+// 14. EDITAR Y ELIMINAR CLASE VIRTUAL
+// =====================================================
+
+function editarClaseVirtual(claseId) {
+    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+    const clase = clases.find(c => String(c.id) === String(claseId));
+
+    if (!clase) {
+        alert('❌ Clase no encontrada');
+        return;
+    }
+
+    document.getElementById('docTituloClase').value = clase.titulo || '';
+    document.getElementById('docInstrumentoClase').value = clase.instrumento || '';
+    document.getElementById('docNivelClase').value = clase.nivel || 'Principiante';
+
+    if (clase.fechaHora) {
+        const fecha = new Date(clase.fechaHora);
+        const año = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        const horas = String(fecha.getHours()).padStart(2, '0');
+        const minutos = String(fecha.getMinutes()).padStart(2, '0');
+        document.getElementById('docFechaHoraClase').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+    }
+
+    document.getElementById('docMeetLink').value = clase.meetLink || '';
+    document.getElementById('docDuracion').value = clase.duracion || 60;
+    document.getElementById('docDescripcionClase').value = clase.descripcion || '';
+
+    const btnCrear = document.getElementById('btnCrearClaseVirtual');
+    btnCrear.textContent = '💾 Actualizar Clase';
+    btnCrear.style.background = '#FF9800';
+    btnCrear.setAttribute('data-edit-id', claseId);
+
+    const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') ||
+                    document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
+
+    if (menuItem) menuItem.click();
+
+    btnCrear.onclick = function(e) {
+        e.preventDefault();
+        const editId = this.getAttribute('data-edit-id');
+        if (editId) actualizarClaseVirtual(editId);
+        else guardarClaseVirtualDocente();
+    };
+}
+
+function actualizarClaseVirtual(claseId) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    if (!currentUser || !currentUser.username) {
+        alert('❌ No se encontró el usuario docente');
+        return;
+    }
+
+    const titulo = document.getElementById('docTituloClase');
+    const instrumento = document.getElementById('docInstrumentoClase');
+    const nivel = document.getElementById('docNivelClase');
+    const fechaHora = document.getElementById('docFechaHoraClase');
+    const meetLink = document.getElementById('docMeetLink');
+    const duracion = document.getElementById('docDuracion');
+    const descripcion = document.getElementById('docDescripcionClase');
+
+    if (!titulo || !fechaHora) {
+        alert('❌ Error: Campos del formulario no encontrados');
+        return;
+    }
+
+    const tituloVal = titulo.value.trim();
+    const fechaHoraVal = fechaHora.value;
+
+    if (!tituloVal || !fechaHoraVal) {
+        alert('❌ Completa el título y la fecha/hora de la clase.');
+        return;
+    }
+
+    const claseActualizada = {
+        id: claseId,
+        titulo: tituloVal,
+        instrumento: instrumento ? instrumento.value : 'Piano',
+        nivel: nivel ? nivel.value : 'Principiante',
+        fechaHora: new Date(fechaHoraVal).toISOString(),
+        meetLink: meetLink ? meetLink.value.trim() : '',
+        duracion: duracion ? parseInt(duracion.value) || 60 : 60,
+        descripcion: descripcion ? descripcion.value : '',
+        grabacionUrl: null,
+        creadaPor: currentUser.username,
+        fechaCreacion: new Date().toISOString()
+    };
+
+    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+    const index = clases.findIndex(c => String(c.id) === String(claseId));
+
+    if (index !== -1) {
+        claseActualizada.grabacionUrl = clases[index].grabacionUrl || null;
+        clases[index] = claseActualizada;
+        localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
+    } else {
+        alert('❌ Clase no encontrada en localStorage');
+        return;
+    }
+
+    if (window.db) {
+        window.db.collection('clasesVirtuales').doc(claseId).set(claseActualizada, { merge: true })
+            .then(() => console.log('☁️ Clase actualizada en Firebase'))
+            .catch(e => console.error('❌ Error en Firebase:', e));
+    }
+
+    alert('✅ Clase virtual actualizada correctamente');
+
+    const btnCrear = document.getElementById('btnCrearClaseVirtual');
+    btnCrear.textContent = '✅ Crear Clase';
+    btnCrear.style.background = '';
+    btnCrear.removeAttribute('data-edit-id');
+
+    btnCrear.onclick = function(e) {
+        e.preventDefault();
+        guardarClaseVirtualDocente();
+    };
+
+    document.getElementById('docTituloClase').value = '';
+    document.getElementById('docMeetLink').value = '';
+    document.getElementById('docDescripcionClase').value = '';
+    document.getElementById('docFechaHoraClase').value = '';
+
+    iniciarClasesDocenteTiempoReal(currentUser.username);
+
+    const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
+                      document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
+
+    if (menuClases) menuClases.click();
+}
+
+function eliminarClaseVirtual(claseId) {
+    if (!confirm('⚠️ ¿Estás seguro de eliminar esta clase virtual?')) return;
+
+    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+    const nuevaLista = clases.filter(c => String(c.id) !== String(claseId));
+
+    localStorage.setItem('clasesVirtuales', JSON.stringify(nuevaLista));
+
+    if (window.db) {
+        window.db.collection('clasesVirtuales').doc(String(claseId)).delete()
+            .then(() => console.log('☁️ Clase eliminada de Firebase'))
+            .catch(e => console.error('❌ Error eliminando de Firebase:', e));
+    }
+
+    alert('✅ Clase virtual eliminada correctamente');
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
+}
+
+// =====================================================
+// 15. NAVEGACIÓN DEL DOCENTE
 // =====================================================
 
 function iniciarNavegacionDocenteEncargado() {
-    console.log('🔄 Iniciando navegación del docente...');
     const menuItems = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
+
     const pantallas = {
         clases: document.getElementById('docPantallaClases'),
         nuevaClase: document.getElementById('docPantallaNuevaClase'),
@@ -14788,55 +15218,74 @@ function iniciarNavegacionDocenteEncargado() {
         tareas: document.getElementById('docPantallaTareas'),
         calificarTareas: document.getElementById('docPantallaCalificarTareas')
     };
-    
+
     function mostrarPantalla(pantallaId) {
-        console.log('📱 Mostrando pantalla docente:', pantallaId);
-        Object.values(pantallas).forEach(p => { if (p) p.classList.remove('active'); });
-        if (pantallas[pantallaId]) pantallas[pantallaId].classList.add('active');
+        Object.values(pantallas).forEach(p => {
+            if (p) p.classList.remove('active');
+        });
+
+        if (pantallas[pantallaId]) {
+            pantallas[pantallaId].classList.add('active');
+        }
+
         menuItems.forEach(item => {
             item.classList.remove('active');
-            if (item.getAttribute('data-pantalla-docente') === pantallaId) item.classList.add('active');
+            if (item.getAttribute('data-pantalla-docente') === pantallaId) {
+                item.classList.add('active');
+            }
         });
+
         if (pantallaId === 'clases') {
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
         }
+
         if (pantallaId === 'estudiantes') iniciarEstudiantesDocenteTiempoReal();
         if (pantallaId === 'calificaciones') setTimeout(mostrarCalificacionesDocente, 200);
         if (pantallaId === 'tareas') iniciarTareasDocenteTiempoReal();
         if (pantallaId === 'calificarTareas') cargarTareasPendientes();
-        if (pantallaId === 'temario') { iniciarTemarioDocenteTiempoReal(); setTimeout(cargarInstrumentosDocenteEnSelects, 200); }
+
+        if (pantallaId === 'temario') {
+            iniciarTemarioDocenteTiempoReal();
+            setTimeout(cargarInstrumentosDocenteEnSelects, 200);
+        }
+
         if (pantallaId === 'nuevaClase') setTimeout(cargarInstrumentosDocenteEnSelects, 200);
     }
-    
+
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
             const pantalla = this.getAttribute('data-pantalla-docente');
             if (pantalla) mostrarPantalla(pantalla);
         });
     });
-    
+
     document.querySelectorAll('#menuHamburguesaDocentePanel .menu-hamburguesa-item').forEach(item => {
         item.addEventListener('click', function() {
             const pantalla = this.getAttribute('data-pantalla-docente');
             cerrarMenuHamburguesaDocente();
-            setTimeout(() => { if (pantalla) mostrarPantalla(pantalla); }, 200);
+            setTimeout(() => {
+                if (pantalla) mostrarPantalla(pantalla);
+            }, 200);
         });
     });
-    
+
     document.getElementById('btnMenuHamburguesaDocente')?.addEventListener('click', function(e) {
         e.stopPropagation();
         abrirMenuHamburguesaDocente();
     });
+
     document.getElementById('cerrarMenuHamburguesaDocente')?.addEventListener('click', cerrarMenuHamburguesaDocente);
+
     document.getElementById('menuHamburguesaDocenteOverlay')?.addEventListener('click', function(e) {
         if (e.target === this) cerrarMenuHamburguesaDocente();
     });
+
     mostrarPantalla('clases');
 }
 
 // =====================================================
-// MENÚ HAMBURGUESA DOCENTE
+// 16. MENÚ HAMBURGUESA DOCENTE
 // =====================================================
 
 function abrirMenuHamburguesaDocente() {
@@ -14856,63 +15305,99 @@ function cerrarMenuHamburguesaDocente() {
 }
 
 // =====================================================
-// SWIPE PARA DOCENTE
+// 17. SWIPE PARA DOCENTE
 // =====================================================
 
 function iniciarSwipeDocenteEncargado() {
-    console.log('🔄 Iniciando swipe en panel docente...');
     const panel = document.getElementById('docentePanelVirtual');
     if (!panel) return;
+
     let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+
     const pantallasConSwipe = ['clases', 'nuevaClase', 'grabaciones', 'estudiantes', 'calificaciones'];
+
     function getIndiceActual() {
         const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
         let activo = 'clases';
-        items.forEach(item => { if (item.classList.contains('active')) activo = item.getAttribute('data-pantalla-docente') || 'clases'; });
+
+        items.forEach(item => {
+            if (item.classList.contains('active')) {
+                activo = item.getAttribute('data-pantalla-docente') || 'clases';
+            }
+        });
+
         const index = pantallasConSwipe.indexOf(activo);
         return index !== -1 ? index : 0;
     }
+
     function cambiarPantalla(direccion) {
         const idx = getIndiceActual();
         let nuevoIdx = idx + direccion;
+
         if (nuevoIdx < 0) nuevoIdx = 0;
         if (nuevoIdx >= pantallasConSwipe.length) nuevoIdx = pantallasConSwipe.length - 1;
+
         if (nuevoIdx !== idx) {
             const nuevaPantalla = pantallasConSwipe[nuevoIdx];
-            console.log('👆 Swipe a:', nuevaPantalla);
+
             const items = document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]');
-            items.forEach(item => { if (item.getAttribute('data-pantalla-docente') === nuevaPantalla) item.click(); });
+            items.forEach(item => {
+                if (item.getAttribute('data-pantalla-docente') === nuevaPantalla) {
+                    item.click();
+                }
+            });
         }
     }
+
     panel.removeEventListener('touchstart', window._swipeDocenteStartHandler);
     panel.removeEventListener('touchend', window._swipeDocenteEndHandler);
+
     window._swipeDocenteStartHandler = function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    };
-    window._swipeDocenteEndHandler = function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        touchEndY = e.changedTouches[0].screenY;
-        const diffX = touchStartX - touchEndX;
-        const diffY = touchStartY - touchEndY;
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-            if (diffX > 0) cambiarPantalla(1);
-            else cambiarPantalla(-1);
+        const target = e.target.closest('input, select, textarea, button, .menu-item, .menu-hamburguesa-item, .clase-card, .docente-card');
+        if (target) {
+            return;
+        }
+
+        const touch = e.changedTouches[0];
+        if (touch) {
+            touchStartX = touch.screenX;
+            touchStartY = touch.screenY;
         }
     };
+
+    window._swipeDocenteEndHandler = function(e) {
+        const touch = e.changedTouches[0];
+        if (touch) {
+            touchEndX = touch.screenX;
+            touchEndY = touch.screenY;
+
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+                if (diffX > 0) {
+                    cambiarPantalla(1);
+                } else {
+                    cambiarPantalla(-1);
+                }
+            }
+        }
+    };
+
     panel.addEventListener('touchstart', window._swipeDocenteStartHandler, { passive: true });
     panel.addEventListener('touchend', window._swipeDocenteEndHandler, { passive: true });
-    console.log('✅ Swipe activado en panel docente');
 }
 
 // =====================================================
-// MOSTRAR MODAL NUEVA CLASE
+// 18. MOSTRAR MODAL NUEVA CLASE
 // =====================================================
 
 function mostrarModalNuevaClase() {
     cargarInstrumentosDocenteEnSelects();
-    const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') || 
+
+    const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') ||
                     document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
+
     if (menuItem) menuItem.click();
 }
 
@@ -14926,222 +15411,8 @@ function cerrarModal(btn) {
     }
 }
 
-// =====================================================
-// MOSTRAR CALIFICACIONES DEL DOCENTE
-// =====================================================
+console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente - VERSIÓN FINAL");
 
-function mostrarCalificacionesDocente() {
-    console.log('📊 Mostrando calificaciones del docente');
-    const container = document.getElementById('tablaCalificacionesDocente');
-    if (!container) return;
-    
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const instrumentosDocente = currentUser.instrumentos || [];
-    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
-    const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
-    const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
-    
-    const estudiantesFiltrados = inscriptions.filter(ins => {
-        if ((ins.estado || 'activo') !== 'activo') return false;
-        return estudianteCoincideConDocente(ins, instrumentosDocente);
-    });
-    
-    if (estudiantesFiltrados.length === 0) {
-        container.innerHTML = `<p style="text-align:center; padding:20px;">No tienes estudiantes asignados</p>`;
-        return;
-    }
-    
-    const grupos = {};
-    estudiantesFiltrados.forEach(est => {
-        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente) || est.musical?.instrumentoPrincipal || 'Sin instrumento';
-        if (!grupos[instrumentoCoincidente]) grupos[instrumentoCoincidente] = [];
-        grupos[instrumentoCoincidente].push(est);
-    });
-    
-    let html = '';
-    Object.keys(grupos).sort().forEach(instr => {
-        const estudiantes = grupos[instr];
-        const estudiantesConPromedio = estudiantes.map(est => {
-            const tareasEstudiante = tareas.filter(t => {
-                if (t.estudianteId != est.id) return false;
-                const instrTarea = obtenerInstrumentoTarea(t, inscriptions, temarios);
-                return instrTarea === instr;
-            });
-            const calificadas = tareasEstudiante.filter(t => t.calificada);
-            const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
-            const promedio = calificadas.length > 0 ? (total / calificadas.length) : 0;
-            return {
-                ...est,
-                promedio: promedio,
-                tareasCount: tareasEstudiante.length,
-                calificadasCount: calificadas.length
-            };
-        });
-        estudiantesConPromedio.sort((a, b) => b.promedio - a.promedio);
-        
-        html += `
-            <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;">
-                <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
-                    <i class="fas fa-guitar"></i> ${instr} (${estudiantesConPromedio.length} estudiantes)
-                </summary>
-                <div style="margin-top:10px;padding:0 8px;">
-                    <table style="width:100%; border-collapse:collapse; margin-top:5px;">
-                        <thead>
-                            <tr style="background:#f8f9fa; border-bottom:1px solid #ddd;">
-                                <th style="padding:6px; text-align:left; font-size:0.8rem;">Estudiante</th>
-                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Promedio</th>
-                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Tareas</th>
-                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Calificadas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${estudiantesConPromedio.map(est => {
-                                const promedioStr = est.promedio > 0 ? est.promedio.toFixed(1) : 'Sin calif.';
-                                const colorPromedio = (est.promedio > 0 && est.promedio >= 7) ? '#4CAF50' : '#E63946';
-                                return `
-                                    <tr style="border-bottom:1px solid #eee;">
-                                        <td style="padding:6px; font-weight:600;">${est.estudiante.nombre}</td>
-                                        <td style="padding:6px; text-align:center; font-weight:bold; color:${colorPromedio};">${promedioStr}</td>
-                                        <td style="padding:6px; text-align:center;">${est.tareasCount}</td>
-                                        <td style="padding:6px; text-align:center;">${est.calificadasCount}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </details>
-        `;
-    });
-    
-    html += `
-        <div style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:5px; font-size:12px; color:#888;">
-            <i class="fas fa-info-circle"></i> 
-            <strong>Nota:</strong> Los promedios se calculan sobre las tareas calificadas para este instrumento.
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-// =====================================================
-// EDITAR CLASE VIRTUAL
-// =====================================================
-
-function editarClaseVirtual(claseId) {
-    console.log('✏️ Editando clase:', claseId);
-    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const clase = clases.find(c => String(c.id) === String(claseId));
-    if (!clase) { alert('❌ Clase no encontrada'); return; }
-    document.getElementById('docTituloClase').value = clase.titulo || '';
-    document.getElementById('docInstrumentoClase').value = clase.instrumento || '';
-    document.getElementById('docNivelClase').value = clase.nivel || 'Principiante';
-    if (clase.fechaHora) {
-        const fecha = new Date(clase.fechaHora);
-        const año = fecha.getFullYear();
-        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-        const dia = String(fecha.getDate()).padStart(2, '0');
-        const horas = String(fecha.getHours()).padStart(2, '0');
-        const minutos = String(fecha.getMinutes()).padStart(2, '0');
-        document.getElementById('docFechaHoraClase').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
-    }
-    document.getElementById('docMeetLink').value = clase.meetLink || '';
-    document.getElementById('docDuracion').value = clase.duracion || 60;
-    document.getElementById('docDescripcionClase').value = clase.descripcion || '';
-    const btnCrear = document.getElementById('btnCrearClaseVirtual');
-    btnCrear.textContent = '💾 Actualizar Clase';
-    btnCrear.style.background = '#FF9800';
-    btnCrear.setAttribute('data-edit-id', claseId);
-    const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') || 
-                    document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
-    if (menuItem) menuItem.click();
-    btnCrear.onclick = function(e) {
-        e.preventDefault();
-        const editId = this.getAttribute('data-edit-id');
-        if (editId) actualizarClaseVirtual(editId);
-        else guardarClaseVirtualDocente();
-    };
-}
-
-function actualizarClaseVirtual(claseId) {
-    console.log('💾 Actualizando clase:', claseId);
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser || !currentUser.username) { alert('❌ No se encontró el usuario docente'); return; }
-    const titulo = document.getElementById('docTituloClase');
-    const instrumento = document.getElementById('docInstrumentoClase');
-    const nivel = document.getElementById('docNivelClase');
-    const fechaHora = document.getElementById('docFechaHoraClase');
-    const meetLink = document.getElementById('docMeetLink');
-    const duracion = document.getElementById('docDuracion');
-    const descripcion = document.getElementById('docDescripcionClase');
-    if (!titulo || !fechaHora) { alert('❌ Error: Campos del formulario no encontrados'); return; }
-    const tituloVal = titulo.value.trim();
-    const fechaHoraVal = fechaHora.value;
-    if (!tituloVal || !fechaHoraVal) { alert('❌ Completa el título y la fecha/hora de la clase.'); return; }
-    const claseActualizada = {
-        id: claseId,
-        titulo: tituloVal,
-        instrumento: instrumento ? instrumento.value : 'Piano',
-        nivel: nivel ? nivel.value : 'Principiante',
-        fechaHora: new Date(fechaHoraVal).toISOString(),
-        meetLink: meetLink ? meetLink.value.trim() : '',
-        duracion: duracion ? parseInt(duracion.value) || 60 : 60,
-        descripcion: descripcion ? descripcion.value : '',
-        grabacionUrl: null,
-        creadaPor: currentUser.username,
-        fechaCreacion: new Date().toISOString()
-    };
-    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const index = clases.findIndex(c => String(c.id) === String(claseId));
-    if (index !== -1) {
-        claseActualizada.grabacionUrl = clases[index].grabacionUrl || null;
-        clases[index] = claseActualizada;
-        localStorage.setItem('clasesVirtuales', JSON.stringify(clases));
-    } else {
-        alert('❌ Clase no encontrada en localStorage');
-        return;
-    }
-    
-    // 🔥 SUBIR A FIREBASE
-    if (window.db) {
-        window.db.collection('clasesVirtuales').doc(claseId).set(claseActualizada, { merge: true })
-            .then(() => console.log('☁️ Clase actualizada en Firebase'))
-            .catch(e => console.error('❌ Error en Firebase:', e));
-    }
-    
-    alert('✅ Clase virtual actualizada correctamente');
-    const btnCrear = document.getElementById('btnCrearClaseVirtual');
-    btnCrear.textContent = '✅ Crear Clase';
-    btnCrear.style.background = '';
-    btnCrear.removeAttribute('data-edit-id');
-    btnCrear.onclick = function(e) { e.preventDefault(); guardarClaseVirtualDocente(); };
-    document.getElementById('docTituloClase').value = '';
-    document.getElementById('docMeetLink').value = '';
-    document.getElementById('docDescripcionClase').value = '';
-    document.getElementById('docFechaHoraClase').value = '';
-    iniciarClasesDocenteTiempoReal(currentUser.username);
-    const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') || 
-                       document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-    if (menuClases) menuClases.click();
-}
-
-function eliminarClaseVirtual(claseId) {
-    console.log('🗑️ Eliminando clase:', claseId);
-    if (!confirm('⚠️ ¿Estás seguro de eliminar esta clase virtual? Esta acción no se puede deshacer.')) return;
-    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const nuevaLista = clases.filter(c => String(c.id) !== String(claseId));
-    localStorage.setItem('clasesVirtuales', JSON.stringify(nuevaLista));
-    if (window.db) {
-        window.db.collection('clasesVirtuales').doc(String(claseId)).delete()
-            .then(() => console.log('☁️ Clase eliminada de Firebase'))
-            .catch(e => console.error('❌ Error eliminando de Firebase:', e));
-    }
-    alert('✅ Clase virtual eliminada correctamente');
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
-}
-
-console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente - SIN LISTENERS - TODO FUNCIONA");
 </script>
 <!-- ============================================ -->
 <!-- BLOQUE 6: SISTEMA DE ENCARGADOS - VERSIÓN COMPLETA CORREGIDA -->
