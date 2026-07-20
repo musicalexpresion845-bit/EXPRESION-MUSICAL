@@ -16765,75 +16765,93 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 18. CLASES VIRTUALES - CORREGIDO (CON CARGA DESDE FIREBASE)
+// 18. CLASES VIRTUALES - VERSIÓN SIMPLE Y DIRECTA
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
-    console.log('🎥 Cargando clases virtuales');
+    console.log('🎥 iniciarClasesTiempoReal EJECUTADA');
+    
     const container = document.getElementById('clasesEstudianteEnc');
-    if (!container) return;
-
-    const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
-    const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
-    const nivel = estudiante.estudiante?.nivel;
-
-    let instrumento = encargadoInstrumentoSeleccionado;
-    if (!instrumento) {
-        const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-        let hayClasesPrincipal = todas.some(c => c.instrumento === instrumentoPrincipal && c.nivel === nivel);
-        if (hayClasesPrincipal) {
-            instrumento = instrumentoPrincipal;
-        } else if (instrumentoSecundario && instrumentoSecundario !== 'Ninguno') {
-            let hayClasesSecundario = todas.some(c => c.instrumento === instrumentoSecundario && c.nivel === nivel);
-            if (hayClasesSecundario) {
-                instrumento = instrumentoSecundario;
-            }
-        }
-    }
-    if (!instrumento) {
-        instrumento = instrumentoPrincipal;
-    }
-
-    if (!instrumento || !nivel) {
-        container.innerHTML = '<p class="empty-state" style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
+    if (!container) {
+        console.error('❌ Contenedor no encontrado');
         return;
     }
 
-    // 🔥 PRIMERO: Mostrar lo que hay en localStorage (rápido)
-    let todasLocal = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    let clasesLocal = todasLocal.filter(c => c.instrumento === instrumento && c.nivel === nivel);
-    renderClases(clasesLocal, container);
-    console.log(`📦 ${clasesLocal.length} clases desde localStorage para: ${instrumento}`);
+    // Obtener instrumento del estudiante
+    const instrumento = estudiante?.musical?.instrumentoPrincipal || '';
+    const nivel = estudiante?.estudiante?.nivel || '';
 
-    // 🔥 SEGUNDO: Cargar desde Firebase (si está disponible)
+    console.log('🔍 Instrumento:', instrumento, 'Nivel:', nivel);
+
+    if (!instrumento || !nivel) {
+        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">No hay datos de instrumento o nivel.</p>';
+        return;
+    }
+
+    // 🔥 CARGAR DESDE FIREBASE DIRECTAMENTE
     if (window.db) {
-        console.log('☁️ Cargando clases desde Firebase...');
+        console.log('☁️ Consultando Firebase...');
         window.db.collection('clasesVirtuales').get()
             .then((snapshot) => {
+                console.log('✅ Firebase respondió, total:', snapshot.size);
+                
                 const todasFirebase = [];
                 snapshot.forEach(doc => {
-                    todasFirebase.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    todasFirebase.push({ id: doc.id, ...data });
+                    console.log('   📄', data.titulo, '|', data.instrumento, '|', data.nivel);
                 });
 
                 // Guardar en localStorage
                 localStorage.setItem('clasesVirtuales', JSON.stringify(todasFirebase));
-                console.log(`✅ ${todasFirebase.length} clases cargadas desde Firebase`);
 
                 // Filtrar por instrumento y nivel
-                const clasesFirebase = todasFirebase.filter(c => 
+                const clasesFiltradas = todasFirebase.filter(c => 
                     c.instrumento === instrumento && c.nivel === nivel
                 );
 
-                // Actualizar vista
-                renderClases(clasesFirebase, container);
-                console.log(`✅ ${clasesFirebase.length} clases mostradas para: ${instrumento}`);
+                console.log(`🎯 ${clasesFiltradas.length} clases para ${instrumento} - ${nivel}`);
+
+                // MOSTRAR LAS CLASES
+                if (clasesFiltradas.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:#888;">
+                            <i class="fas fa-video" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+                            No hay clases para <strong>${instrumento}</strong> - Nivel <strong>${nivel}</strong>
+                        </div>
+                    `;
+                } else {
+                    // Usar la función renderClases existente
+                    if (typeof renderClases === 'function') {
+                        renderClases(clasesFiltradas, container);
+                    } else {
+                        // Si no existe renderClases, mostrar manualmente
+                        container.innerHTML = clasesFiltradas.map(c => `
+                            <div style="background:white;border-radius:12px;padding:15px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                                <h4>${c.titulo}</h4>
+                                <p>${c.descripcion || ''}</p>
+                                <p><strong>Fecha:</strong> ${new Date(c.fechaHora).toLocaleString()}</p>
+                                ${c.meetLink ? `<a href="${c.meetLink}" target="_blank" style="background:#0F9D58;color:white;padding:8px 16px;border-radius:20px;text-decoration:none;">Unirse</a>` : ''}
+                            </div>
+                        `).join('');
+                    }
+                }
             })
             .catch((error) => {
-                console.error('❌ Error cargando clases desde Firebase:', error);
-                // Si falla, ya tenemos las de localStorage mostradas
+                console.error('❌ ERROR en Firebase:', error);
+                container.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#f44336;">
+                        <i class="fas fa-exclamation-triangle" style="font-size:48px;display:block;margin-bottom:15px;"></i>
+                        Error: ${error.message}
+                        <br><br>
+                        <button onclick="location.reload()" style="padding:8px 20px;background:#E63946;color:white;border:none;border-radius:5px;cursor:pointer;">
+                            🔄 Recargar
+                        </button>
+                    </div>
+                `;
             });
     } else {
-        console.warn('⚠️ Firebase no disponible, usando solo localStorage');
+        container.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">Firebase no disponible</p>';
     }
 }
 
