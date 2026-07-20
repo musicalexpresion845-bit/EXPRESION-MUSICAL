@@ -15474,15 +15474,23 @@ function mostrarCalificacionesDocente() {
 // =====================================================
 
 function editarClaseVirtual(claseId) {
+    console.log('✏️ EDITANDO CLASE ID:', claseId);
+    
     let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
     const clase = clases.find(c => String(c.id) === String(claseId));
+    
     if (!clase) {
         alert('❌ Clase no encontrada');
         return;
     }
+    
+    console.log('✅ Clase encontrada:', clase.titulo);
+    
+    // 1. CARGAR DATOS EN EL FORMULARIO
     document.getElementById('docTituloClase').value = clase.titulo || '';
     document.getElementById('docInstrumentoClase').value = clase.instrumento || '';
     document.getElementById('docNivelClase').value = clase.nivel || 'Principiante';
+    
     if (clase.fechaHora) {
         const fecha = new Date(clase.fechaHora);
         const año = fecha.getFullYear();
@@ -15491,26 +15499,53 @@ function editarClaseVirtual(claseId) {
         const horas = String(fecha.getHours()).padStart(2, '0');
         const minutos = String(fecha.getMinutes()).padStart(2, '0');
         document.getElementById('docFechaHoraClase').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+        console.log('📅 Fecha cargada:', document.getElementById('docFechaHoraClase').value);
     }
+    
     document.getElementById('docMeetLink').value = clase.meetLink || '';
     document.getElementById('docDuracion').value = clase.duracion || 60;
     document.getElementById('docDescripcionClase').value = clase.descripcion || '';
 
+    // 2. CAMBIAR EL BOTÓN A "ACTUALIZAR"
     const btnCrear = document.getElementById('btnCrearClaseVirtual');
     btnCrear.textContent = '💾 Actualizar Clase';
     btnCrear.style.background = '#FF9800';
     btnCrear.setAttribute('data-edit-id', claseId);
-
-    const menuItem = document.querySelector('.docente-menu-item[data-seccion="nuevaClase"]') ||
-        document.querySelector('.docente-menu-item-mobile[data-seccion="nuevaClase"]');
-    if (menuItem) menuItem.click();
-
+    
     btnCrear.onclick = function(e) {
         e.preventDefault();
         const editId = this.getAttribute('data-edit-id');
-        if (editId) actualizarClaseVirtual(editId);
-        else guardarClaseVirtualDocente();
+        if (editId) {
+            actualizarClaseVirtual(editId);
+        } else {
+            guardarClaseVirtualDocente();
+        }
     };
+
+    // 3. 🔥 MOSTRAR LA PESTAÑA DIRECTAMENTE (sin usar el menú)
+    console.log('🔄 Mostrando pestaña nuevaClase directamente...');
+    
+    // Ocultar TODAS las pantallas del docente
+    document.querySelectorAll('#docentePanelVirtual .pantalla').forEach(p => {
+        p.classList.remove('active');
+    });
+    
+    // Mostrar SOLO la pantalla de nueva clase
+    const pantallaNuevaClase = document.getElementById('docPantallaNuevaClase');
+    if (pantallaNuevaClase) {
+        pantallaNuevaClase.classList.add('active');
+        console.log('✅ Pantalla nuevaClase activada');
+    }
+    
+    // Actualizar el menú inferior
+    document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]').forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('data-pantalla-docente') === 'nuevaClase') {
+            item.classList.add('active');
+        }
+    });
+    
+    console.log('✅✅✅ Edición completada - Formulario cargado correctamente');
 }
 
 function actualizarClaseVirtual(claseId) {
@@ -15570,6 +15605,14 @@ function actualizarClaseVirtual(claseId) {
     }
 
     alert('✅ Clase virtual actualizada correctamente');
+    
+    // Resetear formulario
+    document.getElementById('docTituloClase').value = '';
+    document.getElementById('docMeetLink').value = '';
+    document.getElementById('docDescripcionClase').value = '';
+    document.getElementById('docFechaHoraClase').value = '';
+    
+    // Resetear botón
     const btnCrear = document.getElementById('btnCrearClaseVirtual');
     btnCrear.textContent = '✅ Crear Clase';
     btnCrear.style.background = '';
@@ -15578,29 +15621,34 @@ function actualizarClaseVirtual(claseId) {
         e.preventDefault();
         guardarClaseVirtualDocente();
     };
-    document.getElementById('docTituloClase').value = '';
-    document.getElementById('docMeetLink').value = '';
-    document.getElementById('docDescripcionClase').value = '';
-    document.getElementById('docFechaHoraClase').value = '';
+    
+    // 🔥 RECARGAR LA LISTA DE CLASES
     iniciarClasesDocenteTiempoReal(currentUser.username);
-    const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
-        document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-    if (menuClases) menuClases.click();
-}
-
-function eliminarClaseVirtual(claseId) {
-    if (!confirm('⚠️ ¿Estás seguro de eliminar esta clase virtual?')) return;
-    let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const nuevaLista = clases.filter(c => String(c.id) !== String(claseId));
-    localStorage.setItem('clasesVirtuales', JSON.stringify(nuevaLista));
-    if (window.db) {
-        window.db.collection('clasesVirtuales').doc(String(claseId)).delete()
-            .then(() => console.log('☁️ Clase eliminada de Firebase'))
-            .catch(e => console.error('❌ Error eliminando de Firebase:', e));
+    
+    // 🔥 VOLVER A LA PESTAÑA DE CLASES
+    console.log('🔄 Volviendo a la pestaña de clases...');
+    
+    // Ocultar TODAS las pantallas del docente
+    document.querySelectorAll('#docentePanelVirtual .pantalla').forEach(p => {
+        p.classList.remove('active');
+    });
+    
+    // Mostrar SOLO la pantalla de clases
+    const pantallaClases = document.getElementById('docPantallaClases');
+    if (pantallaClases) {
+        pantallaClases.classList.add('active');
+        console.log('✅ Pantalla clases activada');
     }
-    alert('✅ Clase virtual eliminada correctamente');
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser.username) iniciarClasesDocenteTiempoReal(currentUser.username);
+    
+    // Actualizar el menú inferior
+    document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]').forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('data-pantalla-docente') === 'clases') {
+            item.classList.add('active');
+        }
+    });
+    
+    console.log('✅✅✅ Clase actualizada y lista recargada');
 }
 
 // =====================================================
