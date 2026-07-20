@@ -15251,64 +15251,120 @@ function cargarFiltroInstrumentosDocente() {
 }
 
 // =====================================================
-// 14. MOSTRAR CALIFICACIONES DEL DOCENTE
+// 14. MOSTRAR CALIFICACIONES DEL DOCENTE - CORREGIDO
 // =====================================================
 
 function mostrarCalificacionesDocente() {
     const container = document.getElementById('tablaCalificacionesDocente');
     if (!container) return;
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const instrumentosDocente = currentUser.instrumentos || [];
     const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
     const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
 
+    console.log('📊 [CALIFICACIONES] Instrumentos del docente:', instrumentosDocente);
+    console.log('📊 [CALIFICACIONES] Total inscripciones:', inscriptions.length);
+
+    // 🔥 FILTRAR - Usando la MISMA función que la lista de estudiantes
     const estudiantesFiltrados = inscriptions.filter(ins => {
         if ((ins.estado || 'activo') !== 'activo') return false;
         return estudianteCoincideConDocente(ins, instrumentosDocente);
     });
+
+    console.log(`📊 [CALIFICACIONES] ${estudiantesFiltrados.length} estudiantes coinciden (filtro)`);
 
     if (estudiantesFiltrados.length === 0) {
         container.innerHTML = `<p style="text-align:center; padding:20px;">No tienes estudiantes asignados</p>`;
         return;
     }
 
+    // 🔥 AGRUPAR POR INSTRUMENTO
     const grupos = {};
+    
     estudiantesFiltrados.forEach(est => {
-        const instrumentoCoincidente = obtenerInstrumentoCoincidente(est, instrumentosDocente) || est.musical?.instrumentoPrincipal || 'Sin instrumento';
-        if (!grupos[instrumentoCoincidente]) grupos[instrumentoCoincidente] = [];
-        grupos[instrumentoCoincidente].push(est);
+        const principal = normalizarInstrumento(est.musical?.instrumentoPrincipal);
+        const secundario = normalizarInstrumento(est.musical?.instrumentoSecundario);
+        
+        // Buscar coincidencia con instrumentos del docente
+        for (const instr of instrumentosDocente) {
+            const instrNorm = normalizarInstrumento(instr);
+            
+            if (instrNorm === principal) {
+                if (!grupos[instr]) grupos[instr] = [];
+                if (!grupos[instr].find(e => e.id === est.id)) {
+                    grupos[instr].push(est);
+                }
+            }
+            
+            if (secundario && secundario !== 'ninguno' && secundario !== '') {
+                if (instrNorm === secundario) {
+                    if (!grupos[instr]) grupos[instr] = [];
+                    if (!grupos[instr].find(e => e.id === est.id)) {
+                        grupos[instr].push(est);
+                    }
+                }
+            }
+        }
     });
 
+    // 🔥 CONTAR ESTUDIANTES ÚNICOS EN TODOS LOS GRUPOS
+    const estudiantesUnicos = new Set();
+    Object.keys(grupos).forEach(instr => {
+        grupos[instr].forEach(est => {
+            estudiantesUnicos.add(String(est.id));
+        });
+    });
+    const totalEstudiantesUnicos = estudiantesUnicos.size;
+
+    console.log(`📊 [CALIFICACIONES] Total estudiantes únicos en grupos: ${totalEstudiantesUnicos}`);
+
     let html = '';
+    
     Object.keys(grupos).sort().forEach(instr => {
         const estudiantes = grupos[instr];
+        
         const estudiantesConPromedio = estudiantes.map(est => {
             const tareasEstudiante = tareas.filter(t => {
-                if (t.estudianteId != est.id) return false;
+                if (String(t.estudianteId) !== String(est.id)) return false;
                 const instrTarea = t.instrumento || '';
                 return normalizarInstrumento(instrTarea) === normalizarInstrumento(instr);
             });
-            const calificadas = tareasEstudiante.filter(t => t.calificada);
-            const total = calificadas.reduce((sum, t) => sum + t.nota, 0);
+            
+            const calificadas = tareasEstudiante.filter(t => t.calificada === true);
+            const total = calificadas.reduce((sum, t) => sum + (t.nota || 0), 0);
             const promedio = calificadas.length > 0 ? (total / calificadas.length) : 0;
+            
+            const principal = est.musical?.instrumentoPrincipal || 'N/A';
+            const secundario = est.musical?.instrumentoSecundario ? ` (Secundario: ${est.musical.instrumentoSecundario})` : '';
+            const coincidePrincipal = normalizarInstrumento(principal) === normalizarInstrumento(instr);
+            const coincideSecundario = normalizarInstrumento(est.musical?.instrumentoSecundario) === normalizarInstrumento(instr);
+            const coincidePor = coincidePrincipal ? '✅ Principal' : (coincideSecundario ? '🔄 Secundario' : '');
+            
             return {
                 ...est,
                 promedio: promedio,
                 tareasCount: tareasEstudiante.length,
-                calificadasCount: calificadas.length
+                calificadasCount: calificadas.length,
+                coincidePor: coincidePor,
+                principal: principal,
+                secundario: secundario
             };
         });
+        
         estudiantesConPromedio.sort((a, b) => b.promedio - a.promedio);
+        
         html += `
             <details style="margin-bottom:15px;border:1px solid #ddd;border-radius:8px;padding:10px;background:white;" open>
                 <summary style="cursor:pointer;font-weight:bold;padding:8px;background:#f5f5f5;border-radius:6px;">
                     <i class="fas fa-guitar"></i> ${instr} (${estudiantesConPromedio.length} estudiantes)
                 </summary>
-                <div style="margin-top:10px;padding:0 8px;">
-                    <table style="width:100%; border-collapse:collapse; margin-top:5px;">
+                <div style="margin-top:10px;padding:0 8px;overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; margin-top:5px; font-size:0.85rem;">
                         <thead>
                             <tr style="background:#f8f9fa; border-bottom:1px solid #ddd;">
                                 <th style="padding:6px; text-align:left; font-size:0.8rem;">Estudiante</th>
+                                <th style="padding:6px; text-align:center; font-size:0.8rem;">Instrumento</th>
                                 <th style="padding:6px; text-align:center; font-size:0.8rem;">Promedio</th>
                                 <th style="padding:6px; text-align:center; font-size:0.8rem;">Tareas</th>
                                 <th style="padding:6px; text-align:center; font-size:0.8rem;">Calificadas</th>
@@ -15318,10 +15374,17 @@ function mostrarCalificacionesDocente() {
                             ${estudiantesConPromedio.map(est => {
                                 const promedioStr = est.promedio > 0 ? est.promedio.toFixed(1) : 'Sin calif.';
                                 const colorPromedio = (est.promedio > 0 && est.promedio >= 7) ? '#4CAF50' : '#E63946';
+                                
                                 return `
                                     <tr style="border-bottom:1px solid #eee;">
-                                        <td style="padding:6px; font-weight:600;">${est.estudiante.nombre}</td>
-                                        <td style="padding:6px; text-align:center; font-weight:bold; color:${colorPromedio};">${promedioStr}</td>
+                                        <td style="padding:6px; font-weight:600;">${est.estudiante?.nombre || 'Sin nombre'}</td>
+                                        <td style="padding:6px; text-align:center; font-size:0.75rem;">
+                                            <span style="color:#E63946;">${est.coincidePor}</span>
+                                            <br><small style="color:#666;">${est.principal} ${est.secundario}</small>
+                                        </td>
+                                        <td style="padding:6px; text-align:center; font-weight:bold; color:${colorPromedio};">
+                                            ${promedioStr}
+                                        </td>
                                         <td style="padding:6px; text-align:center;">${est.tareasCount}</td>
                                         <td style="padding:6px; text-align:center;">${est.calificadasCount}</td>
                                     </tr>
@@ -15333,13 +15396,27 @@ function mostrarCalificacionesDocente() {
             </details>
         `;
     });
+    
+    // 🔥 RESUMEN CORREGIDO - USAR estudiantesUnicos
+    let totalConPromedio = 0;
+    estudiantesUnicos.forEach(id => {
+        const tareasEst = tareas.filter(t => String(t.estudianteId) === String(id));
+        if (tareasEst.some(t => t.calificada === true)) {
+            totalConPromedio++;
+        }
+    });
+    
     html += `
-        <div style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:5px; font-size:12px; color:#888;">
-            <i class="fas fa-info-circle"></i>
-            <strong>Nota:</strong> Los promedios se calculan sobre las tareas calificadas para este instrumento.
+        <div style="margin-top:15px; padding:12px; background:#f8f9fa; border-radius:8px; display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px; border-top:1px solid #ddd;">
+            <span><strong>📊 Resumen:</strong></span>
+            <span>👨‍🎓 Total estudiantes: <strong style="color:#E63946;">${totalEstudiantesUnicos}</strong></span>
+            <span>✅ Con calificaciones: <strong style="color:#4CAF50;">${totalConPromedio}</strong></span>
+            <span>⏳ Sin calificar: <strong style="color:#FF9800;">${totalEstudiantesUnicos - totalConPromedio}</strong></span>
         </div>
     `;
+    
     container.innerHTML = html;
+    console.log(`✅ [CALIFICACIONES] Renderizado completo - ${totalEstudiantesUnicos} estudiantes mostrados`);
 }
 
 // =====================================================
@@ -16688,11 +16765,11 @@ function renderAsistencia(estudianteId, historial, container) {
 }
 
 // =====================================================
-// 18. CLASES VIRTUALES - CORREGIDO
+// 18. CLASES VIRTUALES - CORREGIDO (CON CARGA DESDE FIREBASE)
 // =====================================================
 
 function iniciarClasesTiempoReal(estudiante) {
-    console.log('🎥 Cargando clases virtuales (desde localStorage)');
+    console.log('🎥 Cargando clases virtuales');
     const container = document.getElementById('clasesEstudianteEnc');
     if (!container) return;
 
@@ -16722,44 +16799,42 @@ function iniciarClasesTiempoReal(estudiante) {
         return;
     }
 
-    const todas = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const clases = todas.filter(c => c.instrumento === instrumento && c.nivel === nivel);
-    renderClases(clases, container);
-    console.log(`✅ ${clases.length} clases cargadas para: ${instrumento}`);
-}
+    // 🔥 PRIMERO: Mostrar lo que hay en localStorage (rápido)
+    let todasLocal = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+    let clasesLocal = todasLocal.filter(c => c.instrumento === instrumento && c.nivel === nivel);
+    renderClases(clasesLocal, container);
+    console.log(`📦 ${clasesLocal.length} clases desde localStorage para: ${instrumento}`);
 
-function renderClases(clases, container) {
-    const ahora = new Date();
-    const futuras = clases.filter(c => new Date(c.fechaHora) > ahora)
-        .sort((a,b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+    // 🔥 SEGUNDO: Cargar desde Firebase (si está disponible)
+    if (window.db) {
+        console.log('☁️ Cargando clases desde Firebase...');
+        window.db.collection('clasesVirtuales').get()
+            .then((snapshot) => {
+                const todasFirebase = [];
+                snapshot.forEach(doc => {
+                    todasFirebase.push({ id: doc.id, ...doc.data() });
+                });
 
-    if (futuras.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="text-align:center;padding:40px;color:#888;"><i class="fas fa-video" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>No hay clases próximas para este instrumento y nivel.</div>';
-        return;
+                // Guardar en localStorage
+                localStorage.setItem('clasesVirtuales', JSON.stringify(todasFirebase));
+                console.log(`✅ ${todasFirebase.length} clases cargadas desde Firebase`);
+
+                // Filtrar por instrumento y nivel
+                const clasesFirebase = todasFirebase.filter(c => 
+                    c.instrumento === instrumento && c.nivel === nivel
+                );
+
+                // Actualizar vista
+                renderClases(clasesFirebase, container);
+                console.log(`✅ ${clasesFirebase.length} clases mostradas para: ${instrumento}`);
+            })
+            .catch((error) => {
+                console.error('❌ Error cargando clases desde Firebase:', error);
+                // Si falla, ya tenemos las de localStorage mostradas
+            });
+    } else {
+        console.warn('⚠️ Firebase no disponible, usando solo localStorage');
     }
-
-    container.innerHTML = futuras.map(c => `
-        <div class="clase-card" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid #2196F3;">
-            <div class="clase-header" style="background:#E63946;color:white;padding:12px 16px;font-weight:bold;">
-                <h4 style="margin:0;font-size:1rem;">${c.titulo}</h4>
-            </div>
-            <div class="clase-body" style="padding:15px;">
-                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-                    <span><i class="fas fa-calendar" style="color:#E63946;"></i> ${new Date(c.fechaHora).toLocaleString()}</span>
-                    <span><i class="fas fa-clock" style="color:#E63946;"></i> ${c.duracion || 60} min</span>
-                </div>
-                <p style="margin:10px 0;color:#666;font-size:0.9rem;">${c.descripcion || ''}</p>
-                <div style="margin-top:10px;">
-                    ${c.meetLink ?
-                        `<a href="${c.meetLink}" target="_blank" style="display:inline-block;background:#0F9D58;color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-size:0.8rem;">
-                            <i class="fab fa-google"></i> Unirse a Meet
-                        </a>` :
-                        `<span style="display:inline-block;background:#999;color:white;padding:8px 16px;border-radius:20px;font-size:0.8rem;">Enlace no disponible</span>`
-                    }
-                </div>
-            </div>
-        </div>
-    `).join('');
 }
 
 // =====================================================
