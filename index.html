@@ -13425,9 +13425,31 @@ function iniciarClasesDocenteTiempoReal(username) {
     console.log('📚 Cargando clases del docente');
     const container = document.getElementById('misClasesVirtuales');
     if (!container) return;
-    const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const misClases = clases.filter(c => c.creadaPor === username);
-    renderClasesDocente(misClases, container, username);
+    
+    if (window.db) {
+        console.log('☁️ Cargando clases desde Firebase...');
+        window.db.collection('clasesVirtuales').get()
+            .then((snapshot) => {
+                const clasesFirebase = [];
+                snapshot.forEach(doc => {
+                    clasesFirebase.push({ id: doc.id, ...doc.data() });
+                });
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clasesFirebase));
+                const misClases = clasesFirebase.filter(c => c.creadaPor === username);
+                renderClasesDocente(misClases, container, username);
+                console.log(`✅ ${misClases.length} clases cargadas desde Firebase`);
+            })
+            .catch((error) => {
+                console.error('❌ Error cargando clases:', error);
+                const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+                const misClases = clases.filter(c => c.creadaPor === username);
+                renderClasesDocente(misClases, container, username);
+            });
+    } else {
+        const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        const misClases = clases.filter(c => c.creadaPor === username);
+        renderClasesDocente(misClases, container, username);
+    }
 }
 
 function renderClasesDocente(clases, container, username) {
@@ -13489,9 +13511,37 @@ function iniciarGrabacionesDocenteTiempoReal(username) {
     console.log('🎥 Cargando grabaciones del docente');
     const container = document.getElementById('grabacionesVirtualesDocente');
     if (!container) return;
-    const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
-    const grabaciones = clases.filter(c => c.creadaPor === username && c.grabacionUrl);
-    renderGrabacionesDocente(grabaciones, container);
+    
+    if (window.db) {
+        console.log('☁️ Cargando grabaciones desde Firebase...');
+        window.db.collection('clasesVirtuales').get()
+            .then((snapshot) => {
+                const clasesFirebase = [];
+                snapshot.forEach(doc => {
+                    clasesFirebase.push({ id: doc.id, ...doc.data() });
+                });
+                localStorage.setItem('clasesVirtuales', JSON.stringify(clasesFirebase));
+                const grabaciones = clasesFirebase.filter(c => 
+                    c.creadaPor === username && c.grabacionUrl
+                );
+                renderGrabacionesDocente(grabaciones, container);
+                console.log(`✅ ${grabaciones.length} grabaciones cargadas desde Firebase`);
+            })
+            .catch((error) => {
+                console.error('❌ Error cargando grabaciones:', error);
+                const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+                const grabaciones = clases.filter(c => 
+                    c.creadaPor === username && c.grabacionUrl
+                );
+                renderGrabacionesDocente(grabaciones, container);
+            });
+    } else {
+        const clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
+        const grabaciones = clases.filter(c => 
+            c.creadaPor === username && c.grabacionUrl
+        );
+        renderGrabacionesDocente(grabaciones, container);
+    }
 }
 
 function renderGrabacionesDocente(grabaciones, container) {
