@@ -944,114 +944,749 @@
             }
         }
 
-        /* ADAPTACIONES SOLO PARA MÓVIL (RESPONSIVE) */
-        @media (max-width: 768px) {
-            .secretaria-container {
-                flex-direction: column;
-            }
+    /* ===================================================== */
+/* 📱 ADAPTACIONES PARA MÓVIL - PANEL DE SECRETARÍA */
+/* ===================================================== */
 
-            .sidebar {
-                width: 100%;
-                padding: 10px 0;
-            }
+@media (max-width: 768px) {
+    /* === BARRA LATERAL → MENÚ INFERIOR === */
+    .sidebar {
+        position: fixed !important;
+        bottom: 0 !important;
+        top: auto !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: 80px !important;
+        background: white !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15) !important;
+        border-top: 2px solid #E63946 !important;
+        z-index: 1000 !important;
+        padding: 4px 0 !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+    }
 
-            .menu-vertical {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 8px;
-            }
+    /* Ocultar logo en móvil */
+    .logo-secretaria {
+        display: none !important;
+    }
 
-            .menu-item-vertical {
-                padding: 10px 12px;
-                font-size: 14px;
-                flex-grow: 1;
-                text-align: center;
-                justify-content: center;
-            }
+    /* Menú horizontal con scroll */
+    .menu-vertical {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+        padding: 0 8px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+    }
 
-            .secretaria-panel-container {
-                min-height: auto;
-                margin-bottom: 20px;
-            }
+    /* Ocultar scrollbar */
+    .menu-vertical::-webkit-scrollbar {
+        display: none !important;
+    }
 
-            .secretaria-header-panel {
-                flex-direction: column;
-                gap: 15px;
-                padding: 15px;
-            }
+    /* ===== CADA BOTÓN DEL MENÚ - BIEN VISIBLE ===== */
+    .menu-item-vertical {
+        flex: 0 0 auto !important;
+        padding: 8px 14px !important;
+        font-size: 0.7rem !important;
+        white-space: nowrap !important;
+        min-width: 65px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 3px !important;
+        border-radius: 10px !important;
+        text-align: center !important;
+        background: transparent !important;
+        color: #555 !important;
+        border: none !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
 
-            .data-table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
+    /* Iconos grandes y visibles */
+    .menu-item-vertical i {
+        font-size: 1.3rem !important;
+        margin: 0 !important;
+        display: block !important;
+        color: #E63946 !important;
+    }
 
-            .form-row {
-                flex-direction: column;
-                gap: 15px;
-            }
+    /* Texto de los botones - AHORA SÍ SE VE */
+    .menu-item-vertical span {
+        font-size: 0.6rem !important;
+        display: block !important;
+        line-height: 1.2 !important;
+        margin-top: 2px !important;
+        color: #333 !important;
+        font-weight: 600 !important;
+    }
 
-            .table-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
+    /* Botón activo */
+    .menu-item-vertical.active {
+        background: #E63946 !important;
+        color: white !important;
+        border-radius: 10px !important;
+    }
 
-            .table-actions {
-                width: 100%;
-                flex-direction: column;
-            }
+    .menu-item-vertical.active i {
+        color: white !important;
+    }
 
-            .search-box {
-                max-width: 100%;
-                width: 100%;
-            }
+    .menu-item-vertical.active span {
+        color: white !important;
+    }
 
-            .modern-form-container {
-                margin: 10px;
-            }
+    /* Hover */
+    .menu-item-vertical:hover {
+        background: #f0f0f0 !important;
+    }
 
-            .form-stepper {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
+    .menu-item-vertical.active:hover {
+        background: #C1121F !important;
+    }
 
-            .step {
-                flex: none;
-                width: calc(50% - 5px);
-            }
+    /* === CONTENEDOR PRINCIPAL === */
+    .secretaria-container {
+        display: flex !important;
+        flex-direction: column !important;
+        margin-left: 0 !important;
+        padding-bottom: 85px !important;
+        min-height: 100vh !important;
+    }
 
-            .fab-container {
-                bottom: 20px;
-                right: 20px;
-            }
+    .secretaria-main-content {
+        padding: 5px !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+        flex: 1 !important;
+        height: auto !important;
+        min-height: calc(100vh - 90px) !important;
+    }
 
-            .fab-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
+    .secretaria-panel-container {
+        min-height: auto !important;
+        margin-bottom: 10px !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
 
-            /* Estilos responsive para recibos */
-            .recibo-paper {
-                width: 100%;
-                padding: 5mm;
-            }
+    /* === ENCABEZADO === */
+    .secretaria-header-panel {
+        padding: 8px 10px !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+    }
 
-            .recibo-row {
-                flex-direction: column;
-            }
+    .secretaria-header-panel h2 {
+        font-size: 0.85rem !important;
+        max-width: 100% !important;
+    }
 
-            .recibo-label {
-                width: 100%;
-                margin-bottom: 5px;
-            }
+    .secretaria-header-panel > div {
+        flex-wrap: wrap !important;
+        gap: 3px !important;
+        width: 100% !important;
+        justify-content: center !important;
+    }
 
-            .button-group {
-                grid-template-columns: 1fr;
-            }
-        }
+    .secretaria-header-panel img {
+        width: 45px !important;
+        max-height: 30px !important;
+        margin-right: 3px !important;
+    }
+
+    #saludoHora {
+        font-size: 0.55rem !important;
+        margin-left: 5px !important;
+        white-space: nowrap !important;
+    }
+
+    .logout-btn {
+        padding: 4px 8px !important;
+        font-size: 0.55rem !important;
+        white-space: nowrap !important;
+    }
+
+    #themeToggleBtn, #btnExportarJSON, #btnImportarJSON {
+        padding: 4px 8px !important;
+        font-size: 0.55rem !important;
+        margin-left: 2px !important;
+    }
+
+    /* === MENSAJE DE BIENVENIDA === */
+    .welcome-message {
+        padding: 15px 10px !important;
+        min-height: 40vh !important;
+    }
+
+    .welcome-message img {
+        max-height: 35vh !important;
+        max-width: 95% !important;
+    }
+
+    .welcome-message h3 {
+        font-size: 0.9rem !important;
+    }
+
+    .welcome-message p {
+        font-size: 0.75rem !important;
+    }
+
+    /* === FAB BUTTON === */
+    .fab-container {
+        bottom: 90px !important;
+        right: 12px !important;
+    }
+
+    .fab-btn {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 22px !important;
+    }
+
+    /* === FORMULARIO DE INSCRIPCIÓN === */
+    .modern-form-container {
+        margin: 5px !important;
+        border-radius: 8px !important;
+    }
+
+    .form-header {
+        padding: 10px 15px !important;
+    }
+
+    .form-header h4 {
+        font-size: 0.85rem !important;
+    }
+
+    .modern-form {
+        padding: 10px !important;
+    }
+
+    .form-stepper {
+        margin-bottom: 10px !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+    }
+
+    .step {
+        font-size: 0.55rem !important;
+        flex: none !important;
+        width: calc(25% - 5px) !important;
+        min-width: 40px !important;
+    }
+
+    .step::before {
+        width: 20px !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        font-size: 0.55rem !important;
+        margin-bottom: 2px !important;
+    }
+
+    .floating input, .floating textarea, .floating select {
+        height: 34px !important;
+        padding: 6px 8px 0 28px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .floating label {
+        top: 10px !important;
+        left: 28px !important;
+        font-size: 0.65rem !important;
+    }
+
+    .floating i {
+        left: 8px !important;
+        top: 9px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .form-row {
+        flex-direction: column !important;
+        gap: 5px !important;
+        margin-bottom: 5px !important;
+    }
+
+    .form-navigation {
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+        justify-content: center !important;
+    }
+
+    .nav-btn, .submit-btn {
+        padding: 6px 12px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .step-indicator {
+        font-size: 0.65rem !important;
+        order: -1 !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    .day-pills {
+        gap: 4px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .day-pill span {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.7rem !important;
+    }
+
+    /* === TABLAS === */
+    .data-table-container {
+        padding: 8px !important;
+        overflow-x: auto !important;
+    }
+
+    .data-table {
+        display: block !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        font-size: 0.65rem !important;
+    }
+
+    .data-table th, .data-table td {
+        padding: 5px 8px !important;
+        font-size: 0.65rem !important;
+    }
+
+    .table-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .table-actions {
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 5px !important;
+    }
+
+    .search-box {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    .export-btn {
+        padding: 5px 12px !important;
+        font-size: 0.7rem !important;
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .action-btn {
+        padding: 3px 6px !important;
+        font-size: 0.6rem !important;
+        margin: 1px !important;
+    }
+
+    /* === GESTIÓN DE USUARIOS === */
+    #gestionUsuariosContainer .table-header {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #gestionUsuariosContainer .table-actions {
+        width: 100% !important;
+    }
+
+    #gestionUsuariosContainer #nuevoUsuarioBtn {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    #usuariosTable {
+        font-size: 0.6rem !important;
+    }
+
+    #usuariosTable th, #usuariosTable td {
+        padding: 4px 6px !important;
+        font-size: 0.6rem !important;
+    }
+
+    .user-status {
+        padding: 2px 5px !important;
+        font-size: 0.55rem !important;
+    }
+
+    /* === MODAL DE USUARIO === */
+    #usuarioModal .modal-content {
+        margin: 5% auto !important;
+        padding: 15px !important;
+        width: 95% !important;
+    }
+
+    #usuarioModal .form-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #usuarioModal .input-group label {
+        font-size: 0.7rem !important;
+    }
+
+    #usuarioModal .input-group input,
+    #usuarioModal .input-group select,
+    #usuarioModal .input-group textarea {
+        font-size: 0.7rem !important;
+        padding: 6px 8px !important;
+    }
+
+    .password-generator {
+        flex-direction: column !important;
+        gap: 5px !important;
+    }
+
+    .password-generator input {
+        width: 100% !important;
+    }
+
+    .generate-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 6px !important;
+    }
+
+    /* === RECIBOS === */
+    .recibos-container {
+        padding: 8px !important;
+    }
+
+    .tab-container {
+        flex-wrap: wrap !important;
+        gap: 3px !important;
+    }
+
+    .tab {
+        padding: 5px 12px !important;
+        font-size: 0.7rem !important;
+        flex: 1 !important;
+        text-align: center !important;
+    }
+
+    .recibos-label {
+        font-size: 0.7rem !important;
+    }
+
+    .recibos-select, .recibos-input {
+        padding: 6px 8px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .button-group {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+
+    .recibos-button {
+        padding: 8px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .recibo-paper {
+        padding: 3mm !important;
+        margin: 5px auto !important;
+    }
+
+    .recibo-header h2 {
+        font-size: 0.75rem !important;
+    }
+
+    .recibo-header p {
+        font-size: 0.5rem !important;
+    }
+
+    .recibo-section h3 {
+        font-size: 0.65rem !important;
+    }
+
+    .recibo-row {
+        font-size: 0.55rem !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+
+    .recibo-label {
+        width: 100% !important;
+        font-size: 0.5rem !important;
+    }
+
+    .recibo-value {
+        font-size: 0.6rem !important;
+    }
+
+    .monto-destacado {
+        font-size: 0.8rem !important;
+        padding: 5px !important;
+        margin: 8px 0 !important;
+    }
+
+    .recibo-footer p {
+        font-size: 0.5rem !important;
+    }
+
+    /* === PAGOS === */
+    #pagosContainer .filtros {
+        padding: 8px !important;
+    }
+
+    #pagosContainer .filtros-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #pagosContainer .filtro-group {
+        min-width: 100% !important;
+    }
+
+    #pagosContainer .filtro-group label {
+        font-size: 0.6rem !important;
+    }
+
+    #pagosContainer .filtro-group input,
+    #pagosContainer .filtro-group select {
+        font-size: 0.65rem !important;
+        padding: 5px 8px !important;
+    }
+
+    #pagosContainer .periodo-group {
+        min-width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    #pagosContainer .periodo-inputs {
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+    }
+
+    #pagosContainer .periodo-inputs select,
+    #pagosContainer .periodo-inputs input {
+        flex: 1 !important;
+        min-width: 80px !important;
+        font-size: 0.65rem !important;
+        padding: 5px 8px !important;
+    }
+
+    #pagosContainer .btn-filtrar {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 8px !important;
+        font-size: 0.7rem !important;
+    }
+
+    #pagosContainer .acciones {
+        flex-direction: column !important;
+        gap: 5px !important;
+    }
+
+    #pagosContainer .acciones .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 6px !important;
+        font-size: 0.65rem !important;
+    }
+
+    #tablaPagos {
+        font-size: 0.5rem !important;
+        min-width: 500px !important;
+    }
+
+    #tablaPagos th, #tablaPagos td {
+        padding: 2px 3px !important;
+        font-size: 0.5rem !important;
+    }
+
+    #tablaPagos .btn {
+        padding: 2px 4px !important;
+        font-size: 0.5rem !important;
+    }
+
+    #pagosContainer .resumen {
+        padding: 8px !important;
+    }
+
+    #pagosContainer .resumen h3 {
+        font-size: 0.8rem !important;
+    }
+
+    #pagosContainer .resumen p {
+        font-size: 0.65rem !important;
+    }
+
+    /* === ASISTENCIA === */
+    .asistencia-container .header {
+        padding: 5px 10px !important;
+    }
+
+    .asistencia-container .title {
+        font-size: 0.8rem !important;
+    }
+
+    .asistencia-container .subtitle {
+        font-size: 0.6rem !important;
+    }
+
+    .asistencia-container .filters {
+        grid-template-columns: 1fr !important;
+        padding: 8px !important;
+        gap: 8px !important;
+    }
+
+    .asistencia-container .filter-group label {
+        font-size: 0.6rem !important;
+    }
+
+    .asistencia-container .filter-group select,
+    .asistencia-container .filter-group input {
+        font-size: 0.65rem !important;
+        padding: 5px 8px !important;
+    }
+
+    #attendanceTable {
+        font-size: 0.6rem !important;
+        min-width: 400px !important;
+    }
+
+    #attendanceTable th, #attendanceTable td {
+        padding: 4px 6px !important;
+        font-size: 0.55rem !important;
+    }
+
+    .attendance-status {
+        padding: 2px 4px !important;
+        font-size: 0.55rem !important;
+    }
+
+    .asistencia-container .footer {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .asistencia-container .summary {
+        padding: 8px !important;
+    }
+
+    .asistencia-container .summary p {
+        font-size: 0.6rem !important;
+    }
+
+    .asistencia-container .actions {
+        flex-direction: column !important;
+        gap: 5px !important;
+    }
+
+    .asistencia-container .actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 8px !important;
+        font-size: 0.65rem !important;
+    }
+
+    /* === HISTORIAL DE ASISTENCIA === */
+    .registro-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 5px !important;
+        padding: 8px 10px !important;
+    }
+
+    .registro-detalles {
+        flex-direction: column !important;
+        gap: 3px !important;
+        font-size: 0.55rem !important;
+    }
+
+    .registro-acciones {
+        width: 100% !important;
+        justify-content: flex-end !important;
+        gap: 5px !important;
+    }
+
+    .registro-acciones .btn-small {
+        font-size: 0.55rem !important;
+        padding: 3px 8px !important;
+    }
+}
+
+/* === PANTALLAS MUY PEQUEÑAS (menos de 400px) === */
+@media (max-width: 400px) {
+    .menu-item-vertical {
+        padding: 6px 10px !important;
+        min-width: 55px !important;
+    }
+
+    .menu-item-vertical i {
+        font-size: 1.1rem !important;
+    }
+
+    .menu-item-vertical span {
+        font-size: 0.5rem !important;
+    }
+
+    .secretaria-header-panel h2 {
+        font-size: 0.7rem !important;
+    }
+
+    .logout-btn {
+        font-size: 0.45rem !important;
+        padding: 3px 5px !important;
+    }
+
+    .step {
+        font-size: 0.45rem !important;
+        width: calc(25% - 3px) !important;
+    }
+
+    .step::before {
+        width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+        font-size: 0.45rem !important;
+    }
+
+    .floating input, .floating textarea, .floating select {
+        height: 28px !important;
+        font-size: 0.65rem !important;
+        padding: 4px 6px 0 22px !important;
+    }
+
+    .floating label {
+        font-size: 0.5rem !important;
+        left: 22px !important;
+        top: 8px !important;
+    }
+
+    .floating i {
+        left: 6px !important;
+        top: 7px !important;
+        font-size: 0.65rem !important;
+    }
+
+    .fab-container {
+        bottom: 85px !important;
+        right: 10px !important;
+    }
+
+    .fab-btn {
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 18px !important;
+    }
+}
 
         /* ================================================= */
         /* ESTILOS DEL SISTEMA DE CONTROL DE PAGOS (PRIMER CODIGO) */
@@ -13867,7 +14502,7 @@ function renderGrabacionesDocente(grabaciones, container) {
 // =====================================================
 
 function iniciarEstudiantesDocenteTiempoReal() {
-    console.log('👨‍🎓 Cargando estudiantes del docente');
+    console.log('👨🎓 Cargando estudiantes del docente');
     const container = document.getElementById('listaEstudiantesDocente');
     if (!container) return;
     
@@ -14678,7 +15313,7 @@ function renderTareasPendientes(tareas, container, inscriptions, instrumentosDoc
         <div style="margin-top:15px;padding:12px;background:#f8f9fa;border-radius:8px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;border-top:1px solid #ddd;">
             <span><strong>📊 Resumen:</strong></span>
             <span>⏳ Pendientes: <strong style="color:#FF9800;">${totalPendientes}</strong></span>
-            <span>👨‍🎓 Estudiantes: <strong style="color:#E63946;">${totalEstudiantes}</strong></span>
+            <span>👨🎓 Estudiantes: <strong style="color:#E63946;">${totalEstudiantes}</strong></span>
             <span>🎸 Instrumentos: <strong>${instrumentosOrdenados.length}</strong></span>
         </div>
     `;
@@ -15774,7 +16409,7 @@ function mostrarCalificacionesDocente() {
     html += `
         <div style="margin-top:15px; padding:12px; background:#f8f9fa; border-radius:8px; display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px; border-top:1px solid #ddd;">
             <span><strong>📊 Resumen:</strong></span>
-            <span>👨‍🎓 Total estudiantes: <strong style="color:#E63946;">${totalEstudiantesUnicos}</strong></span>
+            <span>👨🎓 Total estudiantes: <strong style="color:#E63946;">${totalEstudiantesUnicos}</strong></span>
             <span>✅ Con calificaciones: <strong style="color:#4CAF50;">${totalConPromedio}</strong></span>
             <span>⏳ Sin calificar: <strong style="color:#FF9800;">${totalEstudiantesUnicos - totalConPromedio}</strong></span>
         </div>
@@ -20206,4 +20841,4 @@ console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
 
 </script>
 </body>
-</html>
+</html> 
