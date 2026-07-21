@@ -958,7 +958,7 @@
         right: 0 !important;
         width: 100% !important;
         height: auto !important;
-        max-height: 80px !important;
+        max-height: 65px !important;
         background: white !important;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.15) !important;
         border-top: 2px solid #E63946 !important;
@@ -975,13 +975,13 @@
         display: none !important;
     }
 
-    /* Menú horizontal con scroll */
+    /* Menú horizontal con scroll - BOTONES COMPACTOS */
     .menu-vertical {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         justify-content: flex-start !important;
-        gap: 4px !important;
-        padding: 0 8px !important;
+        gap: 2px !important;
+        padding: 0 4px !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         width: 100% !important;
@@ -992,19 +992,20 @@
         display: none !important;
     }
 
-    /* ===== CADA BOTÓN DEL MENÚ - BIEN VISIBLE ===== */
+    /* ===== CADA BOTÓN - MÁS PEQUEÑO Y COMPACTO ===== */
     .menu-item-vertical {
         flex: 0 0 auto !important;
-        padding: 8px 14px !important;
-        font-size: 0.7rem !important;
+        padding: 4px 8px !important;
+        font-size: 0.5rem !important;
         white-space: nowrap !important;
-        min-width: 65px !important;
+        min-width: 44px !important;
+        max-width: 56px !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 3px !important;
-        border-radius: 10px !important;
+        gap: 1px !important;
+        border-radius: 8px !important;
         text-align: center !important;
         background: transparent !important;
         color: #555 !important;
@@ -1013,29 +1014,33 @@
         cursor: pointer !important;
     }
 
-    /* Iconos grandes y visibles */
+    /* Iconos más pequeños */
     .menu-item-vertical i {
-        font-size: 1.3rem !important;
+        font-size: 0.9rem !important;
         margin: 0 !important;
         display: block !important;
         color: #E63946 !important;
     }
 
-    /* Texto de los botones - AHORA SÍ SE VE */
+    /* Texto de los botones - más pequeño */
     .menu-item-vertical span {
-        font-size: 0.6rem !important;
+        font-size: 0.4rem !important;
         display: block !important;
-        line-height: 1.2 !important;
-        margin-top: 2px !important;
+        line-height: 1 !important;
+        margin-top: 1px !important;
         color: #333 !important;
         font-weight: 600 !important;
+        max-width: 50px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 
     /* Botón activo */
     .menu-item-vertical.active {
         background: #E63946 !important;
         color: white !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
     }
 
     .menu-item-vertical.active i {
@@ -1060,7 +1065,7 @@
         display: flex !important;
         flex-direction: column !important;
         margin-left: 0 !important;
-        padding-bottom: 85px !important;
+        padding-bottom: 70px !important;
         min-height: 100vh !important;
     }
 
@@ -1070,7 +1075,7 @@
         overflow-x: hidden !important;
         flex: 1 !important;
         height: auto !important;
-        min-height: calc(100vh - 90px) !important;
+        min-height: calc(100vh - 75px) !important;
     }
 
     .secretaria-panel-container {
@@ -1082,44 +1087,44 @@
 
     /* === ENCABEZADO === */
     .secretaria-header-panel {
-        padding: 8px 10px !important;
+        padding: 6px 8px !important;
         flex-wrap: wrap !important;
-        gap: 5px !important;
+        gap: 3px !important;
     }
 
     .secretaria-header-panel h2 {
-        font-size: 0.85rem !important;
+        font-size: 0.75rem !important;
         max-width: 100% !important;
     }
 
     .secretaria-header-panel > div {
         flex-wrap: wrap !important;
-        gap: 3px !important;
+        gap: 2px !important;
         width: 100% !important;
         justify-content: center !important;
     }
 
     .secretaria-header-panel img {
-        width: 45px !important;
-        max-height: 30px !important;
-        margin-right: 3px !important;
+        width: 35px !important;
+        max-height: 25px !important;
+        margin-right: 2px !important;
     }
 
     #saludoHora {
-        font-size: 0.55rem !important;
-        margin-left: 5px !important;
+        font-size: 0.5rem !important;
+        margin-left: 3px !important;
         white-space: nowrap !important;
     }
 
     .logout-btn {
-        padding: 4px 8px !important;
-        font-size: 0.55rem !important;
+        padding: 3px 6px !important;
+        font-size: 0.5rem !important;
         white-space: nowrap !important;
     }
 
     #themeToggleBtn, #btnExportarJSON, #btnImportarJSON {
-        padding: 4px 8px !important;
-        font-size: 0.55rem !important;
+        padding: 3px 6px !important;
+        font-size: 0.5rem !important;
         margin-left: 2px !important;
     }
 
@@ -1144,14 +1149,14 @@
 
     /* === FAB BUTTON === */
     .fab-container {
-        bottom: 90px !important;
-        right: 12px !important;
+        bottom: 75px !important;
+        right: 10px !important;
     }
 
     .fab-btn {
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 22px !important;
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 18px !important;
     }
 
     /* === FORMULARIO DE INSCRIPCIÓN === */
@@ -1161,94 +1166,94 @@
     }
 
     .form-header {
-        padding: 10px 15px !important;
+        padding: 8px 12px !important;
     }
 
     .form-header h4 {
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
     }
 
     .modern-form {
-        padding: 10px !important;
+        padding: 8px !important;
     }
 
     .form-stepper {
-        margin-bottom: 10px !important;
+        margin-bottom: 8px !important;
         flex-wrap: wrap !important;
-        gap: 5px !important;
+        gap: 3px !important;
     }
 
     .step {
-        font-size: 0.55rem !important;
+        font-size: 0.45rem !important;
         flex: none !important;
-        width: calc(25% - 5px) !important;
-        min-width: 40px !important;
+        width: calc(25% - 3px) !important;
+        min-width: 35px !important;
     }
 
     .step::before {
-        width: 20px !important;
-        height: 20px !important;
-        line-height: 20px !important;
-        font-size: 0.55rem !important;
+        width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+        font-size: 0.45rem !important;
         margin-bottom: 2px !important;
     }
 
     .floating input, .floating textarea, .floating select {
-        height: 34px !important;
-        padding: 6px 8px 0 28px !important;
-        font-size: 0.75rem !important;
+        height: 30px !important;
+        padding: 6px 6px 0 24px !important;
+        font-size: 0.7rem !important;
     }
 
     .floating label {
-        top: 10px !important;
-        left: 28px !important;
-        font-size: 0.65rem !important;
+        top: 9px !important;
+        left: 24px !important;
+        font-size: 0.55rem !important;
     }
 
     .floating i {
-        left: 8px !important;
-        top: 9px !important;
-        font-size: 0.75rem !important;
+        left: 6px !important;
+        top: 8px !important;
+        font-size: 0.7rem !important;
     }
 
     .form-row {
         flex-direction: column !important;
-        gap: 5px !important;
-        margin-bottom: 5px !important;
+        gap: 4px !important;
+        margin-bottom: 4px !important;
     }
 
     .form-navigation {
         flex-wrap: wrap !important;
-        gap: 5px !important;
+        gap: 4px !important;
         justify-content: center !important;
     }
 
     .nav-btn, .submit-btn {
-        padding: 6px 12px !important;
-        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+        font-size: 0.65rem !important;
     }
 
     .step-indicator {
-        font-size: 0.65rem !important;
+        font-size: 0.55rem !important;
         order: -1 !important;
         width: 100% !important;
         text-align: center !important;
     }
 
     .day-pills {
-        gap: 4px !important;
+        gap: 3px !important;
         flex-wrap: wrap !important;
     }
 
     .day-pill span {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 0.7rem !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.6rem !important;
     }
 
     /* === TABLAS === */
     .data-table-container {
-        padding: 8px !important;
+        padding: 6px !important;
         overflow-x: auto !important;
     }
 
@@ -1256,24 +1261,24 @@
         display: block !important;
         overflow-x: auto !important;
         white-space: nowrap !important;
-        font-size: 0.65rem !important;
+        font-size: 0.55rem !important;
     }
 
     .data-table th, .data-table td {
-        padding: 5px 8px !important;
-        font-size: 0.65rem !important;
+        padding: 4px 6px !important;
+        font-size: 0.55rem !important;
     }
 
     .table-header {
         flex-direction: column !important;
         align-items: flex-start !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     .table-actions {
         width: 100% !important;
         flex-direction: column !important;
-        gap: 5px !important;
+        gap: 4px !important;
     }
 
     .search-box {
@@ -1282,22 +1287,22 @@
     }
 
     .export-btn {
-        padding: 5px 12px !important;
-        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+        font-size: 0.6rem !important;
         width: 100% !important;
         justify-content: center !important;
     }
 
     .action-btn {
-        padding: 3px 6px !important;
-        font-size: 0.6rem !important;
+        padding: 2px 4px !important;
+        font-size: 0.5rem !important;
         margin: 1px !important;
     }
 
     /* === GESTIÓN DE USUARIOS === */
     #gestionUsuariosContainer .table-header {
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     #gestionUsuariosContainer .table-actions {
@@ -1310,45 +1315,45 @@
     }
 
     #usuariosTable {
-        font-size: 0.6rem !important;
+        font-size: 0.5rem !important;
     }
 
     #usuariosTable th, #usuariosTable td {
-        padding: 4px 6px !important;
-        font-size: 0.6rem !important;
+        padding: 3px 4px !important;
+        font-size: 0.5rem !important;
     }
 
     .user-status {
-        padding: 2px 5px !important;
-        font-size: 0.55rem !important;
+        padding: 1px 4px !important;
+        font-size: 0.45rem !important;
     }
 
     /* === MODAL DE USUARIO === */
     #usuarioModal .modal-content {
         margin: 5% auto !important;
-        padding: 15px !important;
+        padding: 12px !important;
         width: 95% !important;
     }
 
     #usuarioModal .form-row {
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     #usuarioModal .input-group label {
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
     }
 
     #usuarioModal .input-group input,
     #usuarioModal .input-group select,
     #usuarioModal .input-group textarea {
-        font-size: 0.7rem !important;
-        padding: 6px 8px !important;
+        font-size: 0.65rem !important;
+        padding: 5px 6px !important;
     }
 
     .password-generator {
         flex-direction: column !important;
-        gap: 5px !important;
+        gap: 4px !important;
     }
 
     .password-generator input {
@@ -1358,43 +1363,43 @@
     .generate-btn {
         width: 100% !important;
         justify-content: center !important;
-        padding: 6px !important;
+        padding: 5px !important;
     }
 
     /* === RECIBOS === */
     .recibos-container {
-        padding: 8px !important;
+        padding: 6px !important;
     }
 
     .tab-container {
         flex-wrap: wrap !important;
-        gap: 3px !important;
+        gap: 2px !important;
     }
 
     .tab {
-        padding: 5px 12px !important;
-        font-size: 0.7rem !important;
+        padding: 4px 10px !important;
+        font-size: 0.6rem !important;
         flex: 1 !important;
         text-align: center !important;
     }
 
     .recibos-label {
-        font-size: 0.7rem !important;
+        font-size: 0.6rem !important;
     }
 
     .recibos-select, .recibos-input {
-        padding: 6px 8px !important;
-        font-size: 0.7rem !important;
+        padding: 5px 6px !important;
+        font-size: 0.65rem !important;
     }
 
     .button-group {
         grid-template-columns: 1fr !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     .recibos-button {
-        padding: 8px !important;
-        font-size: 0.7rem !important;
+        padding: 6px !important;
+        font-size: 0.65rem !important;
     }
 
     .recibo-paper {
@@ -1403,50 +1408,50 @@
     }
 
     .recibo-header h2 {
-        font-size: 0.75rem !important;
+        font-size: 0.7rem !important;
     }
 
     .recibo-header p {
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
     }
 
     .recibo-section h3 {
-        font-size: 0.65rem !important;
+        font-size: 0.6rem !important;
     }
 
     .recibo-row {
-        font-size: 0.55rem !important;
+        font-size: 0.5rem !important;
         flex-direction: column !important;
         gap: 2px !important;
     }
 
     .recibo-label {
         width: 100% !important;
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
     }
 
     .recibo-value {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
     }
 
     .monto-destacado {
-        font-size: 0.8rem !important;
-        padding: 5px !important;
-        margin: 8px 0 !important;
+        font-size: 0.75rem !important;
+        padding: 4px !important;
+        margin: 6px 0 !important;
     }
 
     .recibo-footer p {
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
     }
 
     /* === PAGOS === */
     #pagosContainer .filtros {
-        padding: 8px !important;
+        padding: 6px !important;
     }
 
     #pagosContainer .filtros-row {
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     #pagosContainer .filtro-group {
@@ -1454,13 +1459,13 @@
     }
 
     #pagosContainer .filtro-group label {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
     }
 
     #pagosContainer .filtro-group input,
     #pagosContainer .filtro-group select {
-        font-size: 0.65rem !important;
-        padding: 5px 8px !important;
+        font-size: 0.6rem !important;
+        padding: 4px 6px !important;
     }
 
     #pagosContainer .periodo-group {
@@ -1470,221 +1475,231 @@
 
     #pagosContainer .periodo-inputs {
         flex-wrap: wrap !important;
-        gap: 5px !important;
+        gap: 4px !important;
     }
 
     #pagosContainer .periodo-inputs select,
     #pagosContainer .periodo-inputs input {
         flex: 1 !important;
-        min-width: 80px !important;
-        font-size: 0.65rem !important;
-        padding: 5px 8px !important;
+        min-width: 70px !important;
+        font-size: 0.6rem !important;
+        padding: 4px 6px !important;
     }
 
     #pagosContainer .btn-filtrar {
-        width: 100% !important;
-        justify-content: center !important;
-        padding: 8px !important;
-        font-size: 0.7rem !important;
-    }
-
-    #pagosContainer .acciones {
-        flex-direction: column !important;
-        gap: 5px !important;
-    }
-
-    #pagosContainer .acciones .btn {
         width: 100% !important;
         justify-content: center !important;
         padding: 6px !important;
         font-size: 0.65rem !important;
     }
 
+    #pagosContainer .acciones {
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    #pagosContainer .acciones .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 5px !important;
+        font-size: 0.6rem !important;
+    }
+
     #tablaPagos {
-        font-size: 0.5rem !important;
-        min-width: 500px !important;
+        font-size: 0.45rem !important;
+        min-width: 400px !important;
     }
 
     #tablaPagos th, #tablaPagos td {
         padding: 2px 3px !important;
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
     }
 
     #tablaPagos .btn {
-        padding: 2px 4px !important;
-        font-size: 0.5rem !important;
+        padding: 1px 3px !important;
+        font-size: 0.4rem !important;
     }
 
     #pagosContainer .resumen {
-        padding: 8px !important;
+        padding: 6px !important;
     }
 
     #pagosContainer .resumen h3 {
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
     }
 
     #pagosContainer .resumen p {
-        font-size: 0.65rem !important;
+        font-size: 0.6rem !important;
     }
 
     /* === ASISTENCIA === */
     .asistencia-container .header {
-        padding: 5px 10px !important;
+        padding: 4px 8px !important;
     }
 
     .asistencia-container .title {
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
     }
 
     .asistencia-container .subtitle {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
     }
 
     .asistencia-container .filters {
         grid-template-columns: 1fr !important;
-        padding: 8px !important;
-        gap: 8px !important;
+        padding: 6px !important;
+        gap: 6px !important;
     }
 
     .asistencia-container .filter-group label {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
     }
 
     .asistencia-container .filter-group select,
     .asistencia-container .filter-group input {
-        font-size: 0.65rem !important;
-        padding: 5px 8px !important;
+        font-size: 0.6rem !important;
+        padding: 4px 6px !important;
     }
 
     #attendanceTable {
-        font-size: 0.6rem !important;
-        min-width: 400px !important;
+        font-size: 0.55rem !important;
+        min-width: 350px !important;
     }
 
     #attendanceTable th, #attendanceTable td {
-        padding: 4px 6px !important;
-        font-size: 0.55rem !important;
+        padding: 3px 4px !important;
+        font-size: 0.5rem !important;
     }
 
     .attendance-status {
         padding: 2px 4px !important;
-        font-size: 0.55rem !important;
+        font-size: 0.5rem !important;
     }
 
     .asistencia-container .footer {
         flex-direction: column !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
 
     .asistencia-container .summary {
-        padding: 8px !important;
+        padding: 6px !important;
     }
 
     .asistencia-container .summary p {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
     }
 
     .asistencia-container .actions {
         flex-direction: column !important;
-        gap: 5px !important;
+        gap: 4px !important;
     }
 
     .asistencia-container .actions .btn {
         width: 100% !important;
         justify-content: center !important;
-        padding: 8px !important;
-        font-size: 0.65rem !important;
+        padding: 6px !important;
+        font-size: 0.6rem !important;
     }
 
     /* === HISTORIAL DE ASISTENCIA === */
     .registro-item {
         flex-direction: column !important;
         align-items: flex-start !important;
-        gap: 5px !important;
-        padding: 8px 10px !important;
+        gap: 4px !important;
+        padding: 6px 8px !important;
     }
 
     .registro-detalles {
         flex-direction: column !important;
-        gap: 3px !important;
-        font-size: 0.55rem !important;
+        gap: 2px !important;
+        font-size: 0.5rem !important;
     }
 
     .registro-acciones {
         width: 100% !important;
         justify-content: flex-end !important;
-        gap: 5px !important;
+        gap: 4px !important;
     }
 
     .registro-acciones .btn-small {
-        font-size: 0.55rem !important;
-        padding: 3px 8px !important;
+        font-size: 0.5rem !important;
+        padding: 2px 6px !important;
     }
 }
 
 /* === PANTALLAS MUY PEQUEÑAS (menos de 400px) === */
 @media (max-width: 400px) {
+    /* Botones aún más pequeños para pantallas muy pequeñas */
     .menu-item-vertical {
-        padding: 6px 10px !important;
-        min-width: 55px !important;
+        padding: 3px 6px !important;
+        min-width: 36px !important;
+        max-width: 44px !important;
     }
 
     .menu-item-vertical i {
-        font-size: 1.1rem !important;
+        font-size: 0.75rem !important;
     }
 
     .menu-item-vertical span {
-        font-size: 0.5rem !important;
+        font-size: 0.35rem !important;
     }
 
     .secretaria-header-panel h2 {
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
     }
 
     .logout-btn {
-        font-size: 0.45rem !important;
-        padding: 3px 5px !important;
+        font-size: 0.4rem !important;
+        padding: 2px 4px !important;
     }
 
     .step {
-        font-size: 0.45rem !important;
-        width: calc(25% - 3px) !important;
+        font-size: 0.4rem !important;
+        width: calc(25% - 2px) !important;
     }
 
     .step::before {
-        width: 16px !important;
-        height: 16px !important;
-        line-height: 16px !important;
-        font-size: 0.45rem !important;
+        width: 14px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+        font-size: 0.4rem !important;
     }
 
     .floating input, .floating textarea, .floating select {
-        height: 28px !important;
-        font-size: 0.65rem !important;
-        padding: 4px 6px 0 22px !important;
+        height: 26px !important;
+        font-size: 0.6rem !important;
+        padding: 4px 4px 0 20px !important;
     }
 
     .floating label {
-        font-size: 0.5rem !important;
-        left: 22px !important;
-        top: 8px !important;
+        font-size: 0.45rem !important;
+        left: 20px !important;
+        top: 7px !important;
     }
 
     .floating i {
-        left: 6px !important;
-        top: 7px !important;
-        font-size: 0.65rem !important;
+        left: 4px !important;
+        top: 6px !important;
+        font-size: 0.6rem !important;
     }
 
     .fab-container {
-        bottom: 85px !important;
-        right: 10px !important;
+        bottom: 70px !important;
+        right: 8px !important;
     }
 
     .fab-btn {
-        width: 45px !important;
-        height: 45px !important;
-        font-size: 18px !important;
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 14px !important;
+    }
+
+    .sidebar {
+        max-height: 55px !important;
+    }
+
+    .secretaria-container {
+        padding-bottom: 60px !important;
     }
 }
 
