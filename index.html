@@ -12196,6 +12196,7 @@ const asistenciaApp = {
         
         estudiantesCargados = estudiantesFiltrados;
         this.mostrarEstudiantesEnTabla(estudiantesFiltrados, fecha, dia, horario);
+       this.cargarAsistenciaPreviaDesdeFirebase(fecha, dia, horario);
     },
     
     mostrarEstudiantesEnTabla: function(estudiantes, fecha, dia, horario) {
@@ -12306,6 +12307,79 @@ const asistenciaApp = {
         this.actualizarContadores();
     },
     
+  // 🔥 NUEVA FUNCIÓN - Carga asistencia desde Firebase
+cargarAsistenciaPreviaDesdeFirebase: function(fecha, dia, horario) {
+    const self = this;
+    if (!window.db) return;
+    
+    console.log('☁️ Cargando asistencia previa desde Firebase...');
+    
+    window.db.collection('asistencia')
+        .where('fecha', '==', fecha)
+        .where('dia', '==', dia)
+        .where('horario', '==', horario)
+        .get()
+        .then((snapshot) => {
+            const registrosFirebase = [];
+            snapshot.forEach(doc => {
+                registrosFirebase.push({ id: doc.id, ...doc.data() });
+            });
+            
+            console.log(`✅ ${registrosFirebase.length} registros de asistencia cargados desde Firebase`);
+            
+            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            
+            registrosFirebase.forEach(registro => {
+                const index = historial.findIndex(h => 
+                    String(h.studentId) === String(registro.studentId) &&
+                    h.fecha === registro.fecha &&
+                    h.dia === registro.dia &&
+                    h.horario === registro.horario
+                );
+                if (index !== -1) {
+                    historial[index] = registro;
+                } else {
+                    historial.push(registro);
+                }
+            });
+            
+            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+            self.aplicarRegistrosAsistencia(registrosFirebase);
+        })
+        .catch((error) => {
+            console.error('❌ Error cargando asistencia desde Firebase:', error);
+            self.cargarAsistenciaPrevia(fecha, dia, horario);
+        });
+},
+
+// 🔥 NUEVA FUNCIÓN - Aplica registros a la tabla
+aplicarRegistrosAsistencia: function(registros) {
+    registros.forEach(registro => {
+        const fila = document.querySelector(`tr[data-student-id="${registro.studentId}"]`);
+        if (!fila) return;
+        
+        const statusCell = fila.querySelector('.attendance-status');
+        const timeCell = fila.querySelector('.attendance-time');
+        if (!statusCell) return;
+        
+        const estados = {
+            'presente': ['✅ Presente', 'background: #d4edda; color: #155724; border-color: #c3e6cb;'],
+            'ausente': ['❌ Ausente', 'background: #f8d7da; color: #721c24; border-color: #f5c6cb;'],
+            'justificado': ['📝 Justificado', 'background: #fff3cd; color: #856404; border-color: #ffc107;'],
+            'reposicion': ['🔄 Reposición', 'background: #cce5ff; color: #004085; border-color: #b8daff;']
+        };
+        
+        const estado = estados[registro.estado];
+        if (estado) {
+            statusCell.innerHTML = estado[0];
+            statusCell.style.cssText = `padding: 8px 12px; border-radius: 6px; text-align: center; border: 1px solid; ${estado[1]}`;
+        }
+        
+        if (timeCell) timeCell.textContent = registro.horaRegistro || '--:--';
+    });
+    
+    this.actualizarContadores();
+},
     // =====================================================
     // 🔥 GUARDAR EN HISTORIAL - CON SUBIDA A FIREBASE CORREGIDA
     // =====================================================
@@ -12830,140 +12904,180 @@ const asistenciaApp = {
         }
     },
     
-    mostrarHistorialCompleto: function() {
-        const historyContent = document.getElementById('history-content');
-        if (!historyContent) return;
-        
+mostrarHistorialCompleto: function() {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return;
+    
+    // 🔥 PRIMERO: Cargar desde Firebase
+    if (window.db) {
+        console.log('☁️ Cargando historial completo desde Firebase...');
+        window.db.collection('asistencia')
+            .orderBy('fecha', 'desc')
+            .get()
+            .then((snapshot) => {
+                const registrosFirebase = [];
+                snapshot.forEach(doc => {
+                    registrosFirebase.push({ id: doc.id, ...doc.data() });
+                });
+                
+                console.log(`✅ ${registrosFirebase.length} registros cargados desde Firebase`);
+                
+                // Guardar en localStorage para caché
+                localStorage.setItem('historialAsistencia', JSON.stringify(registrosFirebase));
+                
+                // Mostrar los datos
+                this.renderizarHistorial(registrosFirebase);
+            })
+            .catch((error) => {
+                console.error('❌ Error cargando historial desde Firebase:', error);
+                // Fallback: usar localStorage
+                const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+                this.renderizarHistorial(historial);
+            });
+    } else {
+        // Sin Firebase: usar localStorage
         const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-        
-        if (historial.length === 0) {
-            historyContent.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-clipboard-list" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
-                    <h3>No hay registros de asistencia</h3>
-                    <p>Los registros aparecerán aquí después de escanear códigos QR o registrar manualmente.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        historial.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        let html = `
-            <div class="historial-header">
-                <h3><i class="fas fa-history"></i> Historial de Asistencias</h3>
-                <div>
-                    <span class="badge" style="background: #E63946; color: white; padding: 5px 10px; border-radius: 15px;">
-                        ${historial.length} registros
-                    </span>
-                    <button class="recibos-button btn-secondary-recibos btn-small" onclick="asistenciaApp.exportarHistorialAsistencia()" style="margin-left: 10px;">
-                        <i class="fas fa-download"></i> Exportar
-                    </button>
-                    <button class="recibos-button btn-secondary-recibos btn-small" onclick="asistenciaApp.limpiarHistorialAsistencia()" style="margin-left: 5px;">
-                        <i class="fas fa-trash"></i> Limpiar
-                    </button>
-                </div>
-            </div>
-            <div class="search-container" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="position: relative; flex: 1;">
-                        <input type="text" id="searchStudentHistorial" placeholder="🔍 Buscar estudiante por nombre o ID..." style="width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;" onkeyup="asistenciaApp.filtrarHistorial()">
-                    </div>
-                    <button class="btn-small" onclick="asistenciaApp.limpiarBusquedaHistorial()" style="white-space: nowrap;">
-                        <i class="fas fa-times"></i> Limpiar
-                    </button>
-                </div>
-            </div>
-            <div class="resumen-asistencia">
-                <div class="attendance-summary">
-                    <div class="attendance-stats">
-                        <div class="stat-item">
-                            <span class="stat-number">${historial.length}</span>
-                            <span class="stat-label">Total Registros</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${new Set(historial.map(r => r.studentId)).size}</span>
-                            <span class="stat-label">Estudiantes Únicos</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${historial.filter(r => r.estado === 'presente').length}</span>
-                            <span class="stat-label">Asistencias</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${historial.filter(r => r.estado === 'reposicion').length}</span>
-                            <span class="stat-label">Reposiciones</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${historial.filter(r => r.estado === 'ausente').length}</span>
-                            <span class="stat-label">Ausentes</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${historial.filter(r => r.estado === 'justificado').length}</span>
-                            <span class="stat-label">Justificados</span>
-                        </div>
-                    </div>
-                </div>
+        this.renderizarHistorial(historial);
+    }
+},
+
+// 🔥 NUEVA FUNCIÓN: Renderizar el historial
+renderizarHistorial: function(historial) {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return;
+    
+    if (historial.length === 0) {
+        historyContent.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+                <h3>No hay registros de asistencia</h3>
+                <p>Los registros aparecerán aquí después de escanear códigos QR o registrar manualmente.</p>
             </div>
         `;
+        return;
+    }
+    
+    // Ordenar por fecha (más reciente primero)
+    historial.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    let html = `
+        <div class="historial-header">
+            <h3><i class="fas fa-history"></i> Historial de Asistencias</h3>
+            <div>
+                <span class="badge" style="background: #E63946; color: white; padding: 5px 10px; border-radius: 15px;">
+                    ${historial.length} registros
+                </span>
+                <button class="recibos-button btn-secondary-recibos btn-small" onclick="asistenciaApp.exportarHistorialAsistencia()" style="margin-left: 10px;">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button class="recibos-button btn-secondary-recibos btn-small" onclick="asistenciaApp.limpiarHistorialAsistencia()" style="margin-left: 5px;">
+                    <i class="fas fa-trash"></i> Limpiar
+                </button>
+            </div>
+        </div>
+        <div class="search-container" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="position: relative; flex: 1;">
+                    <input type="text" id="searchStudentHistorial" placeholder="🔍 Buscar estudiante por nombre o ID..." style="width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;" onkeyup="asistenciaApp.filtrarHistorial()">
+                </div>
+                <button class="btn-small" onclick="asistenciaApp.limpiarBusquedaHistorial()" style="white-space: nowrap;">
+                    <i class="fas fa-times"></i> Limpiar
+                </button>
+            </div>
+        </div>
+        <div class="resumen-asistencia">
+            <div class="attendance-summary">
+                <div class="attendance-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">${historial.length}</span>
+                        <span class="stat-label">Total Registros</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${new Set(historial.map(r => r.studentId)).size}</span>
+                        <span class="stat-label">Estudiantes Únicos</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${historial.filter(r => r.estado === 'presente').length}</span>
+                        <span class="stat-label">Asistencias</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${historial.filter(r => r.estado === 'reposicion').length}</span>
+                        <span class="stat-label">Reposiciones</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${historial.filter(r => r.estado === 'ausente').length}</span>
+                        <span class="stat-label">Ausentes</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${historial.filter(r => r.estado === 'justificado').length}</span>
+                        <span class="stat-label">Justificados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agrupar por fecha
+    const registrosPorFecha = {};
+    historial.forEach(registro => {
+        const fechaKey = registro.fecha;
+        if (!registrosPorFecha[fechaKey]) registrosPorFecha[fechaKey] = [];
+        registrosPorFecha[fechaKey].push(registro);
+    });
+    
+    // Ordenar fechas (más reciente primero)
+    Object.keys(registrosPorFecha).sort((a, b) => new Date(b) - new Date(a)).forEach(fecha => {
+        const registros = registrosPorFecha[fecha];
+        html += `
+            <div class="fecha-grupo">
+                <div class="fecha-titulo">
+                    <i class="fas fa-calendar-day"></i>
+                    ${new Date(fecha).toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span class="badge">${registros.length} registro(s)</span>
+                </div>
+                <div class="registros-fecha">
+        `;
         
-        const registrosPorFecha = {};
-        historial.forEach(registro => {
-            const fechaKey = registro.fecha;
-            if (!registrosPorFecha[fechaKey]) registrosPorFecha[fechaKey] = [];
-            registrosPorFecha[fechaKey].push(registro);
-        });
-        
-        Object.keys(registrosPorFecha).sort((a, b) => new Date(b) - new Date(a)).forEach(fecha => {
-            const registros = registrosPorFecha[fecha];
+        registros.forEach(registro => {
+            let estadoIcon = '', estadoTexto = '';
+            switch(registro.estado) {
+                case 'presente': estadoIcon = '✅'; estadoTexto = 'PRESENTE'; break;
+                case 'ausente': estadoIcon = '❌'; estadoTexto = 'AUSENTE'; break;
+                case 'justificado': estadoIcon = '📝'; estadoTexto = 'JUSTIFICADO'; break;
+                case 'reposicion': estadoIcon = '🔄'; estadoTexto = 'REPOSICIÓN'; break;
+                default: estadoIcon = '❓'; estadoTexto = 'DESCONOCIDO';
+            }
+            
             html += `
-                <div class="fecha-grupo">
-                    <div class="fecha-titulo">
-                        <i class="fas fa-calendar-day"></i>
-                        ${new Date(fecha).toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                        <span class="badge">${registros.length} registro(s)</span>
+                <div class="registro-item" data-student-name="${(registro.studentName || '').toLowerCase()}" data-student-id="${registro.studentId}">
+                    <div class="registro-info">
+                        <div class="estudiante-nombre">${registro.studentName || 'Sin nombre'} <small>ID: ${registro.studentId || 'N/A'}</small></div>
+                        <div class="registro-detalles">
+                            <span><i class="fas fa-guitar"></i> ${registro.instrumento || 'N/A'}</span>
+                            <span><i class="fas fa-signal"></i> ${registro.nivel || 'N/A'}</span>
+                            <span><i class="fas fa-clock"></i> ${registro.horario || 'N/A'}</span>
+                            <span><i class="fas fa-check-circle"></i> ${registro.horaRegistro || '--:--'}</span>
+                            <span>${estadoIcon} ${estadoTexto}</span>
+                        </div>
+                        ${registro.observaciones ? `<div class="observaciones"><small><i class="fas fa-sticky-note"></i> ${registro.observaciones}</small></div>` : ''}
                     </div>
-                    <div class="registros-fecha">
+                    <div class="registro-acciones">
+                        <button class="btn-small btn-ver-detalles" onclick="asistenciaApp.verDetallesRegistro(${registro.id})">
+                            <i class="fas fa-eye"></i> Detalles
+                        </button>
+                        <button class="btn-small btn-reporte-estudiante" onclick="asistenciaApp.generarReporteEstudiante('${registro.studentId}')">
+                            <i class="fas fa-user"></i> Reporte
+                        </button>
+                    </div>
+                </div>
             `;
-            
-            registros.forEach(registro => {
-                let estadoIcon = '', estadoTexto = '';
-                switch(registro.estado) {
-                    case 'presente': estadoIcon = '✅'; estadoTexto = 'PRESENTE'; break;
-                    case 'ausente': estadoIcon = '❌'; estadoTexto = 'AUSENTE'; break;
-                    case 'justificado': estadoIcon = '📝'; estadoTexto = 'JUSTIFICADO'; break;
-                    case 'reposicion': estadoIcon = '🔄'; estadoTexto = 'REPOSICIÓN'; break;
-                }
-                
-                html += `
-                    <div class="registro-item" data-student-name="${(registro.studentName || '').toLowerCase()}" data-student-id="${registro.studentId}">
-                        <div class="registro-info">
-                            <div class="estudiante-nombre">${registro.studentName} <small>ID: ${registro.studentId}</small></div>
-                            <div class="registro-detalles">
-                                <span><i class="fas fa-guitar"></i> ${registro.instrumento}</span>
-                                <span><i class="fas fa-signal"></i> ${registro.nivel}</span>
-                                <span><i class="fas fa-clock"></i> ${registro.horario}</span>
-                                <span><i class="fas fa-check-circle"></i> ${registro.horaRegistro}</span>
-                                <span>${estadoIcon} ${estadoTexto}</span>
-                            </div>
-                            ${registro.observaciones ? `<div class="observaciones"><small><i class="fas fa-sticky-note"></i> ${registro.observaciones}</small></div>` : ''}
-                        </div>
-                        <div class="registro-acciones">
-                            <button class="btn-small btn-ver-detalles" onclick="asistenciaApp.verDetallesRegistro(${registro.id})">
-                                <i class="fas fa-eye"></i> Detalles
-                            </button>
-                            <button class="btn-small btn-reporte-estudiante" onclick="asistenciaApp.generarReporteEstudiante('${registro.studentId}')">
-                                <i class="fas fa-user"></i> Reporte
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `</div></div>`;
         });
         
-        historyContent.innerHTML = html;
-    },
+        html += `</div></div>`;
+    });
+    
+    historyContent.innerHTML = html;
+},
     
     filtrarHistorial: function() {
         const searchTerm = document.getElementById('searchStudentHistorial').value.toLowerCase();
@@ -15053,7 +15167,7 @@ function guardarClaseVirtualDocente() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         console.log('👤 currentUser:', currentUser);
-        
+
         if (!currentUser || !currentUser.username) {
             alert('❌ No se encontró el usuario docente.');
             console.error('❌ currentUser no encontrado');
@@ -15121,7 +15235,9 @@ function guardarClaseVirtualDocente() {
         }
 
         // Verificar instrumento
-        if (!currentUser.instrumentos || !currentUser.instrumentos.some(i => normalizarInstrumento(i) === normalizarInstrumento(instrumentoVal))) {
+        if (!currentUser.instrumentos || !currentUser.instrumentos.some(i => 
+            normalizarInstrumento(i) === normalizarInstrumento(instrumentoVal)
+        )) {
             alert(`⚠️ No tienes asignado el instrumento "${instrumentoVal}". Contacta a la secretaría.`);
             return;
         }
@@ -15144,7 +15260,7 @@ function guardarClaseVirtualDocente() {
         function finalizarCreacionClase(id, claseData) {
             console.log('✅ Finalizando creación con ID:', id);
             claseData.id = id;
-            
+
             let clases = JSON.parse(localStorage.getItem('clasesVirtuales') || '[]');
             if (!clases.some(c => c.id === id)) {
                 clases.push(claseData);
@@ -15159,30 +15275,52 @@ function guardarClaseVirtualDocente() {
             }
 
             alert('✅ Clase virtual creada correctamente.');
-            
+
+            // Resetear formulario
             titulo.value = '';
             if (meetLink) meetLink.value = '';
             if (descripcion) descripcion.value = '';
             if (fechaHora) fechaHora.value = '';
+
+            // 🔥 RECARGAR LA LISTA DE CLASES
+            iniciarClasesDocenteTiempoReal(currentUser.username);
             
-            if (typeof iniciarClasesDocenteTiempoReal === 'function') {
-                iniciarClasesDocenteTiempoReal(currentUser.username);
+            // 🔥 VOLVER A LA PESTAÑA DE CLASES
+            console.log('🔄 Volviendo a la pestaña de clases...');
+            
+            // Ocultar TODAS las pantallas del docente
+            document.querySelectorAll('#docentePanelVirtual .pantalla').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            // Mostrar SOLO la pantalla de clases
+            const pantallaClases = document.getElementById('docPantallaClases');
+            if (pantallaClases) {
+                pantallaClases.classList.add('active');
+                console.log('✅ Pantalla clases activada');
             }
             
-            const menuClases = document.querySelector('.docente-menu-item[data-seccion="clases"]') ||
-                document.querySelector('.docente-menu-item-mobile[data-seccion="clases"]');
-            if (menuClases) menuClases.click();
+            // Actualizar el menú inferior
+            document.querySelectorAll('#docentePanelVirtual .menu-item[data-pantalla-docente]').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-pantalla-docente') === 'clases') {
+                    item.classList.add('active');
+                }
+            });
+            
+            console.log('✅✅✅ Clase creada y lista recargada');
         }
 
         // Guardar en Firebase
         if (window.db) {
             const btnCrear = document.getElementById('btnCrearClaseVirtual');
             const textoOriginal = btnCrear ? btnCrear.innerHTML : '';
+
             if (btnCrear) {
                 btnCrear.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
                 btnCrear.disabled = true;
             }
-            
+
             console.log('☁️ Guardando en Firebase...');
             window.db.collection('clasesVirtuales').add(nuevaClase)
                 .then((docRef) => {
@@ -15206,7 +15344,7 @@ function guardarClaseVirtualDocente() {
             finalizarCreacionClase(idLocal, nuevaClase);
             alert('⚠️ Firebase no disponible. La clase se guardó solo localmente.');
         }
-        
+
     } catch (error) {
         console.error('❌ Error en guardarClaseVirtualDocente:', error);
         alert('❌ Error: ' + error.message);
