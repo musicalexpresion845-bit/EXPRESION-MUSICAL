@@ -18545,7 +18545,7 @@ function activarSwipeEncargado() {
 }
 
 // =====================================================
-// 26. HISTORIAL COMPLETO - CON CARGA FORZADA DESDE FIREBASE
+// 26. HISTORIAL COMPLETO - CORREGIDO: NO HACE FALLBACK A OTRO INSTRUMENTO
 // =====================================================
 
 async function cargarHistorialCompleto(estudianteId) {
@@ -18569,21 +18569,23 @@ async function cargarHistorialCompleto(estudianteId) {
     }
 
     // 2. Datos del estudiante
-    const nivel = estudiante.estudiante?.nivel || '';
+    const nivelEstudiante = estudiante.estudiante?.nivel || '';
     const instrumentoPrincipal = estudiante.musical?.instrumentoPrincipal || '';
     const instrumentoSecundario = estudiante.musical?.instrumentoSecundario || '';
+    
+    // 🔥 IMPORTANTE: Usar el instrumento SELECCIONADO por el encargado
+    let instrumentoBuscado = encargadoInstrumentoSeleccionado || instrumentoPrincipal;
 
-    console.log('📊 Estudiante:', {
-        nombre: estudiante.estudiante?.nombre,
-        instrumentoPrincipal,
-        instrumentoSecundario,
-        nivel,
-        instrumentoSeleccionado: encargadoInstrumentoSeleccionado
+    console.log('📊 Buscando temario para:', {
+        estudiante: estudiante.estudiante?.nombre,
+        instrumentoBuscado: instrumentoBuscado,
+        nivel: nivelEstudiante,
+        principal: instrumentoPrincipal,
+        secundario: instrumentoSecundario
     });
 
-    // 3. 🔥 PRIMERO: Intentar cargar desde Firebase directamente
+    // 3. Cargar temarios
     let temarios = [];
-
     if (window.db) {
         try {
             console.log('☁️ Cargando temarios desde Firebase...');
@@ -18594,101 +18596,115 @@ async function cargarHistorialCompleto(estudianteId) {
             if (temarios.length > 0) {
                 localStorage.setItem('temarios', JSON.stringify(temarios));
                 console.log(`✅ ${temarios.length} temarios cargados desde Firebase`);
-            } else {
-                console.warn('⚠️ No hay temarios en Firebase');
             }
         } catch (e) {
             console.error('❌ Error cargando desde Firebase:', e);
         }
     }
 
-    // 4. Si no hay temarios de Firebase, usar localStorage
     if (temarios.length === 0) {
         temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
         console.log(`📦 ${temarios.length} temarios desde localStorage`);
     }
 
-    console.log('📚 Temarios disponibles:', temarios.map(t => `${t.instrumento} - ${t.nivel}`));
+    if (temarios.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;color:#888;">
+                <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
+                <p>No hay temarios disponibles en el sistema.</p>
+            </div>
+        `;
+        return;
+    }
 
-    // 5. 🔥 BUSCAR TEMARIO CON COMPARACIÓN FLEXIBLE (ignora mayúsculas)
-    let temarioEncontrado = null;
-    let instrumentoUsado = null;
-
+    // 4. 🔥 BUSCAR EXACTAMENTE: instrumento SELECCIONADO + nivel
     function normalizar(str) {
         return str?.toLowerCase().trim() || '';
     }
 
-    const instrumentosABuscar = [
-        encargadoInstrumentoSeleccionado,
-        instrumentoPrincipal,
-        instrumentoSecundario
-    ].filter(Boolean);
+    const instrNorm = normalizar(instrumentoBuscado);
+    const nivelNorm = normalizar(nivelEstudiante);
 
-    const nivelNormalizado = normalizar(nivel);
+    console.log(`🔍 Buscando: instrumento="${instrumentoBuscado}" (${instrNorm}), nivel="${nivelEstudiante}" (${nivelNorm})`);
 
-    console.log('🔍 Buscando temario con:', {
-        instrumentosABuscar,
-        nivelNormalizado,
-        temariosDisponibles: temarios.map(t => `${t.instrumento} - ${t.nivel}`)
-    });
-
-    // Buscar en todos los instrumentos
-    for (const instr of instrumentosABuscar) {
-        const instrNormalizado = normalizar(instr);
-
-        // Buscar coincidencia exacta (case-insensitive)
-        const encontrado = temarios.find(t => {
-            const tInstrumento = normalizar(t.instrumento);
-            const tNivel = normalizar(t.nivel);
-            return tInstrumento === instrNormalizado && tNivel === nivelNormalizado;
-        });
-
-        if (encontrado) {
-            temarioEncontrado = encontrado;
-            instrumentoUsado = instr;
-            console.log(`✅ Temario encontrado: ${encontrado.instrumento} - ${encontrado.nivel}`);
+    // Buscar coincidencia EXACTA
+    let temarioEncontrado = null;
+    
+    for (const t of temarios) {
+        const tInstrumento = normalizar(t.instrumento);
+        const tNivel = normalizar(t.nivel);
+        
+        if (tInstrumento === instrNorm && tNivel === nivelNorm) {
+            temarioEncontrado = t;
+            console.log(`✅ TEMARIO ENCONTRADO: ${t.instrumento} - ${t.nivel}`);
             break;
         }
     }
 
-    // Si no se encuentra con nivel exacto, buscar solo por instrumento
+    // 🔥🔥🔥 SI NO HAY TEMARIO PARA EL INSTRUMENTO SELECCIONADO, MOSTRAR MENSAJE
     if (!temarioEncontrado) {
-        console.log('⚠️ No encontrado con nivel exacto, buscando solo por instrumento...');
-        for (const instr of instrumentosABuscar) {
-            const instrNormalizado = normalizar(instr);
-            const encontrado = temarios.find(t => normalizar(t.instrumento) === instrNormalizado);
-            if (encontrado) {
-                temarioEncontrado = encontrado;
-                instrumentoUsado = instr;
-                console.log(`✅ Temario encontrado por instrumento: ${encontrado.instrumento} - ${encontrado.nivel}`);
-                break;
-            }
-        }
-    }
-
-    // Si no hay temario, mostrar mensaje con los disponibles
-    if (!temarioEncontrado) {
-        console.warn('⚠️ No se encontró temario');
-        const instrumentosDisponibles = temarios.map(t => `${t.instrumento} (${t.nivel})`).join(', ');
-        container.innerHTML = `
-            <div style="text-align:center;padding:40px;color:#888;">
-                <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>No hay temario disponible para <strong>${instrumentoPrincipal || 'este instrumento'}</strong>.</p>
-                <p style="font-size:0.85rem;color:#999;">
-                    Temarios disponibles: ${instrumentosDisponibles || 'Ninguno'}
+        console.warn(`⚠️ No hay temario para: ${instrumentoBuscado} - ${nivelEstudiante}`);
+        
+        // Verificar si existe para el instrumento principal (solo para mostrar ayuda)
+        const principalNorm = normalizar(instrumentoPrincipal);
+        const tienePrincipal = temarios.some(t => normalizar(t.instrumento) === principalNorm && normalizar(t.nivel) === nivelNorm);
+        
+        let mensajeAyuda = '';
+        if (tienePrincipal && instrumentoBuscado !== instrumentoPrincipal) {
+            mensajeAyuda = `
+                <p style="font-size:0.85rem;color:#856404;margin-top:10px;">
+                    💡 El estudiante tiene temario para <strong>${instrumentoPrincipal}</strong> (instrumento principal),<br>
+                    pero <strong>NO</strong> hay temario para <strong>${instrumentoBuscado}</strong> (instrumento seleccionado).
                 </p>
-                <p style="font-size:0.8rem;color:#999;margin-top:10px;">
-                    Nivel buscado: <strong>${nivel}</strong> | Instrumento buscado: <strong>${encargadoInstrumentoSeleccionado || instrumentoPrincipal}</strong>
+                <p style="font-size:0.8rem;color:#856404;">
+                    Para ver el temario de ${instrumentoBuscado}, el docente debe crearlo.
+                </p>
+            `;
+        } else if (instrumentoBuscado === instrumentoPrincipal && !tienePrincipal) {
+            mensajeAyuda = `
+                <p style="font-size:0.85rem;color:#856404;margin-top:10px;">
+                    💡 El docente debe crear un temario para <strong>${instrumentoPrincipal}</strong> - Nivel <strong>${nivelEstudiante}</strong>.
+                </p>
+            `;
+        }
+
+        // Mostrar temarios disponibles para referencia
+        const temariosDisponibles = temarios
+            .filter(t => normalizar(t.nivel) === nivelNorm)
+            .map(t => `${t.instrumento}`);
+        
+        let disponiblesHtml = '';
+        if (temariosDisponibles.length > 0) {
+            disponiblesHtml = `
+                <p style="font-size:0.8rem;color:#888;margin-top:5px;">
+                    Temarios disponibles para nivel <strong>${nivelEstudiante}</strong>: ${temariosDisponibles.join(', ')}
+                </p>
+            `;
+        }
+
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;border:1px solid #f5c6cb;border-radius:8px;background:#f8d7da;">
+                <i class="fas fa-exclamation-circle" style="font-size:48px;display:block;margin-bottom:15px;color:#E63946;"></i>
+                <p style="font-size:1.1rem;color:#721c24;">
+                    <strong>No hay temario disponible</strong>
+                </p>
+                <p style="color:#721c24;">
+                    Instrumento: <strong>${instrumentoBuscado}</strong><br>
+                    Nivel: <strong>${nivelEstudiante}</strong>
+                </p>
+                ${mensajeAyuda}
+                ${disponiblesHtml}
+                <p style="font-size:0.8rem;color:#721c24;margin-top:15px;">
+                    🔄 Cambia al instrumento principal para ver su temario si está disponible.
                 </p>
             </div>
         `;
         return;
     }
 
-    // 6. Calcular semana actual del estudiante
+    // 5. Calcular semana actual
     const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
     let semanaActual = 1;
-
     if (!isNaN(fechaIngreso.getTime())) {
         const hoy = new Date();
         const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
@@ -18697,23 +18713,20 @@ async function cargarHistorialCompleto(estudianteId) {
         if (semanaActual > 44) semanaActual = 44;
     }
 
-    console.log(`📊 Semana actual: ${semanaActual}`);
-    console.log(`📊 Semanas en temario: ${temarioEncontrado.semanas?.length || 0}`);
-
-    // 7. Renderizar SOLO semanas pasadas y actual
-    renderHistorialCompleto(container, temarioEncontrado, semanaActual, instrumentoUsado);
+    // 6. Renderizar
+    renderHistorialCompleto(container, temarioEncontrado, semanaActual, instrumentoBuscado, nivelEstudiante);
 }
 
 // =====================================================
 // RENDER HISTORIAL - SOLO SEMANAS PASADAS Y ACTUAL
 // =====================================================
 
-function renderHistorialCompleto(container, temario, semanaActual, instrumentoUsado) {
+function renderHistorialCompleto(container, temario, semanaActual, instrumentoUsado, nivelEstudiante) {
     if (!temario.semanas || temario.semanas.length === 0) {
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:#888;">
                 <i class="fas fa-book" style="font-size:48px;display:block;margin-bottom:15px;color:#ccc;"></i>
-                <p>El temario de <strong>${temario.instrumento}</strong> no tiene semanas registradas.</p>
+                <p>El temario de <strong>${temario.instrumento}</strong> (Nivel <strong>${temario.nivel}</strong>) no tiene semanas registradas.</p>
             </div>
         `;
         return;
@@ -18748,6 +18761,7 @@ function renderHistorialCompleto(container, temario, semanaActual, instrumentoUs
                     📚 ${semanasAMostrar.length} semana(s) cursadas
                 </span>
                 ${instrumentoUsado ? `<span style="color:#888;margin-left:15px;">🎸 ${instrumentoUsado}</span>` : ''}
+                <span style="color:#888;margin-left:15px;">📌 Nivel: ${nivelEstudiante}</span>
             </p>
         </div>
         <div style="max-height:500px;overflow-y:auto;padding-right:5px;">
@@ -18758,16 +18772,15 @@ function renderHistorialCompleto(container, temario, semanaActual, instrumentoUs
         const esActual = (s.numero === semanaActual);
         const fondo = esActual ? '#e8f5e9' : '#fafafa';
         const borde = esActual ? 'border-left:4px solid #4CAF50;' : 'border-left:4px solid #ddd;';
-
         const materialHtml = renderizarMaterial(s.material || 'No especificado');
-
         const badge = esActual
             ? `<span style="background:#4CAF50;color:white;padding:2px 12px;border-radius:12px;font-size:0.7rem;margin-left:8px;">ACTUAL</span>`
             : `<span style="background:#888;color:white;padding:2px 12px;border-radius:12px;font-size:0.7rem;margin-left:8px;">COMPLETADA</span>`;
 
         html += `
             <div style="margin-bottom:10px;border:1px solid ${esActual ? '#4CAF50' : '#e0e0e0'};border-radius:8px;background:white;overflow:hidden;${borde}">
-                <div style="cursor:pointer;padding:10px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;background:${fondo};" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';">
+                <div style="cursor:pointer;padding:10px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;background:${fondo};"
+                     onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';">
                     <span>
                         <span class="semana-numero" style="background:${esActual ? '#E63946' : '#888'};color:white;padding:2px 12px;border-radius:20px;font-size:0.75rem;margin-right:10px;">
                             Semana ${s.numero}
