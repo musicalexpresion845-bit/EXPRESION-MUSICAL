@@ -6836,6 +6836,30 @@ body.dark-mode .acciones .btn:hover {
                         <input type="tel" id="usuarioTelefono">
                     </div>
                 </div>
+              <!-- CAMPO DE FOTO -->
+<div class="form-row">
+    <div class="input-group" style="text-align: center; width: 100%;">
+        <label for="usuarioFotoInput" style="display: block; font-weight: 600; margin-bottom: 8px;">📸 Foto de Perfil</label>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <!-- Preview de la foto -->
+            <div id="usuarioFotoPreview" style="width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <i class="fas fa-user" style="font-size: 30px; color: #ccc;"></i>
+            </div>
+            <!-- Input oculto -->
+            <input type="file" id="usuarioFotoInput" accept="image/*" style="display: none;">
+            <!-- Botones -->
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="document.getElementById('usuarioFotoInput').click()" style="padding: 6px 12px; background: #E63946; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-upload"></i> Subir Foto
+                </button>
+                <button type="button" onclick="eliminarFotoUsuario()" id="btnEliminarFotoUsuario" style="display: none; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        <small style="color: #999; font-size: 11px;">Formatos: JPG, PNG (máx. 2MB) - Se usará para el carnet</small>
+    </div>
+</div>
                 <div class="input-group">
                     <label for="usuarioNotas">Notas adicionales</label>
                     <textarea id="usuarioNotas" rows="3"></textarea>
@@ -8810,7 +8834,7 @@ body.dark-mode .acciones .btn:hover {
 <script>
 // =====================================================
 // VARIABLES GLOBALES
-// =====================================================
+
 let systemUsers = {};
 let usuarioEditando = null;
 let modalAbierto = false;
@@ -8818,6 +8842,7 @@ let loginIntentando = false;
 let usuariosCargados = false;
 let usuariosCargando = false;
 let usuariosFirestore = {};
+let fotoUsuarioTemporal = null;  // 🔥 NUEVO
 
 // =====================================================
 // 1. CARGAR USUARIOS DESDE FIRESTORE (OPTIMIZADO)
@@ -9152,10 +9177,18 @@ function cerrarModalUsuario() {
     }
     document.getElementById('instrumentos-group').style.display = 'none';
     document.getElementById('estudiantes-vinculacion').style.display = 'none';
+      // Limpiar foto
+    fotoUsuarioTemporal = null;
+    const preview = document.getElementById('usuarioFotoPreview');
+    if (preview) {
+        preview.innerHTML = `<i class="fas fa-user" style="font-size: 30px; color: #ccc;"></i>`;
+    }
+    document.getElementById('btnEliminarFotoUsuario').style.display = 'none';
+    document.getElementById('usuarioFotoInput').value = '';
 }
 
 // =====================================================
-// 5. GUARDAR USUARIO (CORREGIDO)
+// 5. GUARDAR USUARIO (CORREGIDO CON FOTO)
 // =====================================================
 
 function guardarUsuario() {
@@ -9171,6 +9204,7 @@ function guardarUsuario() {
     const email = document.getElementById('usuarioEmail')?.value?.trim() || '';
     const telefono = document.getElementById('usuarioTelefono')?.value?.trim() || '';
     const notas = document.getElementById('usuarioNotas')?.value?.trim() || '';
+    const foto = fotoUsuarioTemporal || '';  // 🔥 NUEVO: Obtener la foto
     
     const esEdicion = document.getElementById('usuarioId')?.value !== '';
     const usernameOriginal = document.getElementById('usuarioId')?.value || '';
@@ -9202,7 +9236,7 @@ function guardarUsuario() {
         }
     }
 
-    // 🔥🔥🔥 OBTENER ESTUDIANTES SELECCIONADOS (CORREGIDO)
+    // OBTENER ESTUDIANTES SELECCIONADOS
     let estudiantesIds = [];
     if (tipo === 'encargado') {
         const checkboxes = document.querySelectorAll('#listaEstudiantesParaEncargado input[type="checkbox"]:checked');
@@ -9218,7 +9252,7 @@ function guardarUsuario() {
         }
     }
 
-    // Construir datos del usuario
+    // Construir datos del usuario (CON FOTO)
     const usuarioData = {
         username: username,
         password: password,
@@ -9230,7 +9264,8 @@ function guardarUsuario() {
         telefono: telefono || '',
         notas: notas || '',
         instrumentos: instrumentos,
-        estudiantesIds: estudiantesIds, // 🔥 ESTO ES LO QUE SE GUARDA
+        estudiantesIds: estudiantesIds,
+        foto: foto,  // 🔥 NUEVO: Guardar la foto
         fechaActualizacion: new Date().toISOString()
     };
 
@@ -9269,14 +9304,14 @@ function guardarUsuario() {
     cerrarModalUsuario();
     cargarTablaUsuarios();
     
-    // 🔥 Si es encargado, recargar el selector
+    // Si es encargado, recargar el selector
     if (tipo === 'encargado' && typeof cargarSelector === 'function') {
         setTimeout(cargarSelector, 500);
     }
 }
 
 // =====================================================
-// 6. ABRIR MODAL PARA EDITAR USUARIO
+// 6. ABRIR MODAL PARA EDITAR USUARIO (CON FOTO)
 // =====================================================
 function abrirModalEditarUsuario(username) {
     console.log('✏️ ABRIENDO EDICIÓN para:', username);
@@ -9358,6 +9393,25 @@ function abrirModalEditarUsuario(username) {
         } else {
             tipoSelect.disabled = true;
         }
+    }
+    
+    // =============================================
+    // 🔥 NUEVO: Cargar la foto si existe
+    // =============================================
+    if (usuario.foto) {
+        fotoUsuarioTemporal = usuario.foto;
+        const preview = document.getElementById('usuarioFotoPreview');
+        if (preview) {
+            preview.innerHTML = `<img src="${usuario.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        }
+        document.getElementById('btnEliminarFotoUsuario').style.display = 'inline-block';
+    } else {
+        fotoUsuarioTemporal = null;
+        const preview = document.getElementById('usuarioFotoPreview');
+        if (preview) {
+            preview.innerHTML = `<i class="fas fa-user" style="font-size: 30px; color: #ccc;"></i>`;
+        }
+        document.getElementById('btnEliminarFotoUsuario').style.display = 'none';
     }
     
     document.getElementById('usuarioModal').style.display = 'block';
@@ -10582,6 +10636,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 })();
+  
+  // =====================================================
+// MANEJAR FOTO DE USUARIO
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fotoInput = document.getElementById('usuarioFotoInput');
+    if (fotoInput) {
+        fotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('⚠️ La imagen es demasiado grande. Máximo 2MB.');
+                    this.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    fotoUsuarioTemporal = event.target.result;
+                    const preview = document.getElementById('usuarioFotoPreview');
+                    if (preview) {
+                        preview.innerHTML = `<img src="${fotoUsuarioTemporal}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    }
+                    document.getElementById('btnEliminarFotoUsuario').style.display = 'inline-block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+function eliminarFotoUsuario() {
+    fotoUsuarioTemporal = null;
+    const preview = document.getElementById('usuarioFotoPreview');
+    if (preview) {
+        preview.innerHTML = `<i class="fas fa-user" style="font-size: 30px; color: #ccc;"></i>`;
+    }
+    document.getElementById('btnEliminarFotoUsuario').style.display = 'none';
+    document.getElementById('usuarioFotoInput').value = '';
+}
 
 console.log("✅ Bloque 1 cargado: Sistema de usuarios y login (optimizado para Firebase)");
 </script>
