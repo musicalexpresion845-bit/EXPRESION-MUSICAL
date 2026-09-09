@@ -10058,7 +10058,7 @@ function copiarIdAlPortapapeles() {
 }
 
 // =====================================================
-// 14. PROCESAR ASISTENCIA DESDE TABLET (QR) - CON VOZ Y BOTÓN
+// 14. PROCESAR ASISTENCIA DESDE TABLET (QR) - CON VOZ Y SALUDOS
 // =====================================================
 
 async function procesarAsistenciaDesdeTablet(datos) {
@@ -10236,17 +10236,27 @@ async function procesarAsistenciaDesdeTablet(datos) {
     }
     
     // =============================================
-    // 7. NO SE ENCONTRÓ NADIE
+    // 7. NO SE ENCONTRÓ NADIE - ENVIAR ERROR A TABLET
     // =============================================
     
     console.error('❌ USUARIO NO ENCONTRADO');
     if (typeof showToast === 'function') {
         showToast('❌ Usuario no encontrado. ID: ' + (id || 'N/A'), 'error');
     }
+    
+    // 🔥 ENVIAR ERROR A LA TABLET
+    if (window.connTablet && window.connTablet.open) {
+        window.connTablet.send({
+            tipo: 'error',
+            mensaje: 'Usuario no encontrado',
+            id: id || 'N/A'
+        });
+        console.log('✅ Mensaje de error enviado a la tablet');
+    }
 }
 
 // =====================================================
-// 14.1 PROCESAR ASISTENCIA DE DOCENTE O SECRETARIA
+// 14.1 PROCESAR ASISTENCIA DE DOCENTE O SECRETARIA (CON FRASES)
 // =====================================================
 
 async function procesarAsistenciaPersonal(usuario) {
@@ -10266,6 +10276,18 @@ async function procesarAsistenciaPersonal(usuario) {
         if (typeof showToast === 'function') {
             showToast(`⚠️ ${usuario.nombre} ya marcó asistencia hoy`, 'warning');
         }
+        
+        // 🔥 ENVIAR MENSAJE A LA TABLET
+        if (window.connTablet && window.connTablet.open) {
+            window.connTablet.send({
+                tipo: 'ya_marcado',
+                nombre: usuario.nombre + ' ' + (usuario.apellido || ''),
+                rol: usuario.tipo,
+                mensaje: 'Ya marcó asistencia hoy'
+            });
+            console.log('✅ Mensaje "ya_marcado" enviado a la tablet');
+        }
+        
         return;
     }
     
@@ -10302,7 +10324,7 @@ async function procesarAsistenciaPersonal(usuario) {
     mostrarNotificacionAsistenciaPersonal(usuario, fechaActual, ahora);
     
     // =============================================
-    // 🔥 ENVIAR CONFIRMACIÓN A LA TABLET (PERSONAL)
+    // 🔥 ENVIAR CONFIRMACIÓN A LA TABLET (PERSONAL CON FRASES)
     // =============================================
     if (window.connTablet && window.connTablet.open) {
         const frasesPersonal = [
@@ -10321,6 +10343,7 @@ async function procesarAsistenciaPersonal(usuario) {
         const nombreCompleto = usuario.nombre + ' ' + (usuario.apellido || '');
         const emojiRol = usuario.tipo === 'docente' ? '👨‍🏫' : '👩‍💼';
         const rolTexto = usuario.tipo === 'docente' ? 'DOCENTE' : 'SECRETARÍA';
+        const saludo = obtenerSaludoPorHora();
         
         window.connTablet.send({
             tipo: 'confirmacion_personal',
@@ -10334,11 +10357,13 @@ async function procesarAsistenciaPersonal(usuario) {
             hora: ahora,
             frase: fraseAleatoria,
             emoji: emoji,
+            saludo: saludo.saludo,
             mensajeExtra: `${rolTexto} - Asistencia registrada ✅`,
             timestamp: new Date().toISOString()
         });
         
         console.log('✅ Confirmación ENVIADA a tablet (PERSONAL):', nombreCompleto);
+        console.log('📦 Frase:', fraseAleatoria);
     } else {
         console.warn('⚠️ Tablet NO conectada para personal');
     }
@@ -10392,7 +10417,7 @@ function mostrarNotificacionAsistenciaPersonal(usuario, fecha, hora) {
 }
 
 // =====================================================
-// 14.3 PROCESAR ASISTENCIA DE ESTUDIANTE
+// 14.3 PROCESAR ASISTENCIA DE ESTUDIANTE (CON FRASES)
 // =====================================================
 
 async function procesarAsistenciaEstudiante(estudiante, datos) {
@@ -10406,6 +10431,15 @@ async function procesarAsistenciaEstudiante(estudiante, datos) {
     if (!diaSeleccionado || !horarioSeleccionado) {
         if (typeof showToast === 'function') {
             showToast('❌ Selecciona un día y horario en el filtro', 'error');
+        }
+        
+        // 🔥 ENVIAR ERROR A LA TABLET
+        if (window.connTablet && window.connTablet.open) {
+            window.connTablet.send({
+                tipo: 'error',
+                mensaje: 'Selecciona día y horario en el filtro',
+                estudiante: estudiante.estudiante?.nombre
+            });
         }
         return;
     }
@@ -10503,7 +10537,7 @@ async function procesarAsistenciaEstudiante(estudiante, datos) {
     }
     
     // =============================================
-    // 🔥 ENVIAR CONFIRMACIÓN A LA TABLET (ESTUDIANTE)
+    // 🔥 ENVIAR CONFIRMACIÓN A LA TABLET (ESTUDIANTE CON FRASES)
     // =============================================
     if (window.connTablet && window.connTablet.open) {
         const frases = [
@@ -10526,6 +10560,7 @@ async function procesarAsistenciaEstudiante(estudiante, datos) {
         const nombreEstudiante = estudiante.estudiante?.nombre || 'Estudiante';
         const estadoTexto = estado === 'presente' ? '✅ PRESENTE' : '🔄 REPOSICIÓN';
         const colorEstado = estado === 'presente' ? '#4CAF50' : '#2196F3';
+        const saludo = obtenerSaludoPorHora();
         
         window.connTablet.send({
             tipo: 'confirmacion_estudiante',
@@ -10536,11 +10571,13 @@ async function procesarAsistenciaEstudiante(estudiante, datos) {
             hora: ahora,
             frase: fraseAleatoria,
             emoji: emoji,
+            saludo: saludo.saludo,
             mensajeExtra: estado === 'reposicion' ? `🔄 Reposición (horario: ${horarioSeleccionado})` : '',
             timestamp: new Date().toISOString()
         });
         
         console.log('✅ Confirmación ENVIADA a tablet (ESTUDIANTE):', nombreEstudiante);
+        console.log('📦 Frase:', fraseAleatoria);
     } else {
         console.warn('⚠️ Tablet NO conectada');
     }
@@ -10553,262 +10590,15 @@ async function procesarAsistenciaEstudiante(estudiante, datos) {
 }
 
 // =====================================================
-// 14.4 🎯 CÓDIGO PARA LA TABLET (RECIBIR, HABLAR Y BOTÓN)
+// 14.4 OBTENER SALUDO SEGÚN LA HORA
 // =====================================================
 
-// =============================================
-// 1. RECIBIR MENSAJES DE LA PC
-// =============================================
-
-if (typeof conn !== 'undefined' && conn) {
-    conn.on('data', function(data) {
-        console.log('📦 Mensaje recibido en tablet:', data);
-        
-        if (data.tipo === 'confirmacion_estudiante') {
-            mostrarNotificacionEstudiante(data);
-        }
-        
-        if (data.tipo === 'confirmacion_personal') {
-            mostrarNotificacionPersonal(data);
-        }
-    });
-}
-
-// =============================================
-// 2. OBTENER SALUDO SEGÚN LA HORA
-// =============================================
-
-function obtenerSaludo() {
+function obtenerSaludoPorHora() {
     const hora = new Date().getHours();
-    if (hora >= 5 && hora < 12) return 'Buenos días';
-    if (hora >= 12 && hora < 19) return 'Buenas tardes';
-    return 'Buenas noches';
+    if (hora >= 5 && hora < 12) return { saludo: 'Buenos días', icono: '🌞' };
+    if (hora >= 12 && hora < 19) return { saludo: 'Buenas tardes', icono: '🌤️' };
+    return { saludo: 'Buenas noches', icono: '🌙' };
 }
-
-// =============================================
-// 3. MOSTRAR NOTIFICACIÓN PARA ESTUDIANTE
-// =============================================
-
-function mostrarNotificacionEstudiante(data) {
-    console.log('🎯 Estudiante:', data.nombre);
-    
-    const saludo = obtenerSaludo();
-    const nombre = data.nombre;
-    
-    // 🔥 TEXTO PARA VOZ (sin emojis)
-    const textoVoz = `${saludo}, ${nombre}. ${data.frase.replace(/[^\w\sáéíóúñ]/g, ' ')}`;
-    
-    // Mostrar en pantalla
-    const nombreEl = document.getElementById('nombrePantalla');
-    const estadoEl = document.getElementById('estadoPantalla');
-    const horaEl = document.getElementById('horaActual');
-    
-    if (nombreEl) nombreEl.textContent = nombre;
-    if (estadoEl) {
-        estadoEl.textContent = `${saludo}, ${nombre}`;
-        estadoEl.style.color = data.colorEstado || '#4CAF50';
-    }
-    if (horaEl) horaEl.textContent = data.hora;
-    
-    // 🔥 HABLAR CON VOZ
-    hablarTexto(textoVoz);
-    
-    // 🔥 MOSTRAR BOTÓN ACEPTAR
-    mostrarBotonAceptar(data);
-}
-
-// =============================================
-// 4. MOSTRAR NOTIFICACIÓN PARA PERSONAL (PROFE Y SEÑORITA)
-// =============================================
-
-function mostrarNotificacionPersonal(data) {
-    console.log('🎯 Personal:', data.nombre);
-    
-    const saludo = obtenerSaludo();
-    const nombre = data.nombre;
-    const rol = data.rol || 'docente';
-    const rolTexto = data.rolTexto || 'DOCENTE';
-    const emojiRol = data.emojiRol || (rol === 'docente' ? '👨‍🏫' : '👩‍💼');
-    
-    // 🔥 TEXTO PARA VOZ
-    let textoVoz = '';
-    let mensajePantalla = '';
-    
-    if (rol === 'docente') {
-        textoVoz = `${saludo}, profe ${nombre}. ${data.frase}`;
-        mensajePantalla = `${saludo}, 🎓 Profe ${nombre}`;
-    } else if (rol === 'secretaria') {
-        textoVoz = `${saludo}, señorita ${nombre}. ${data.frase}`;
-        mensajePantalla = `${saludo}, 📋 Señorita ${nombre}`;
-    } else {
-        textoVoz = `${saludo}, ${nombre}. ${data.frase}`;
-        mensajePantalla = `${saludo}, ${nombre}`;
-    }
-    
-    // Mostrar en pantalla
-    const nombreEl = document.getElementById('nombrePantalla');
-    const estadoEl = document.getElementById('estadoPantalla');
-    const horaEl = document.getElementById('horaActual');
-    
-    if (nombreEl) nombreEl.textContent = `${emojiRol} ${nombre}`;
-    if (estadoEl) {
-        estadoEl.textContent = mensajePantalla;
-        estadoEl.style.color = data.colorEstado || '#1976D2';
-    }
-    if (horaEl) horaEl.textContent = data.hora;
-    
-    // 🔥 HABLAR CON VOZ
-    hablarTexto(textoVoz);
-    
-    // 🔥 MOSTRAR BOTÓN ACEPTAR
-    mostrarBotonAceptar(data);
-}
-
-// =============================================
-// 5. FUNCIÓN PARA HABLAR (TEXTO A VOZ - VOLUMEN ALTO)
-// =============================================
-
-function hablarTexto(texto) {
-    if (!texto) return;
-    
-    console.log('🔊 Hablando:', texto);
-    
-    // Detener voz anterior
-    if (window.speechSynthesis && window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-    }
-    
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'es-GT';
-    utterance.rate = 0.85;
-    utterance.pitch = 1.1;
-    utterance.volume = 1;  // 🔥 VOLUMEN MÁXIMO
-    
-    // Buscar voz en español
-    const voices = window.speechSynthesis.getVoices();
-    const spanishVoice = voices.find(v => v.lang.startsWith('es'));
-    if (spanishVoice) {
-        utterance.voice = spanishVoice;
-    }
-    
-    // Mostrar indicador de voz
-    const estadoEl = document.getElementById('estadoPantalla');
-    if (estadoEl) {
-        estadoEl.textContent = estadoEl.textContent + ' 🔊';
-    }
-    
-    window.speechSynthesis.speak(utterance);
-}
-
-// =============================================
-// 6. MOSTRAR BOTÓN "ACEPTAR"
-// =============================================
-
-function mostrarBotonAceptar(data) {
-    // Eliminar botón anterior
-    const btnAnterior = document.getElementById('btnAceptarNotificacion');
-    if (btnAnterior) btnAnterior.remove();
-    
-    const container = document.querySelector('.contenedor-principal') || document.body;
-    
-    const btn = document.createElement('button');
-    btn.id = 'btnAceptarNotificacion';
-    btn.textContent = '✅ Aceptar';
-    btn.style.cssText = `
-        position: fixed;
-        bottom: 50px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #4CAF50, #45a049);
-        color: white;
-        border: none;
-        padding: 18px 50px;
-        border-radius: 50px;
-        font-size: 22px;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 100000;
-        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.5);
-        animation: fadeInUp 0.5s ease;
-        transition: all 0.3s ease;
-    `;
-    btn.onmouseover = function() { this.style.transform = 'translateX(-50%) scale(1.05)'; };
-    btn.onmouseout = function() { this.style.transform = 'translateX(-50%) scale(1)'; };
-    btn.onclick = function() {
-        this.remove();
-        const nombreEl = document.getElementById('nombrePantalla');
-        const estadoEl = document.getElementById('estadoPantalla');
-        const horaEl = document.getElementById('horaActual');
-        if (nombreEl) nombreEl.textContent = 'Esperando escaneo...';
-        if (estadoEl) {
-            estadoEl.textContent = '👆 ACERCA EL CÓDIGO QR A LA CÁMARA';
-            estadoEl.style.color = '#FFD700';
-        }
-        if (horaEl) horaEl.textContent = new Date().toLocaleTimeString();
-        mostrarToast('✅ Asistencia confirmada');
-    };
-    
-    container.appendChild(btn);
-    
-    // Auto-ocultar después de 10 segundos
-    setTimeout(() => {
-        if (document.getElementById('btnAceptarNotificacion')) {
-            document.getElementById('btnAceptarNotificacion').style.opacity = '0.7';
-        }
-    }, 10000);
-}
-
-// =============================================
-// 7. TOAST DE CONFIRMACIÓN
-// =============================================
-
-function mostrarToast(mensaje) {
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 120px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 12px 30px;
-        border-radius: 30px;
-        font-size: 18px;
-        z-index: 100001;
-        animation: fadeInUp 0.5s ease;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-    `;
-    toast.textContent = mensaje;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'fadeOutDown 0.5s ease forwards';
-        setTimeout(() => toast.remove(), 500);
-    }, 3000);
-}
-
-// =============================================
-// 8. ANIMACIONES CSS
-// =============================================
-
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateX(-50%) translateY(30px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-    @keyframes fadeOutDown {
-        from { opacity: 1; transform: translateX(-50%) translateY(0); }
-        to { opacity: 0; transform: translateX(-50%) translateY(30px); }
-    }
-    #btnAceptarNotificacion {
-        animation: fadeInUp 0.5s ease;
-    }
-`;
-document.head.appendChild(style);
-
-console.log('✅ NUMERAL 14 COMPLETO - CON VOZ, BOTÓN Y SALUDOS');
 // =====================================================
 // 15. MODIFICAR MODAL DE USUARIO
 // =====================================================
