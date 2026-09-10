@@ -9894,7 +9894,8 @@ function iniciarPeerPC() {
             actualizarEstadoPanel('ready', 'Esperando tablet...');
         });
         peerPC.on('connection', function(connection) {
-            connTablet = connection;
+            connTablet = connection
+           window.connTablet = connection;   // 👈 AGREGA ESTA LÍNEA
             tabletConectada = true;
             console.log('📱 Tablet conectada');
             actualizarEstadoPanel('connected', 'Tablet conectada');
@@ -10117,9 +10118,12 @@ async function procesarAsistenciaDesdeTablet(datos) {
             const snapshot = await window.db.collection('usuarios').get();
             snapshot.forEach(doc => {
                 const data = doc.data();
-                if (data.tipo === 'docente' || data.tipo === 'secretaria') {
-                    usuarios.push(data);
-                }
+               if (data.tipo === 'docente' || data.tipo === 'secretaria') {
+    if (!data.username) {
+        data.username = doc.id;
+    }
+    usuarios.push(data);
+}
             });
             console.log('✅ Usuarios (docentes/secretaria) cargados desde Firebase:', usuarios.length);
         } catch (e) {
