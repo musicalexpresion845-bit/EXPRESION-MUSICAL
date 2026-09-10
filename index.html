@@ -17568,46 +17568,119 @@ function cargarMiAsistenciaDocente() {
         return;
     }
     
+    const miUsername = String(currentUser.username).trim();
+    const miNombre = ((currentUser.nombre || '') + ' ' + (currentUser.apellido || '')).trim();
+    
+    console.log('👤 Usuario actual:', miUsername);
+    console.log('📝 Nombre completo:', miNombre);
+    
     const tbody = document.getElementById('cuerpoMiAsistenciaDocente');
-    if (!tbody) return;
-    
-    const filtroFecha = document.getElementById('filtroFechaAsistenciaDocente')?.value || '';
-    
-    let historial = JSON.parse(localStorage.getItem('asistenciaPersonal') || '[]');
-    
-    if (historial.length === 0 && window.db) {
-        window.db.collection('asistencia_personal')
-            .where('usuarioId', '==', currentUser.username)
-            .orderBy('fecha', 'desc')
-            .get()
-            .then((snapshot) => {
-                const data = [];
-                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                if (data.length > 0) {
-                    localStorage.setItem('asistenciaPersonal', JSON.stringify(data));
-                }
-                renderMiAsistencia(data, currentUser.username, filtroFecha);
-            })
-            .catch(() => {
-                renderMiAsistencia(historial, currentUser.username, filtroFecha);
-            });
+    if (!tbody) {
+        console.error('❌ No se encontró el tbody');
         return;
     }
     
-    renderMiAsistencia(historial, currentUser.username, filtroFecha);
+    // Mostrar "cargando"
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5" style="text-align: center; padding: 40px; color: #888;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>
+                Cargando historial...
+            </td>
+        </tr>
+    `;
+    
+    const filtroFecha = document.getElementById('filtroFechaAsistenciaDocente')?.value || '';
+    
+    // 🔥 SIEMPRE consultar Firebase (no solo cuando localStorage esté vacío)
+    if (window.db) {
+        console.log('☁️ Consultando Firebase...');
+        
+        window.db.collection('asistencia_personal')
+            .get()
+            .then((snapshot) => {
+                const todosRegistros = [];
+                snapshot.forEach(doc => {
+                    todosRegistros.push({ id: doc.id, ...doc.data() });
+                });
+                
+                console.log(`📦 ${todosRegistros.length} registros totales en Firebase`);
+                
+                if (todosRegistros.length > 0) {
+                    console.log('📋 Ejemplo:', todosRegistros[0]);
+                    console.log('🔍 Buscando coincidencias para:', miUsername);
+                    todosRegistros.forEach(r => {
+                        console.log(`   - usuarioId: "${r.usuarioId}" | nombre: "${r.nombre}"`);
+                    });
+                }
+                
+                // 🔥 FILTRAR CON MÚLTIPLES CRITERIOS
+                const misRegistros = todosRegistros.filter(r => {
+                    const rUsuarioId = String(r.usuarioId || '').trim().toLowerCase();
+                    const rNombre = String(r.nombre || '').trim().toLowerCase();
+                    const miUsernameLower = miUsername.toLowerCase();
+                    const miNombreLower = miNombre.toLowerCase();
+                    
+                    // Coincide por usuarioId
+                    if (rUsuarioId === miUsernameLower) return true;
+                    
+                    // Coincide por nombre completo
+                    if (rNombre === miNombreLower) return true;
+                    
+                    // Coincide por nombre parcial (primera palabra)
+                    const miPrimerNombre = miNombreLower.split(' ')[0];
+                    if (miPrimerNombre && rNombre.includes(miPrimerNombre)) return true;
+                    
+                    // Coincide por apellido
+                    const miPrimerApellido = (currentUser.apellido || '').toLowerCase();
+                    if (miPrimerApellido && rNombre.includes(miPrimerApellido)) return true;
+                    
+                    return false;
+                });
+                
+                console.log(`✅ ${misRegistros.length} registros míos encontrados`);
+                
+                // Guardar TODO en caché
+                localStorage.setItem('asistenciaPersonal', JSON.stringify(todosRegistros));
+                
+                renderMiAsistencia(misRegistros, miUsername, filtroFecha);
+            })
+            .catch((error) => {
+                console.error('❌ Error Firebase:', error);
+                // Fallback: usar localStorage
+                const historial = JSON.parse(localStorage.getItem('asistenciaPersonal') || '[]');
+                const misRegistros = historial.filter(r => {
+                    const rUsuarioId = String(r.usuarioId || '').trim().toLowerCase();
+                    const rNombre = String(r.nombre || '').trim().toLowerCase();
+                    return rUsuarioId === miUsername.toLowerCase() || 
+                           rNombre.includes(miNombre.toLowerCase().split(' ')[0]);
+                });
+                renderMiAsistencia(misRegistros, miUsername, filtroFecha);
+            });
+    } else {
+        // Sin Firebase: usar localStorage
+        const historial = JSON.parse(localStorage.getItem('asistenciaPersonal') || '[]');
+        const misRegistros = historial.filter(r => {
+            const rUsuarioId = String(r.usuarioId || '').trim().toLowerCase();
+            const rNombre = String(r.nombre || '').trim().toLowerCase();
+            return rUsuarioId === miUsername.toLowerCase() || 
+                   rNombre.includes(miNombre.toLowerCase().split(' ')[0]);
+        });
+        renderMiAsistencia(misRegistros, miUsername, filtroFecha);
+    }
 }
 
-function renderMiAsistencia(historial, username, filtroFecha) {
+function renderMiAsistencia(registros, username, filtroFecha) {
     const tbody = document.getElementById('cuerpoMiAsistenciaDocente');
     if (!tbody) return;
     
-    let registros = historial.filter(r => r.usuarioId === username);
-    
+    // Aplicar filtro de fecha si existe
     if (filtroFecha) {
         registros = registros.filter(r => r.fecha === filtroFecha);
     }
     
-    registros.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    // Ordenar por fecha descendente
+    registros.sort((a, b) => new Date(b.timestamp || b.fecha) - new Date(a.timestamp || a.fecha));
     
     const totalSpan = document.getElementById('totalRegistrosDocente');
     if (totalSpan) totalSpan.textContent = `Total: ${registros.length} registros`;
@@ -17629,7 +17702,7 @@ function renderMiAsistencia(historial, username, filtroFecha) {
     registros.forEach((r, index) => {
         const estadoColor = r.estado === 'presente' ? '#2E7D32' : '#C62828';
         const estadoIcon = r.estado === 'presente' ? '✅' : '❌';
-        const estadoTexto = r.estado === 'presente' ? 'Presente' : 'Ausente';
+        const estadoTexto = r.estado === 'presente' ? 'Presente' : (r.estado || 'presente');
         
         html += `
             <tr style="border-bottom: 1px solid #eee;">
