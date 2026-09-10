@@ -9903,7 +9903,14 @@ function iniciarPeerPC() {
             
             connTablet.on('data', function(data) {
                 console.log('📦 Datos recibidos:', data);
-                
+                    // 🔥 RESPONDER A LATIDOS (PING-PONG)
+    if (data && data.tipo === 'ping') {
+        console.log('💓 Latido recibido de tablet');
+        try {
+            connTablet.send({ tipo: 'pong', hora: Date.now() });
+        } catch (e) {}
+        return;
+    }
                 let textoQR = '';
                 if (typeof data === 'string') {
                     textoQR = data;
