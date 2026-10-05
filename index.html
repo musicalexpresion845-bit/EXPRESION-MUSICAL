@@ -6918,6 +6918,9 @@ body.dark-mode .acciones .btn:hover {
                     <div class="menu-item-vertical" id="btnAsistencia">
                         <i class="fas fa-clipboard-check"></i> Asistencia
                     </div>
+                  <div class="menu-item-vertical" id="btnSubirNotas">
+    <i class="fas fa-edit"></i> Subir Notas
+</div>
                     <div class="menu-item-vertical" id="btnBaseDatos">
                         <i class="fas fa-database"></i> Base de Datos
                     </div>
@@ -7414,6 +7417,39 @@ body.dark-mode .acciones .btn:hover {
                             </button>
                         </div>
                     </div>
+<!-- ============================================ -->
+<!-- SUBIR NOTAS (SOLO SECRETARÍA) -->
+<!-- ============================================ -->
+<div id="subirNotasContainer" style="display: none; padding: 20px;">
+    <div style="max-width: 1100px; margin: 0 auto;">
+        
+        <h2 style="color: #E63946; margin-bottom: 20px;">
+            <i class="fas fa-edit"></i> Subir Notas Semanales
+        </h2>
+
+        <!-- Filtro de Docente (único filtro necesario) -->
+        <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <div style="max-width: 500px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 5px;">👨‍🏫 Docente:</label>
+                <select id="subirNotasDocente" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    <option value="">Seleccione un docente</option>
+                </select>
+            </div>
+
+            <button onclick="cargarEstudiantesParaNotas()" style="margin-top: 15px; padding: 12px 25px; background: #E63946; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                <i class="fas fa-search"></i> Cargar Estudiantes
+            </button>
+            
+            <p style="margin: 12px 0 0; font-size: 0.85rem; color: #666;">
+                ℹ️ El sistema detecta automáticamente en qué mes y semana va cada estudiante según sus asistencias.
+            </p>
+        </div>
+
+        <!-- Contenedor de estudiantes y notas (se llena dinámicamente) -->
+        <div id="subirNotasTablaContainer" style="display: none;"></div>
+
+    </div>
+</div>
 
                     <!-- Control de Pagos -->
                     <div id="pagosContainer" style="display: none;">
@@ -11870,71 +11906,71 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.menu-item-vertical').forEach(item => item.classList.remove('active'));
     }
     
-    if (btnInicio) {
-        btnInicio.addEventListener('click', function() {
-            resetMenu(); this.classList.add('active');
-            document.getElementById('panelTitle').textContent = "Panel de Secretaría";
-            document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none');
-            document.getElementById('welcomeMessage').style.display = 'block';
-            document.getElementById('fabContainer').style.display = 'none';
-            if (typeof ocultarRecibo === 'function') ocultarRecibo();
-        });
-    }
-    
-    if (btnInscripcion) {
-        btnInscripcion.addEventListener('click', function() {
-            resetMenu(); this.classList.add('active');
-            document.getElementById('panelTitle').textContent = "Nueva Inscripción";
-            document.querySelectorAll('.data-table-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none');
-            document.getElementById('welcomeMessage').style.display = 'none';
-            document.getElementById('inscriptionForm').style.display = 'block';
-            document.getElementById('fabContainer').style.display = 'block';
-            if (typeof ocultarRecibo === 'function') ocultarRecibo();
-            resetForm();
-            isEditing = false;
-            currentEditId = null;
-            document.getElementById('formTitle').textContent = "Nueva Inscripción";
-            document.getElementById('submitBtnText').textContent = "Completar Inscripción";
-            setTimeout(iniciarManejadorFoto, 300);
-        });
-    }
-    
-    if (btnRecibos) {
-        btnRecibos.addEventListener('click', function() {
-            resetMenu(); this.classList.add('active');
-            document.getElementById('panelTitle').textContent = "Gestión de Recibos";
-            document.querySelectorAll('.data-table-container, .modern-form-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none');
-            document.getElementById('welcomeMessage').style.display = 'none';
-            document.getElementById('recibosContainer').style.display = 'block';
-            document.getElementById('fabContainer').style.display = 'block';
-            if (typeof ocultarRecibo === 'function') ocultarRecibo();
-            if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
-            if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
-            if (typeof mostrarSeccionRecibos === 'function') mostrarSeccionRecibos('formulario');
-        });
-    }
-    
-    if (btnBaseDatos) {
-        btnBaseDatos.addEventListener('click', function() {
-            resetMenu(); this.classList.add('active');
-            document.getElementById('panelTitle').textContent = "Base de Datos";
-            document.querySelectorAll('.modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => c.style.display = 'none');
-            document.getElementById('welcomeMessage').style.display = 'none';
-            document.getElementById('dataTableContainer').style.display = 'block';
-            document.getElementById('fabContainer').style.display = 'block';
-            renderTable();
-        });
-    }
-    
-    if (btnGestionUsuarios) {
-        btnGestionUsuarios.addEventListener('click', function() {
-            resetMenu(); this.classList.add('active');
-            document.getElementById('panelTitle').textContent = "Gestión de Usuarios";
-            document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer').forEach(c => c.style.display = 'none');
-            document.getElementById('gestionUsuariosContainer').style.display = 'block';
-            cargarTablaUsuarios();
-        });
-    }
+ if (btnInicio) {
+    btnInicio.addEventListener('click', function() {
+        resetMenu(); this.classList.add('active');
+        document.getElementById('panelTitle').textContent = "Panel de Secretaría";
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => c.style.display = 'none');
+        document.getElementById('welcomeMessage').style.display = 'block';
+        document.getElementById('fabContainer').style.display = 'none';
+        if (typeof ocultarRecibo === 'function') ocultarRecibo();
+    });
+}
+
+if (btnInscripcion) {
+    btnInscripcion.addEventListener('click', function() {
+        resetMenu(); this.classList.add('active');
+        document.getElementById('panelTitle').textContent = "Nueva Inscripción";
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => c.style.display = 'none');
+        document.getElementById('welcomeMessage').style.display = 'none';
+        document.getElementById('inscriptionForm').style.display = 'block';
+        document.getElementById('fabContainer').style.display = 'block';
+        if (typeof ocultarRecibo === 'function') ocultarRecibo();
+        resetForm();
+        isEditing = false;
+        currentEditId = null;
+        document.getElementById('formTitle').textContent = "Nueva Inscripción";
+        document.getElementById('submitBtnText').textContent = "Completar Inscripción";
+        setTimeout(iniciarManejadorFoto, 300);
+    });
+}
+
+if (btnRecibos) {
+    btnRecibos.addEventListener('click', function() {
+        resetMenu(); this.classList.add('active');
+        document.getElementById('panelTitle').textContent = "Gestión de Recibos";
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => c.style.display = 'none');
+        document.getElementById('welcomeMessage').style.display = 'none';
+        document.getElementById('recibosContainer').style.display = 'block';
+        document.getElementById('fabContainer').style.display = 'block';
+        if (typeof ocultarRecibo === 'function') ocultarRecibo();
+        if (typeof actualizarListaEncargados === 'function') actualizarListaEncargados();
+        if (typeof cargarHistorialRecibos === 'function') cargarHistorialRecibos();
+        if (typeof mostrarSeccionRecibos === 'function') mostrarSeccionRecibos('formulario');
+    });
+}
+
+if (btnBaseDatos) {
+    btnBaseDatos.addEventListener('click', function() {
+        resetMenu(); this.classList.add('active');
+        document.getElementById('panelTitle').textContent = "Base de Datos";
+        document.querySelectorAll('.modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => c.style.display = 'none');
+        document.getElementById('welcomeMessage').style.display = 'none';
+        document.getElementById('dataTableContainer').style.display = 'block';
+        document.getElementById('fabContainer').style.display = 'block';
+        renderTable();
+    });
+}
+
+if (btnGestionUsuarios) {
+    btnGestionUsuarios.addEventListener('click', function() {
+        resetMenu(); this.classList.add('active');
+        document.getElementById('panelTitle').textContent = "Gestión de Usuarios";
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #subirNotasContainer').forEach(c => c.style.display = 'none');
+        document.getElementById('gestionUsuariosContainer').style.display = 'block';
+        cargarTablaUsuarios();
+    });
+}
     
     const fab = document.getElementById('showInscriptionFormBtn');
     if (fab) {
@@ -13087,10 +13123,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 pagosContainer.style.display = 'block';
             }
             
-            // Ocultar otros contenedores
-            document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #asistenciaContainer, #gestionUsuariosContainer').forEach(c => {
-                if (c) c.style.display = 'none';
-            });
+           // Ocultar otros contenedores
+document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => {
+    if (c) c.style.display = 'none';
+});
             
             const welcome = document.getElementById('welcomeMessage');
             if (welcome) welcome.style.display = 'none';
@@ -14665,9 +14701,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 asistenciaContainer.style.display = 'block';
             }
             
-            document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #gestionUsuariosContainer').forEach(c => {
-                if (c) c.style.display = 'none';
-            });
+          document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => {
+    if (c) c.style.display = 'none';
+});
             
             const welcome = document.getElementById('welcomeMessage');
             if (welcome) welcome.style.display = 'none';
@@ -22915,7 +22951,1521 @@ if ('serviceWorker' in navigator) {
 
 console.log("✅ Bloque 8 cargado: Inicialización, Funciones Auxiliares y Sincronización Completa");
 console.log("🎉 SISTEMA COMPLETO Y FUNCIONAL");
+  </script>
+<!-- ============================================ -->
+<!-- BLOQUE 9: SUBIR NOTAS - VERSIÓN FIREBASE (SIN LOCALSTORAGE) -->
+<!-- ============================================ -->
+<script>
+console.log('📝 Bloque 9 cargado: Subir Notas (FIREBASE + MEMORIA)');
 
+// =====================================================
+// CONFIGURACIÓN GLOBAL
+// =====================================================
+
+const CONFIG_NOTAS = {
+    PASSWORD_ADMIN: 'expremusi1998',
+    PUNTOS_POR_ASPECTO: 0.5,
+    PUNTOS_POR_SEMANA: 2.5,
+    SEMANAS_POR_MES: 4,
+    TOTAL_MESES: 11,
+    TOTAL_SEMANAS: 44,
+    PUNTOS_MAXIMOS: 110
+};
+
+let estudiantesNotasActuales = [];
+let mesesDesbloqueados = new Set();
+let docenteSeleccionadoActual = null;
+let estudianteDetalleActual = null;
+
+// 🔥 CACHÉ EN MEMORIA (se borra al recargar la página)
+let notasEnMemoria = [];  // Array de notas del docente actual
+
+const STATE_KEY = 'subirNotasState';
+const STATE_EXPIRACION = 7200000; // 2 horas
+
+// =====================================================
+// SISTEMA DE MEMORIA DEL ESTADO (solo UI)
+// =====================================================
+
+function guardarEstadoNotas() {
+    try {
+        const estado = {
+            docente: docenteSeleccionadoActual,
+            estudianteId: estudianteDetalleActual,
+            mesesDesbloqueados: Array.from(mesesDesbloqueados),
+            timestamp: Date.now()
+        };
+        localStorage.setItem(STATE_KEY, JSON.stringify(estado));
+        console.log('💾 Estado UI guardado:', estado);
+    } catch(e) {
+        console.error('Error guardando estado:', e);
+    }
+}
+
+function cargarEstadoNotas() {
+    try {
+        const stored = localStorage.getItem(STATE_KEY);
+        if (!stored) return null;
+        
+        const estado = JSON.parse(stored);
+        
+        if (Date.now() - estado.timestamp > STATE_EXPIRACION) {
+            localStorage.removeItem(STATE_KEY);
+            return null;
+        }
+        
+        return estado;
+    } catch(e) {
+        return null;
+    }
+}
+
+function limpiarEstadoNotas() {
+    localStorage.removeItem(STATE_KEY);
+    estudianteDetalleActual = null;
+}
+
+// =====================================================
+// 🔥 FUNCIÓN CLAVE: CARGAR NOTAS DESDE FIREBASE
+// =====================================================
+
+async function cargarNotasDesdeFirebase(docenteId) {
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible');
+        return [];
+    }
+    
+    if (!docenteId) {
+        console.warn('⚠️ No hay docente seleccionado');
+        return [];
+    }
+    
+    try {
+        console.log(`☁️ Cargando notas del docente "${docenteId}" desde Firebase...`);
+        
+        // 🔥 SOLO las notas del docente seleccionado (1 lectura filtrada)
+        const snapshot = await window.db.collection('notas_semanales')
+            .where('docenteId', '==', docenteId)
+            .get();
+        
+        const notas = [];
+        snapshot.forEach(doc => {
+            notas.push({ id: doc.id, ...doc.data() });
+        });
+        
+        console.log(`✅ ${notas.length} notas cargadas desde Firebase`);
+        
+        // Guardar en memoria (no en localStorage)
+        notasEnMemoria = notas;
+        
+        return notas;
+    } catch (e) {
+        console.error('❌ Error cargando notas desde Firebase:', e);
+        return [];
+    }
+}
+
+// 🔥 Función para leer una nota de la memoria
+function obtenerNotaDeMemoria(estudianteId, instrumento, semana) {
+    return notasEnMemoria.find(n => 
+        String(n.estudianteId) === String(estudianteId) &&
+        n.instrumento === instrumento &&
+        n.semana === semana
+    ) || null;
+}
+
+// =====================================================
+// 1. UTILIDADES
+// =====================================================
+
+function calcularAsistenciasEstudiante(estudianteId) {
+    try {
+        const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        return historial.filter(r => 
+            String(r.studentId) === String(estudianteId) &&
+            (r.estado === 'presente' || r.estado === 'reposicion')
+        ).length;
+    } catch(e) {
+        return 0;
+    }
+}
+
+function calcularSemanaActualEstudiante(estudiante) {
+    if (!estudiante) return 1;
+    const asistencias = calcularAsistenciasEstudiante(estudiante.id);
+    const diasClase = estudiante.academico?.dias?.length || 2;
+    const esPlanSemanal = diasClase >= 2;
+    const divisor = esPlanSemanal ? 2 : 1;
+    let semana = Math.floor(asistencias / divisor) + 1;
+    if (semana < 1) semana = 1;
+    if (semana > CONFIG_NOTAS.TOTAL_SEMANAS) semana = CONFIG_NOTAS.TOTAL_SEMANAS;
+    return semana;
+}
+
+function calcularMesDelCurso(semana) {
+    const mes = Math.floor((semana - 1) / CONFIG_NOTAS.SEMANAS_POR_MES) + 1;
+    return Math.min(mes, CONFIG_NOTAS.TOTAL_MESES);
+}
+
+function obtenerSemanasDelMes(mes) {
+    const inicio = (mes - 1) * CONFIG_NOTAS.SEMANAS_POR_MES + 1;
+    const semanas = [];
+    for (let i = 0; i < CONFIG_NOTAS.SEMANAS_POR_MES; i++) {
+        semanas.push(inicio + i);
+    }
+    return semanas;
+}
+
+// Devuelve TODOS los instrumentos que imparte el docente a ese estudiante
+function detectarInstrumentosDocenteEstudiante(estudiante, instrumentosDocente) {
+    if (!estudiante || !instrumentosDocente || instrumentosDocente.length === 0) return [];
+    
+    const principal = (estudiante.musical?.instrumentoPrincipal || '').toLowerCase().trim();
+    const secundario = (estudiante.musical?.instrumentoSecundario || '').toLowerCase().trim();
+    const resultados = [];
+    
+    for (const instr of instrumentosDocente) {
+        const instrLower = instr.toLowerCase().trim();
+        if (instrLower === principal) {
+            resultados.push({ 
+                instrumento: estudiante.musical.instrumentoPrincipal, 
+                tipo: 'principal' 
+            });
+        }
+        if (instrLower === secundario && secundario !== 'ninguno' && secundario !== '') {
+            resultados.push({ 
+                instrumento: estudiante.musical.instrumentoSecundario, 
+                tipo: 'secundario' 
+            });
+        }
+    }
+    return resultados;
+}
+
+function obtenerTemaDeSemana(instrumento, nivel, semana) {
+    try {
+        const temarios = JSON.parse(localStorage.getItem('temarios') || '[]');
+        const temario = temarios.find(t => 
+            t.instrumento === instrumento && 
+            t.nivel === nivel
+        );
+        if (!temario) return null;
+        const semanaData = temario.semanas?.find(s => s.numero === semana);
+        return semanaData || null;
+    } catch(e) {
+        return null;
+    }
+}
+
+// 🔥 Guardar nota SOLO en Firebase (sin localStorage)
+async function guardarNota(notaData) {
+    if (!window.db) {
+        alert('⚠️ Firebase no disponible, no se puede guardar');
+        return false;
+    }
+    
+    try {
+        const instrLimpio = (notaData.instrumento || 'sin_instrumento').replace(/\s+/g, '_');
+        const docId = `nota_${notaData.estudianteId}_${instrLimpio}_sem${notaData.semana}`;
+        
+        await window.db.collection('notas_semanales').doc(docId).set(notaData);
+        console.log(`☁️ Nota guardada en Firebase: ${docId}`);
+        
+        // 🔥 Actualizar en memoria (sin localStorage)
+        const idx = notasEnMemoria.findIndex(n => 
+            String(n.estudianteId) === String(notaData.estudianteId) &&
+            n.instrumento === notaData.instrumento &&
+            n.semana === notaData.semana
+        );
+        if (idx !== -1) {
+            notasEnMemoria[idx] = notaData;
+        } else {
+            notasEnMemoria.push(notaData);
+        }
+        
+        return true;
+    } catch(e) {
+        console.error('❌ Error guardando en Firebase:', e);
+        alert('❌ Error al guardar: ' + e.message);
+        return false;
+    }
+}
+
+// 🔥 Calcular total acumulado desde memoria
+function calcularTotalAcumulado(estudianteId, instrumento) {
+    const notasEstudiante = notasEnMemoria.filter(n => 
+        String(n.estudianteId) === String(estudianteId) &&
+        (!instrumento || n.instrumento === instrumento)
+    );
+    return notasEstudiante.reduce((sum, n) => sum + (n.total || 0), 0);
+}
+
+// =====================================================
+// 2. CARGAR DOCENTES EN EL SELECTOR
+// =====================================================
+
+function cargarDocentesEnSelector() {
+    console.log('🔄 Cargando docentes en selector...');
+    const select = document.getElementById('subirNotasDocente');
+    if (!select) return;
+
+    const usuarios = window.systemUsers || JSON.parse(localStorage.getItem('systemUsers') || '{}');
+    const todosDocentes = Object.values(usuarios).filter(u => u.tipo === 'docente');
+    const docentes = todosDocentes.filter(u => u.estado === 'activo');
+
+    select.innerHTML = '<option value="">Seleccione un docente</option>';
+    
+    const avisoViejo = document.getElementById('avisoDocentes');
+    if (avisoViejo) avisoViejo.remove();
+    
+    if (docentes.length === 0) {
+        select.innerHTML = '<option value="">⚠️ No hay docentes activos</option>';
+        let aviso = document.createElement('div');
+        aviso.id = 'avisoDocentes';
+        aviso.style.cssText = 'margin-top:10px; padding:12px; background:#fff3cd; border:1px solid #ffc107; border-radius:6px; color:#856404; font-size:0.9rem;';
+        if (todosDocentes.length === 0) {
+            aviso.innerHTML = '⚠️ <strong>No hay docentes registrados.</strong><br>Crea uno en Gestión de Usuarios.';
+        } else {
+            aviso.innerHTML = `⚠️ Hay ${todosDocentes.length} docente(s) pero ninguno está <strong>ACTIVO</strong>.`;
+        }
+        select.parentNode.appendChild(aviso);
+        return;
+    }
+    
+    docentes.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    
+    docentes.forEach(doc => {
+        const opt = document.createElement('option');
+        opt.value = doc.username;
+        const instrumentos = (doc.instrumentos || []).join(', ');
+        opt.textContent = `${doc.nombre || doc.username} ${doc.apellido || ''} - ${instrumentos || 'Sin instrumentos'}`;
+        select.appendChild(opt);
+    });
+    console.log(`✅ ${docentes.length} docentes cargados`);
+}
+
+// =====================================================
+// 3. CARGAR ESTUDIANTES DEL DOCENTE (CON FIREBASE)
+// =====================================================
+
+async function cargarEstudiantesParaNotas() {
+    console.log('🔄 Cargando estudiantes del docente...');
+    
+    const docenteUsername = document.getElementById('subirNotasDocente')?.value;
+    const container = document.getElementById('subirNotasTablaContainer');
+    
+    if (!docenteUsername) {
+        alert('⚠️ Seleccione un docente primero');
+        return;
+    }
+    
+    docenteSeleccionadoActual = docenteUsername;
+    
+    const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+    const docente = usuarios[docenteUsername];
+    
+    if (!docente) {
+        alert('❌ Docente no encontrado');
+        return;
+    }
+    
+    // 🔥 INDICADOR DE CARGA
+    if (container) {
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div style="background:white;padding:40px;border-radius:10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                <i class="fas fa-spinner fa-spin" style="font-size:48px;color:#E63946;margin-bottom:15px;"></i>
+                <h3 style="color:#E63946;margin:0;">Cargando notas desde Firebase...</h3>
+                <p style="color:#666;margin-top:10px;">Por favor espera un momento</p>
+            </div>
+        `;
+    }
+    
+    // 🔥 CARGAR NOTAS DE FIREBASE (1 lectura)
+    await cargarNotasDesdeFirebase(docenteUsername);
+    
+    const instrumentosDocente = docente.instrumentos || [];
+    const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    // Generar UNA ENTRADA POR CADA INSTRUMENTO que el docente imparte
+    const estudiantesFiltrados = [];
+    inscriptions.forEach(ins => {
+        if ((ins.estado || 'activo') !== 'activo') return;
+        
+        const instrumentosDetectados = detectarInstrumentosDocenteEstudiante(ins, instrumentosDocente);
+        
+        instrumentosDetectados.forEach(infoInstrumento => {
+            estudiantesFiltrados.push({
+                ...ins,
+                instrumentoQueImparte: infoInstrumento.instrumento,
+                tipoInstrumento: infoInstrumento.tipo,
+                idUnico: `${ins.id}_${infoInstrumento.instrumento.replace(/\s+/g, '_')}`,
+                idOriginal: ins.id
+            });
+        });
+    });
+    
+    estudiantesNotasActuales = estudiantesFiltrados;
+    console.log(`🎯 ${estudiantesFiltrados.length} entradas con notas cargadas desde Firebase`);
+    
+    if (container) container.style.display = 'block';
+    renderizarListaEstudiantes(estudiantesFiltrados, docente);
+    
+    guardarEstadoNotas();
+}
+
+// 🔥 Cambio de docente en el selector
+function cambiarDocenteSeleccionado() {
+    const select = document.getElementById('subirNotasDocente');
+    if (!select) return;
+    const nuevoDocente = select.value;
+    if (!nuevoDocente) return;
+    console.log('🔄 Cambiando a docente:', nuevoDocente);
+    // Cargar automáticamente
+    cargarEstudiantesParaNotas();
+}
+
+// 🔥 Botón de "Actualizar notas" (recarga manual)
+async function actualizarNotasManual() {
+    if (!docenteSeleccionadoActual) {
+        alert('⚠️ Selecciona un docente primero');
+        return;
+    }
+    console.log('🔄 Recarga manual solicitada');
+    await cargarEstudiantesParaNotas();
+    if (typeof showToast === 'function') {
+        showToast('🔄 Notas actualizadas desde Firebase', 'success');
+    }
+}
+
+// =====================================================
+// 4. RENDERIZAR LISTA AGRUPADA POR INSTRUMENTO
+// =====================================================
+
+function renderizarListaEstudiantes(estudiantes, docente) {
+    const container = document.getElementById('subirNotasTablaContainer');
+    if (!container) return;
+    
+    if (estudiantes.length === 0) {
+        container.innerHTML = `
+            <div style="background:#fff3cd;padding:20px;border-radius:8px;text-align:center;border:1px solid #ffc107;">
+                <h3 style="margin:0;color:#856404;">⚠️ No hay estudiantes para este docente</h3>
+                <p style="margin:10px 0 0;color:#856404;font-size:0.9rem;">
+                    Los instrumentos del docente son: <strong>${(docente.instrumentos || []).join(', ') || 'Ninguno'}</strong>
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Agrupar por instrumento
+    const grupos = {};
+    estudiantes.forEach(est => {
+        const instr = est.instrumentoQueImparte;
+        if (!grupos[instr]) grupos[instr] = [];
+        grupos[instr].push(est);
+    });
+    
+    const instrumentosOrdenados = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
+    const estudiantesUnicos = new Set(estudiantes.map(e => String(e.idOriginal))).size;
+    
+    let html = `
+        <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid #E63946;">
+                <div>
+                    <h3 style="color:#E63946;margin:0;">📚 Estudiantes de ${docente.nombre} ${docente.apellido || ''}</h3>
+                    <p style="color:#666;font-size:0.9rem;margin:5px 0 0;">
+                        ${estudiantesUnicos} estudiante(s) único(s) · ${estudiantes.length} entrada(s) por instrumento
+                    </p>
+                </div>
+                <button onclick="actualizarNotasManual()" 
+                        style="background:#2196F3;color:white;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:8px;font-size:0.9rem;">
+                    <i class="fas fa-sync-alt"></i> Actualizar Notas
+                </button>
+            </div>
+    `;
+    
+    // Recorrer cada instrumento y renderizar su grupo como desplegable
+    instrumentosOrdenados.forEach(instrumento => {
+        const listaEstudiantes = grupos[instrumento];
+        
+        // Ordenar alfabéticamente dentro del grupo
+        listaEstudiantes.sort((a, b) => 
+            (a.estudiante?.nombre || '').localeCompare(b.estudiante?.nombre || '')
+        );
+        
+        const iconoInstr = obtenerIconoInstrumento(instrumento);
+        const colorInstr = '#E63946';
+        
+        // Contar con/sin notas
+        let conNotas = 0;
+        listaEstudiantes.forEach(est => {
+            const tieneNotas = notasEnMemoria.some(n => 
+                String(n.estudianteId) === String(est.idOriginal) &&
+                n.instrumento === instrumento
+            );
+            if (tieneNotas) conNotas++;
+        });
+        
+        html += `
+            <details style="margin-bottom:15px;border:2px solid ${colorInstr};border-radius:12px;overflow:hidden;background:white;" open>
+                <summary style="cursor:pointer;list-style:none;background:linear-gradient(135deg, ${colorInstr}, #C1121F);color:white;padding:14px 18px;font-weight:700;font-size:1rem;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.4rem;">${iconoInstr}</span>
+                        <span>${instrumento}</span>
+                        <span style="background:rgba(255,255,255,0.25);padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600;">
+                            ${listaEstudiantes.length} estudiante${listaEstudiantes.length !== 1 ? 's' : ''}
+                        </span>
+                    </span>
+                    <span style="font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:8px;">
+                        <span style="background:rgba(255,255,255,0.25);padding:2px 10px;border-radius:12px;">
+                            ✅ ${conNotas} calificado${conNotas !== 1 ? 's' : ''}
+                        </span>
+                        <span class="toggle-icon" style="font-size:1rem;">▼</span>
+                    </span>
+                </summary>
+                <div style="padding:15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;background:#f8f9fa;">
+        `;
+        
+        // Renderizar cada estudiante del grupo
+        listaEstudiantes.forEach(est => {
+            const asistencias = calcularAsistenciasEstudiante(est.idOriginal);
+            const diasClase = est.academico?.dias?.length || 2;
+            const planTexto = diasClase >= 2 ? `${diasClase} días/semana` : '1 día/semana';
+            const diasTexto = (est.academico?.dias || []).join(', ') || 'Sin días';
+            const semanaActual = calcularSemanaActualEstudiante(est);
+            const mesActual = calcularMesDelCurso(semanaActual);
+            
+            // Contar meses calificados para ESTE instrumento (desde memoria)
+            const notasEstudiante = notasEnMemoria.filter(n => 
+                String(n.estudianteId) === String(est.idOriginal) &&
+                n.instrumento === instrumento
+            );
+            const mesesConNotas = new Set(notasEstudiante.map(n => n.mes)).size;
+            
+            const instrumentoMostrar = est.instrumentoQueImparte || est.musical.instrumentoPrincipal;
+            const tipoInstrumento = est.tipoInstrumento === 'secundario' 
+                ? '<span style="background:#e3f2fd;color:#0D47A1;padding:2px 8px;border-radius:10px;font-size:0.7rem;margin-left:5px;font-weight:600;">Secundario</span>'
+                : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:0.7rem;margin-left:5px;font-weight:600;">Principal</span>';
+            
+            html += `
+                <div onclick="abrirDetalleEstudiante('${est.idOriginal}', '${instrumento.replace(/'/g, "\\'")}')" 
+                     style="background:white;border:1px solid #e0e0e0;border-radius:12px;padding:15px;cursor:pointer;transition:all 0.2s;border-left:4px solid ${colorInstr};"
+                     onmouseover="this.style.boxShadow='0 4px 12px rgba(230,57,70,0.15)';this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.boxShadow='none';this.style.transform='translateY(0)'">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                        <div>
+                            <strong style="color:#1a1a1a;font-size:1.05rem;">${est.estudiante.nombre}</strong>
+                            <div style="color:#666;font-size:0.85rem;margin-top:3px;">
+                                ${iconoInstr} <strong>${instrumentoMostrar}</strong> ${tipoInstrumento}
+                                · ${est.estudiante.nivel}
+                            </div>
+                        </div>
+                        <span style="background:${colorInstr};color:white;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;">
+                            Mes ${mesActual}
+                        </span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.8rem;color:#555;margin-top:8px;">
+                        <span>📅 ${diasTexto}</span>
+                        <span>·</span>
+                        <span>${planTexto}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #eee;">
+                        <div style="font-size:0.85rem;color:#666;">
+                            📊 <strong>${asistencias}</strong> asistencias · Semana <strong>${semanaActual}</strong>
+                        </div>
+                        <span style="color:${colorInstr};font-weight:600;font-size:0.85rem;">
+                            ${mesesConNotas > 0 ? `✅ ${mesesConNotas} mes(es) calif.` : '🆕 Sin calificar'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </details>
+        `;
+    });
+    
+    html += `</div>`;
+    container.innerHTML = html;
+    
+    setTimeout(ajustarIconosDesplegables, 100);
+}
+
+// Función auxiliar para íconos de instrumento
+function obtenerIconoInstrumento(instrumento) {
+    if (!instrumento) return '🎵';
+    const instr = instrumento.toLowerCase();
+    if (instr.includes('piano') || instr.includes('teclado')) return '🎹';
+    if (instr.includes('guitarra')) return '🎸';
+    if (instr.includes('bajo')) return '🎸';
+    if (instr.includes('batería') || instr.includes('bateria')) return '🥁';
+    if (instr.includes('violín') || instr.includes('violin')) return '🎻';
+    if (instr.includes('saxofón') || instr.includes('saxofon')) return '🎷';
+    if (instr.includes('trompeta')) return '🎺';
+    if (instr.includes('canto') || instr.includes('voz')) return '🎤';
+    if (instr.includes('congas') || instr.includes('percusi')) return '🪘';
+    return '🎵';
+}
+
+function ajustarIconosDesplegables() {
+    document.querySelectorAll('details').forEach(det => {
+        const icon = det.querySelector('.toggle-icon');
+        if (!icon) return;
+        
+        const actualizar = () => {
+            icon.textContent = det.open ? '▲' : '▼';
+        };
+        
+        if (det._toggleListener) {
+            det.removeEventListener('toggle', det._toggleListener);
+        }
+        det._toggleListener = actualizar;
+        det.addEventListener('toggle', actualizar);
+        actualizar();
+    });
+}
+
+// =====================================================
+// 5. ABRIR DETALLE DEL ESTUDIANTE
+// =====================================================
+
+function abrirDetalleEstudiante(estudianteId, instrumentoForzado) {
+    let estudiante = null;
+    
+    if (instrumentoForzado) {
+        estudiante = estudiantesNotasActuales.find(e => 
+            String(e.idOriginal) === String(estudianteId) &&
+            e.instrumentoQueImparte === instrumentoForzado
+        );
+    }
+    
+    if (!estudiante) {
+        estudiante = estudiantesNotasActuales.find(e => 
+            String(e.idOriginal) === String(estudianteId)
+        );
+    }
+    
+    if (!estudiante) {
+        alert('❌ Estudiante no encontrado');
+        return;
+    }
+    
+    const instrumentoActivo = estudiante.instrumentoQueImparte;
+    estudianteDetalleActual = `${estudianteId}|${instrumentoActivo}`;
+    guardarEstadoNotas();
+    
+    const container = document.getElementById('subirNotasTablaContainer');
+    if (!container) return;
+    
+    const asistencias = calcularAsistenciasEstudiante(estudianteId);
+    const semanaActual = calcularSemanaActualEstudiante(estudiante);
+    const mesActual = calcularMesDelCurso(semanaActual);
+    const diasTexto = (estudiante.academico?.dias || []).join(', ');
+    const planTexto = (estudiante.academico?.dias?.length || 2) >= 2 ? '2 días/semana' : '1 día/semana';
+    
+    const instrumentoMostrar = estudiante.instrumentoQueImparte || estudiante.musical.instrumentoPrincipal;
+    const tipoInstrumento = estudiante.tipoInstrumento === 'secundario' ? ' (Secundario)' : ' (Principal)';
+    const iconoInstr = obtenerIconoInstrumento(instrumentoActivo);
+    
+    let html = `
+        <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid #E63946;">
+                <div>
+                    <button onclick="volverAListaEstudiantes()" style="background:#6c757d;color:white;border:none;padding:8px 15px;border-radius:6px;cursor:pointer;font-size:0.85rem;margin-bottom:8px;">
+                        ← Volver a la lista
+                    </button>
+                    <h3 style="margin:0;color:#E63946;">👤 ${estudiante.estudiante.nombre}</h3>
+                    <p style="margin:5px 0 0;color:#666;font-size:0.9rem;">
+                        ${iconoInstr} <strong>${instrumentoMostrar}</strong>${tipoInstrumento} · 
+                        ${estudiante.estudiante.nivel} · 
+                        📅 ${diasTexto} · ${planTexto} · 
+                        📊 ${asistencias} asistencias
+                    </p>
+                </div>
+                <div style="text-align:right;">
+                    <div style="background:#E63946;color:white;padding:8px 15px;border-radius:8px;font-weight:600;">
+                        Mes ${mesActual} del curso
+                    </div>
+                    <div style="font-size:0.8rem;color:#666;margin-top:5px;">
+                        Semana actual: ${semanaActual} de 44
+                    </div>
+                </div>
+            </div>
+    `;
+    
+    for (let mes = 1; mes < mesActual; mes++) {
+        html += renderizarMes(mes, false, estudiante, mesActual, instrumentoActivo);
+    }
+    html += renderizarMes(mesActual, true, estudiante, mesActual, instrumentoActivo);
+    
+    const totalPuntos = calcularTotalAcumulado(estudianteId, instrumentoActivo);
+    const puntosMaximos = (mesActual - 1) * 10;
+    const porcentaje = puntosMaximos > 0 ? Math.round((totalPuntos / puntosMaximos) * 100) : 0;
+    
+    html += `
+        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,#E63946,#C1121F);border-radius:10px;color:white;">
+            <h3 style="margin:0 0 10px;">📊 Resumen General · ${instrumentoActivo}</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px;">
+                <div style="text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;">${mesActual - 1}</div>
+                    <div style="font-size:0.8rem;opacity:0.9;">Meses completados</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;">${totalPuntos.toFixed(1)}</div>
+                    <div style="font-size:0.8rem;opacity:0.9;">Puntos acumulados</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;">${puntosMaximos}</div>
+                    <div style="font-size:0.8rem;opacity:0.9;">Puntos máximos</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;">${porcentaje}%</div>
+                    <div style="font-size:0.8rem;opacity:0.9;">Progreso</div>
+                </div>
+            </div>
+            <div style="margin-top:15px;text-align:center;">
+                <button onclick="imprimirReporteMes('${estudianteId}', '${instrumentoActivo.replace(/'/g, "\\'")}')" style="background:white;color:#E63946;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;margin:0 5px;">
+                    🖨️ Imprimir Reporte del Mes
+                </button>
+                <button onclick="imprimirReporteGeneral('${estudianteId}', '${instrumentoActivo.replace(/'/g, "\\'")}')" style="background:white;color:#E63946;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;margin:0 5px;">
+                    📊 Imprimir Reporte General
+                </button>
+            </div>
+        </div>
+    `;
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// =====================================================
+// 6. RENDERIZAR UN MES COMPLETO
+// =====================================================
+
+function renderizarMes(mes, esActual, estudiante, mesActualEstudiante, instrumentoActivo) {
+    const semanas = obtenerSemanasDelMes(mes);
+    const estaDesbloqueado = esActual || mesesDesbloqueados.has(mes);
+    
+    let totalMes = 0;
+    let semanasConNotas = 0;
+    semanas.forEach(sem => {
+        const nota = obtenerNotaDeMemoria(estudiante.id, instrumentoActivo, sem);
+        if (nota && nota.total > 0) {
+            totalMes += nota.total;
+            semanasConNotas++;
+        }
+    });
+    
+    const esMesCompletado = semanasConNotas === 4;
+    const instrumentoParaTema = instrumentoActivo;
+    
+    let html = `
+        <div style="margin-bottom:20px;border:2px solid ${esActual ? '#E63946' : (estaDesbloqueado ? '#4CAF50' : '#ddd')};border-radius:12px;overflow:hidden;">
+            <div style="background:${esActual ? '#E63946' : (estaDesbloqueado ? '#4CAF50' : '#6c757d')};color:white;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <div>
+                    <strong style="font-size:1.1rem;">📅 MES ${mes} DEL CURSO</strong>
+                    <span style="font-size:0.9rem;opacity:0.9;margin-left:10px;">
+                        (Semanas ${semanas[0]} a ${semanas[3]})
+                    </span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    ${esMesCompletado ? '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:15px;font-size:0.8rem;">✅ COMPLETADO</span>' : ''}
+                    ${esActual ? '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:15px;font-size:0.8rem;">🔵 EN CURSO</span>' : ''}
+                    ${!esActual && !estaDesbloqueado ? '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:15px;font-size:0.8rem;">🔒 BLOQUEADO</span>' : ''}
+                    ${!esActual && estaDesbloqueado ? '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:15px;font-size:0.8rem;">🔓 DESBLOQUEADO</span>' : ''}
+                </div>
+            </div>
+            <div style="padding:15px;">
+    `;
+    
+    if (!estaDesbloqueado) {
+        html += `
+            <div style="text-align:center;padding:15px;background:#f8f9fa;border-radius:8px;margin-bottom:15px;">
+                <p style="color:#856404;margin:0 0 10px;font-size:0.9rem;">
+                    🔒 Este mes está bloqueado. Para editarlo necesitas la contraseña de administrador.
+                </p>
+                <button onclick="solicitarPasswordMes(${mes}, '${estudiante.id}', '${instrumentoActivo.replace(/'/g, "\\'")}')" 
+                        style="background:#E63946;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;">
+                    🔓 Desbloquear Mes ${mes} para editar
+                </button>
+            </div>
+        `;
+    }
+    
+    semanas.forEach(semana => {
+        const temaData = obtenerTemaDeSemana(instrumentoParaTema, estudiante.estudiante.nivel, semana);
+        const notaGuardada = obtenerNotaDeMemoria(estudiante.id, instrumentoActivo, semana);
+        
+        const temaTexto = temaData ? temaData.tema : 'Sin tema definido';
+        const ponderacion = temaData ? temaData.ponderacion : 2.5;
+        
+        const semanaActualEst = calcularSemanaActualEstudiante(estudiante);
+        const esSemanaFutura = (semana > semanaActualEst) && esActual;
+        
+        html += `
+            <div style="margin-bottom:12px;border:1px solid #e0e0e0;border-radius:8px;padding:12px;background:${esSemanaFutura ? '#fafafa' : 'white'};">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                    <div>
+                        <strong style="color:#E63946;">Semana ${semana}</strong>
+                        <span style="color:#666;font-size:0.9rem;margin-left:10px;">
+                            📖 ${temaTexto}
+                        </span>
+                    </div>
+                    <span style="background:#f0f0f0;padding:3px 10px;border-radius:15px;font-size:0.75rem;color:#666;">
+                        ${ponderacion} pts
+                    </span>
+                </div>
+        `;
+        
+        if (esSemanaFutura) {
+            html += `
+                <div style="text-align:center;padding:15px;color:#999;font-size:0.85rem;background:#f8f9fa;border-radius:6px;">
+                    ⏳ Pendiente (el estudiante aún no llega a esta semana)
+                </div>
+            `;
+        } else {
+            const valores = notaGuardada ? {
+                asistencia: notaGuardada.notas.asistencia || 0,
+                tecnica: notaGuardada.notas.tecnica || 0,
+                avance: notaGuardada.notas.avance || 0,
+                tarea: notaGuardada.notas.tarea || 0,
+                practica: notaGuardada.notas.practica || 0
+            } : { asistencia: 0, tecnica: 0, avance: 0, tarea: 0, practica: 0 };
+            
+            const soloLectura = !estaDesbloqueado;
+            const readOnlyAttr = soloLectura ? 'readonly' : '';
+            const inputStyle = `width:70px;padding:6px;text-align:center;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;${soloLectura ? 'background:#f5f5f5;' : ''}`;
+            
+            html += `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">📅 Asistencia</div>
+                        <input type="number" class="nota-input" data-semana="${semana}" data-aspecto="asistencia" 
+                               min="0" max="0.5" step="0.1" value="${valores.asistencia}" 
+                               ${readOnlyAttr}
+                               style="${inputStyle}"
+                               oninput="actualizarTotalSemana(${semana})">
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">🎸 Técnica</div>
+                        <input type="number" class="nota-input" data-semana="${semana}" data-aspecto="tecnica" 
+                               min="0" max="0.5" step="0.1" value="${valores.tecnica}" 
+                               ${readOnlyAttr}
+                               style="${inputStyle}"
+                               oninput="actualizarTotalSemana(${semana})">
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">📈 Avance</div>
+                        <input type="number" class="nota-input" data-semana="${semana}" data-aspecto="avance" 
+                               min="0" max="0.5" step="0.1" value="${valores.avance}" 
+                               ${readOnlyAttr}
+                               style="${inputStyle}"
+                               oninput="actualizarTotalSemana(${semana})">
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">📝 Tarea</div>
+                        <input type="number" class="nota-input" data-semana="${semana}" data-aspecto="tarea" 
+                               min="0" max="0.5" step="0.1" value="${valores.tarea}" 
+                               ${readOnlyAttr}
+                               style="${inputStyle}"
+                               oninput="actualizarTotalSemana(${semana})">
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">🎵 Práctica</div>
+                        <input type="number" class="nota-input" data-semana="${semana}" data-aspecto="practica" 
+                               min="0" max="0.5" step="0.1" value="${valores.practica}" 
+                               ${readOnlyAttr}
+                               style="${inputStyle}"
+                               oninput="actualizarTotalSemana(${semana})">
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:#666;margin-bottom:3px;">Total</div>
+                        <div id="total-sem-${semana}" style="font-weight:bold;color:#E63946;font-size:1.1rem;padding-top:4px;">
+                            ${notaGuardada ? notaGuardada.total.toFixed(1) : '0.0'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (estaDesbloqueado && !esSemanaFutura) {
+                html += `
+                    <div style="text-align:right;margin-top:8px;">
+                        <button onclick="guardarNotaSemana(${semana}, '${estudiante.id}', '${instrumentoActivo.replace(/'/g, "\\'")}')" 
+                                style="background:#4CAF50;color:white;border:none;padding:6px 15px;border-radius:5px;cursor:pointer;font-size:0.8rem;font-weight:600;">
+                            💾 Guardar Semana ${semana}
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        html += `</div>`;
+    });
+    
+    html += `
+            <div style="margin-top:15px;padding:10px;background:#f8f9fa;border-radius:8px;text-align:center;">
+                <strong style="color:#E63946;">TOTAL MES ${mes}: ${totalMes.toFixed(1)} / 10.0</strong>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    return html;
+}
+
+// =====================================================
+// 7. ACTUALIZAR TOTAL DE UNA SEMANA
+// =====================================================
+
+function actualizarTotalSemana(semana) {
+    const inputs = document.querySelectorAll(`.nota-input[data-semana="${semana}"]`);
+    let total = 0;
+    inputs.forEach(input => {
+        const val = parseFloat(input.value) || 0;
+        total += val;
+    });
+    const totalElem = document.getElementById(`total-sem-${semana}`);
+    if (totalElem) totalElem.textContent = total.toFixed(1);
+}
+
+// =====================================================
+// 8. GUARDAR NOTA DE UNA SEMANA
+// =====================================================
+
+async function guardarNotaSemana(semana, estudianteId, instrumentoActivo) {
+    const estudiante = estudiantesNotasActuales.find(e => 
+        String(e.idOriginal) === String(estudianteId) &&
+        (!instrumentoActivo || e.instrumentoQueImparte === instrumentoActivo)
+    );
+    
+    if (!estudiante) {
+        alert('❌ Estudiante no encontrado');
+        return;
+    }
+    
+    const inputs = document.querySelectorAll(`.nota-input[data-semana="${semana}"]`);
+    const notas = {};
+    let total = 0;
+    
+    inputs.forEach(input => {
+        const aspecto = input.getAttribute('data-aspecto');
+        const valor = parseFloat(input.value) || 0;
+        notas[aspecto] = valor;
+        total += valor;
+    });
+    
+    if (total === 0) {
+        if (!confirm('⚠️ La nota total es 0. ¿Estás seguro de guardar?')) return;
+    }
+    
+    const mes = calcularMesDelCurso(semana);
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const instrumentoFinal = instrumentoActivo || estudiante.instrumentoQueImparte;
+    
+    const notaData = {
+        id: `nota_${estudianteId}_${(instrumentoFinal || '').replace(/\s+/g, '_')}_sem${semana}`,
+        estudianteId: String(estudianteId),
+        estudianteNombre: estudiante.estudiante.nombre,
+        docenteId: docenteSeleccionadoActual,
+        instrumento: instrumentoFinal,
+        tipoInstrumento: estudiante.tipoInstrumento || 'principal',
+        nivel: estudiante.estudiante.nivel,
+        semana: semana,
+        mes: mes,
+        anio: new Date().getFullYear(),
+        notas: notas,
+        total: total,
+        subidoPor: currentUser.username,
+        subidoPorNombre: currentUser.nombre || 'Secretaría',
+        fechaSubida: new Date().toISOString()
+    };
+    
+    const exito = await guardarNota(notaData);
+    
+    if (exito) {
+        const totalElem = document.getElementById(`total-sem-${semana}`);
+        if (totalElem) totalElem.textContent = total.toFixed(1);
+        
+        guardarEstadoNotas();
+        abrirDetalleEstudiante(estudianteId, instrumentoFinal);
+        
+        if (typeof showToast === 'function') {
+            showToast(`✅ Semana ${semana} (${instrumentoFinal}) guardada: ${total.toFixed(1)} pts`, 'success');
+        }
+    }
+}
+
+// =====================================================
+// 9. SOLICITAR CONTRASEÑA
+// =====================================================
+
+function solicitarPasswordMes(mes, estudianteId, instrumentoActivo) {
+    const modal = document.createElement('div');
+    modal.id = 'modalPasswordNotas';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; justify-content: center;
+        align-items: center; z-index: 100000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:48px;color:#E63946;">🔒</div>
+                <h3 style="margin:10px 0 5px;color:#E63946;">Contraseña Requerida</h3>
+                <p style="margin:0;color:#666;font-size:0.9rem;">
+                    Para editar el <strong>Mes ${mes}</strong>${instrumentoActivo ? ` de <strong>${instrumentoActivo}</strong>` : ''}, ingresa la contraseña de administrador.
+                </p>
+            </div>
+            <input type="password" id="inputPasswordNotas" 
+                   placeholder="Contraseña..."
+                   style="width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:1rem;box-sizing:border-box;"
+                   onkeydown="if(event.key==='Enter') confirmarPasswordMes(${mes}, '${estudianteId}', '${(instrumentoActivo || '').replace(/'/g, "\\'")}')">
+            <div id="errorPasswordNotas" style="color:#E63946;font-size:0.85rem;margin-top:8px;display:none;text-align:center;">
+                ❌ Contraseña incorrecta
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button onclick="cerrarModalPasswordNotas()" 
+                        style="flex:1;padding:12px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">
+                    Cancelar
+                </button>
+                <button onclick="confirmarPasswordMes(${mes}, '${estudianteId}', '${(instrumentoActivo || '').replace(/'/g, "\\'")}')" 
+                        style="flex:1;padding:12px;background:#E63946;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">
+                    🔓 Desbloquear
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('inputPasswordNotas')?.focus(), 100);
+}
+
+function confirmarPasswordMes(mes, estudianteId, instrumentoActivo) {
+    const input = document.getElementById('inputPasswordNotas');
+    const error = document.getElementById('errorPasswordNotas');
+    if (!input) return;
+    
+    const password = input.value;
+    
+    if (password === CONFIG_NOTAS.PASSWORD_ADMIN) {
+        mesesDesbloqueados.add(mes);
+        guardarEstadoNotas();
+        registrarAuditoriaDesbloqueo(mes, estudianteId, instrumentoActivo);
+        cerrarModalPasswordNotas();
+        abrirDetalleEstudiante(estudianteId, instrumentoActivo);
+        if (typeof showToast === 'function') {
+            showToast(`🔓 Mes ${mes} desbloqueado`, 'success');
+        }
+    } else {
+        error.style.display = 'block';
+        input.value = '';
+        input.focus();
+        input.style.animation = 'shake 0.5s';
+        setTimeout(() => { input.style.animation = ''; }, 500);
+    }
+}
+
+function cerrarModalPasswordNotas() {
+    const modal = document.getElementById('modalPasswordNotas');
+    if (modal) modal.remove();
+}
+
+function registrarAuditoriaDesbloqueo(mes, estudianteId, instrumentoActivo) {
+    try {
+        const auditoria = JSON.parse(localStorage.getItem('auditoriaNotas') || '[]');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        auditoria.push({
+            id: Date.now(),
+            tipo: 'DESBLOQUEO_MES',
+            mes: mes,
+            estudianteId: estudianteId,
+            instrumento: instrumentoActivo || null,
+            usuario: currentUser.username,
+            usuarioNombre: currentUser.nombre || 'Secretaría',
+            fecha: new Date().toISOString()
+        });
+        
+        localStorage.setItem('auditoriaNotas', JSON.stringify(auditoria));
+        
+        if (window.db) {
+            const auditId = `audit_${Date.now()}`;
+            window.db.collection('auditoria_notas').doc(auditId).set(auditoria[auditoria.length - 1])
+                .catch(err => console.error('Error guardando auditoría:', err));
+        }
+    } catch(e) {
+        console.error('Error en auditoría:', e);
+    }
+}
+
+// =====================================================
+// 10. VOLVER A LA LISTA
+// =====================================================
+
+function volverAListaEstudiantes() {
+    estudianteDetalleActual = null;
+    
+    const usuarios = JSON.parse(localStorage.getItem('systemUsers') || '{}');
+    const docente = usuarios[docenteSeleccionadoActual];
+    if (docente) {
+        renderizarListaEstudiantes(estudiantesNotasActuales, docente);
+    }
+    
+    guardarEstadoNotas();
+}
+
+// =====================================================
+// 11. REPORTE DEL MES (IMPRIMIBLE)
+// =====================================================
+
+function imprimirReporteMes(estudianteId, instrumentoActivo) {
+    const estudiante = estudiantesNotasActuales.find(e => 
+        String(e.idOriginal) === String(estudianteId) &&
+        (!instrumentoActivo || e.instrumentoQueImparte === instrumentoActivo)
+    );
+    
+    if (!estudiante) {
+        alert('❌ Estudiante no encontrado');
+        return;
+    }
+    
+    const semanaActual = calcularSemanaActualEstudiante(estudiante);
+    const mesActual = calcularMesDelCurso(semanaActual);
+    const semanas = obtenerSemanasDelMes(mesActual);
+    const instrumentoParaTema = instrumentoActivo || estudiante.instrumentoQueImparte;
+    
+    let filasHTML = '';
+    let totalMes = 0;
+    
+    semanas.forEach(sem => {
+        const nota = obtenerNotaDeMemoria(estudianteId, instrumentoParaTema, sem);
+        const temaData = obtenerTemaDeSemana(instrumentoParaTema, estudiante.estudiante.nivel, sem);
+        const tema = temaData ? temaData.tema : 'Sin tema';
+        
+        const asist = nota ? nota.notas.asistencia.toFixed(1) : '-';
+        const tecn = nota ? nota.notas.tecnica.toFixed(1) : '-';
+        const avan = nota ? nota.notas.avance.toFixed(1) : '-';
+        const tarea = nota ? nota.notas.tarea.toFixed(1) : '-';
+        const prac = nota ? nota.notas.practica.toFixed(1) : '-';
+        const total = nota ? nota.total.toFixed(1) : '-';
+        
+        if (nota) totalMes += nota.total;
+        
+        filasHTML += `
+            <tr>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;"><strong>${sem}</strong></td>
+                <td style="padding:8px;border:1px solid #ddd;">${tema}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${asist}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${tecn}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${avan}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${tarea}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${prac}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#E63946;">${total}</td>
+            </tr>
+        `;
+    });
+    
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Reporte Mes ${mesActual} - ${estudiante.estudiante.nombre}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20mm; margin: 0; color: #333; }
+                .header { display: flex; align-items: center; gap: 20px; border-bottom: 3px solid #E63946; padding-bottom: 15px; margin-bottom: 20px; }
+                .header img { width: 80px; height: 80px; object-fit: contain; }
+                .header-info h1 { margin: 0; color: #E63946; font-size: 20px; }
+                .header-info h2 { margin: 5px 0 0; font-size: 14px; color: #666; }
+                .header-info p { margin: 3px 0; font-size: 12px; color: #666; }
+                .titulo { text-align: center; margin: 20px 0; }
+                .titulo h3 { color: #E63946; margin: 0; font-size: 18px; }
+                .info-estudiante { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+                .info-estudiante div strong { color: #E63946; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+                th { background: #E63946; color: white; padding: 10px; text-align: center; border: 1px solid #ddd; }
+                .totales { background: #fff5f5; padding: 15px; border-radius: 8px; border: 2px solid #E63946; text-align: center; margin: 20px 0; }
+                .totales .numero { font-size: 24px; font-weight: bold; color: #E63946; }
+                .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; }
+                .firma { text-align: center; }
+                .firma-linea { border-top: 1px solid #000; width: 80%; margin: 40px auto 5px; }
+                .firma p { margin: 5px 0; font-size: 12px; }
+                .footer { text-align: center; margin-top: 30px; font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
+                @media print { body { padding: 10mm; } .no-print { display: none; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo">
+                <div class="header-info">
+                    <h1>ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"</h1>
+                    <h2>Sistema de Gestión Académica</h2>
+                    <p>📞 Tel: 37418036 / 38514409 · 📍 08 Calle c 10-72 Zona 3 San Marcos</p>
+                </div>
+            </div>
+            <div class="titulo">
+                <h3>REPORTE DEL MES ${mesActual} DEL CURSO · ${instrumentoParaTema}</h3>
+                <p style="margin:5px 0;color:#666;font-size:12px;">Semanas ${semanas[0]} a ${semanas[3]} · Generado el ${new Date().toLocaleDateString()}</p>
+            </div>
+            <div class="info-estudiante">
+                <div><strong>Estudiante:</strong> ${estudiante.estudiante.nombre}</div>
+                <div><strong>Instrumento:</strong> ${instrumentoParaTema}</div>
+                <div><strong>Nivel:</strong> ${estudiante.estudiante.nivel}</div>
+                <div><strong>Encargado:</strong> ${estudiante.encargado?.nombre || 'N/A'}</div>
+                <div><strong>Días de clase:</strong> ${(estudiante.academico?.dias || []).join(', ')}</div>
+                <div><strong>Horario:</strong> ${estudiante.academico?.horario || 'N/A'}</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sem</th>
+                        <th>Tema</th>
+                        <th>Asist</th>
+                        <th>Técn</th>
+                        <th>Avan</th>
+                        <th>Tarea</th>
+                        <th>Prác</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>${filasHTML}</tbody>
+            </table>
+            <div class="totales">
+                <div style="font-size:13px;color:#666;margin-bottom:5px;">TOTAL DEL MES ${mesActual}</div>
+                <div class="numero">${totalMes.toFixed(1)} / 10.0</div>
+                <div style="font-size:12px;color:#666;margin-top:5px;">
+                    Promedio: ${((totalMes / 10) * 100).toFixed(0)}%
+                </div>
+            </div>
+            <div class="firmas">
+                <div class="firma">
+                    <div class="firma-linea"></div>
+                    <p><strong>Docente</strong></p>
+                    <p>Firma y sello</p>
+                </div>
+                <div class="firma">
+                    <div class="firma-linea"></div>
+                    <p><strong>Encargado</strong></p>
+                    <p>${estudiante.encargado?.nombre || ''}</p>
+                </div>
+            </div>
+            <div class="footer">
+                <p>Este documento es un reporte oficial de la Academia de Música Expresión Musical</p>
+                <p>Generado automáticamente el ${new Date().toLocaleDateString()} a las ${new Date().toLocaleTimeString()}</p>
+            </div>
+            <div class="no-print" style="text-align:center;margin-top:20px;">
+                <button onclick="window.print()" style="padding:12px 30px;background:#E63946;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">
+                    🖨️ Imprimir Reporte
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+    setTimeout(() => ventana.print(), 500);
+}
+
+// =====================================================
+// 12. REPORTE GENERAL (IMPRIMIBLE)
+// =====================================================
+
+function imprimirReporteGeneral(estudianteId, instrumentoActivo) {
+    const estudiante = estudiantesNotasActuales.find(e => 
+        String(e.idOriginal) === String(estudianteId) &&
+        (!instrumentoActivo || e.instrumentoQueImparte === instrumentoActivo)
+    );
+    
+    if (!estudiante) {
+        alert('❌ Estudiante no encontrado');
+        return;
+    }
+    
+    const semanaActual = calcularSemanaActualEstudiante(estudiante);
+    const mesActual = calcularMesDelCurso(semanaActual);
+    const instrumentoParaTema = instrumentoActivo || estudiante.instrumentoQueImparte;
+    
+    let filasMeses = '';
+    let totalGeneral = 0;
+    
+    for (let mes = 1; mes <= mesActual; mes++) {
+        const semanas = obtenerSemanasDelMes(mes);
+        let totalMes = 0;
+        let semanasCalificadas = 0;
+        
+        semanas.forEach(sem => {
+            const nota = obtenerNotaDeMemoria(estudianteId, instrumentoParaTema, sem);
+            if (nota) {
+                totalMes += nota.total;
+                semanasCalificadas++;
+            }
+        });
+        
+        totalGeneral += totalMes;
+        
+        const estado = semanasCalificadas === 4 ? '✅ Completado' : 
+                      (semanasCalificadas > 0 ? '🔵 En curso' : '⏳ Pendiente');
+        
+        filasMeses += `
+            <tr>
+                <td style="padding:10px;border:1px solid #ddd;text-align:center;"><strong>Mes ${mes}</strong></td>
+                <td style="padding:10px;border:1px solid #ddd;text-align:center;">Semanas ${semanas[0]}-${semanas[3]}</td>
+                <td style="padding:10px;border:1px solid #ddd;text-align:center;">${semanasCalificadas}/4</td>
+                <td style="padding:10px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#E63946;">${totalMes.toFixed(1)} / 10.0</td>
+                <td style="padding:10px;border:1px solid #ddd;text-align:center;">${estado}</td>
+            </tr>
+        `;
+    }
+    
+    const porcentaje = (totalGeneral / 110) * 100;
+    
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Reporte General - ${estudiante.estudiante.nombre}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20mm; margin: 0; color: #333; }
+                .header { display: flex; align-items: center; gap: 20px; border-bottom: 3px solid #E63946; padding-bottom: 15px; margin-bottom: 20px; }
+                .header img { width: 80px; height: 80px; object-fit: contain; }
+                .header-info h1 { margin: 0; color: #E63946; font-size: 20px; }
+                .header-info h2 { margin: 5px 0 0; font-size: 14px; color: #666; }
+                .header-info p { margin: 3px 0; font-size: 12px; color: #666; }
+                .titulo { text-align: center; margin: 20px 0; }
+                .titulo h3 { color: #E63946; margin: 0; font-size: 18px; }
+                .info-estudiante { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+                .info-estudiante div strong { color: #E63946; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+                th { background: #E63946; color: white; padding: 10px; text-align: center; border: 1px solid #ddd; }
+                .totales { background: #fff5f5; padding: 20px; border-radius: 8px; border: 2px solid #E63946; margin: 20px 0; display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; text-align: center; }
+                .totales .numero { font-size: 28px; font-weight: bold; color: #E63946; }
+                .totales .label { font-size: 12px; color: #666; margin-top: 5px; }
+                .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; }
+                .firma { text-align: center; }
+                .firma-linea { border-top: 1px solid #000; width: 80%; margin: 40px auto 5px; }
+                .firma p { margin: 5px 0; font-size: 12px; }
+                .footer { text-align: center; margin-top: 30px; font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
+                @media print { body { padding: 10mm; } .no-print { display: none; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo">
+                <div class="header-info">
+                    <h1>ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"</h1>
+                    <h2>Sistema de Gestión Académica</h2>
+                    <p>📞 Tel: 37418036 / 38514409 · 📍 08 Calle c 10-72 Zona 3 San Marcos</p>
+                </div>
+            </div>
+            <div class="titulo">
+                <h3>REPORTE GENERAL DEL CURSO · ${instrumentoParaTema}</h3>
+                <p style="margin:5px 0;color:#666;font-size:12px;">Generado el ${new Date().toLocaleDateString()}</p>
+            </div>
+            <div class="info-estudiante">
+                <div><strong>Estudiante:</strong> ${estudiante.estudiante.nombre}</div>
+                <div><strong>Instrumento:</strong> ${instrumentoParaTema}</div>
+                <div><strong>Nivel:</strong> ${estudiante.estudiante.nivel}</div>
+                <div><strong>Encargado:</strong> ${estudiante.encargado?.nombre || 'N/A'}</div>
+                <div><strong>Días de clase:</strong> ${(estudiante.academico?.dias || []).join(', ')}</div>
+                <div><strong>Horario:</strong> ${estudiante.academico?.horario || 'N/A'}</div>
+                <div><strong>Fecha de ingreso:</strong> ${estudiante.academico?.fechaInicio || 'N/A'}</div>
+                <div><strong>Asistencias totales:</strong> ${calcularAsistenciasEstudiante(estudianteId)}</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>Semanas</th>
+                        <th>Semanas calificadas</th>
+                        <th>Puntos</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>${filasMeses}</tbody>
+            </table>
+            <div class="totales">
+                <div>
+                    <div class="numero">${totalGeneral.toFixed(1)}</div>
+                    <div class="label">Puntos acumulados</div>
+                </div>
+                <div>
+                    <div class="numero">${mesActual - 1}</div>
+                    <div class="label">Meses completados</div>
+                </div>
+                <div>
+                    <div class="numero">${porcentaje.toFixed(1)}%</div>
+                    <div class="label">Progreso del curso</div>
+                </div>
+            </div>
+            <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin:20px 0;font-size:12px;color:#666;text-align:center;">
+                <strong>Semana actual del estudiante:</strong> ${semanaActual} de 44 · 
+                <strong>Mes actual:</strong> ${mesActual} de 11 · 
+                <strong>Progreso:</strong> ${((semanaActual/44)*100).toFixed(1)}% del temario
+            </div>
+            <div class="firmas">
+                <div class="firma">
+                    <div class="firma-linea"></div>
+                    <p><strong>Docente</strong></p>
+                    <p>Firma y sello</p>
+                </div>
+                <div class="firma">
+                    <div class="firma-linea"></div>
+                    <p><strong>Encargado</strong></p>
+                    <p>${estudiante.encargado?.nombre || ''}</p>
+                </div>
+            </div>
+            <div class="footer">
+                <p>Este documento es un reporte oficial de la Academia de Música Expresión Musical</p>
+                <p>Generado automáticamente el ${new Date().toLocaleDateString()} a las ${new Date().toLocaleTimeString()}</p>
+            </div>
+            <div class="no-print" style="text-align:center;margin-top:20px;">
+                <button onclick="window.print()" style="padding:12px 30px;background:#E63946;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">
+                    🖨️ Imprimir Reporte
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+    setTimeout(() => ventana.print(), 500);
+}
+
+// =====================================================
+// 13. ESTILO SHAKE
+// =====================================================
+
+const styleShake = document.createElement('style');
+styleShake.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+`;
+document.head.appendChild(styleShake);
+
+// =====================================================
+// 14. INICIALIZAR BOTÓN CON MEMORIA
+// =====================================================
+
+function inicializarBotonSubirNotas() {
+    console.log('🔧 Inicializando botón Subir Notas...');
+    const btnSubirNotas = document.getElementById('btnSubirNotas');
+    if (!btnSubirNotas) {
+        setTimeout(inicializarBotonSubirNotas, 500);
+        return;
+    }
+    
+    const nuevoBtn = btnSubirNotas.cloneNode(true);
+    btnSubirNotas.parentNode.replaceChild(nuevoBtn, btnSubirNotas);
+    
+    nuevoBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📝 Click en Subir Notas');
+        
+        document.querySelectorAll('.data-table-container, .modern-form-container, .recibos-container, #pagosContainer, #asistenciaContainer, #gestionUsuariosContainer, #subirNotasContainer').forEach(c => {
+            if (c) c.style.display = 'none';
+        });
+        
+        const welcome = document.getElementById('welcomeMessage');
+        if (welcome) welcome.style.display = 'none';
+        
+        const container = document.getElementById('subirNotasContainer');
+        if (container) container.style.display = 'block';
+        
+        document.querySelectorAll('.menu-item-vertical').forEach(item => item.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Cargar docentes
+        cargarDocentesEnSelector();
+        
+        // 🔥 Adjuntar listener al select de docentes (para cambio automático)
+        const selectDocente = document.getElementById('subirNotasDocente');
+        if (selectDocente && !selectDocente._listenerAsignado) {
+            selectDocente.addEventListener('change', function() {
+                if (this.value) {
+                    console.log('🔄 Docente cambiado, recargando...');
+                    cargarEstudiantesParaNotas();
+                }
+            });
+            selectDocente._listenerAsignado = true;
+        }
+        
+        // Restaurar estado guardado
+        const estado = cargarEstadoNotas();
+        
+        if (estado && estado.docente) {
+            console.log('🔄 Restaurando estado:', estado);
+            
+            const select = document.getElementById('subirNotasDocente');
+            if (select) {
+                select.value = estado.docente;
+                
+                if (estado.mesesDesbloqueados) {
+                    mesesDesbloqueados = new Set(estado.mesesDesbloqueados);
+                }
+                
+                docenteSeleccionadoActual = estado.docente;
+                
+                // 🔥 CARGAR NOTAS DE FIREBASE
+                await cargarEstudiantesParaNotas();
+                
+                // Restaurar estudiante si había uno guardado
+                if (estado.estudianteId) {
+                    setTimeout(() => {
+                        const [idEst, instrEst] = String(estado.estudianteId).split('|');
+                        const existe = estudiantesNotasActuales.find(e => 
+                            String(e.idOriginal) === String(idEst) &&
+                            (!instrEst || e.instrumentoQueImparte === instrEst)
+                        );
+                        if (existe) {
+                            console.log('🔄 Restaurando estudiante:', idEst, instrEst);
+                            abrirDetalleEstudiante(idEst, instrEst);
+                        }
+                    }, 200);
+                }
+            }
+        } else {
+            const tablaContainer = document.getElementById('subirNotasTablaContainer');
+            if (tablaContainer) tablaContainer.style.display = 'none';
+        }
+    });
+    
+    console.log('✅ Botón Subir Notas inicializado');
+}
+
+// Exponer funciones globalmente
+window.cargarEstudiantesParaNotas = cargarEstudiantesParaNotas;
+window.cambiarDocenteSeleccionado = cambiarDocenteSeleccionado;
+window.actualizarNotasManual = actualizarNotasManual;
+window.abrirDetalleEstudiante = abrirDetalleEstudiante;
+window.volverAListaEstudiantes = volverAListaEstudiantes;
+window.guardarNotaSemana = guardarNotaSemana;
+window.actualizarTotalSemana = actualizarTotalSemana;
+window.solicitarPasswordMes = solicitarPasswordMes;
+window.confirmarPasswordMes = confirmarPasswordMes;
+window.cerrarModalPasswordNotas = cerrarModalPasswordNotas;
+window.imprimirReporteMes = imprimirReporteMes;
+window.imprimirReporteGeneral = imprimirReporteGeneral;
+window.cargarDocentesEnSelector = cargarDocentesEnSelector;
+window.obtenerIconoInstrumento = obtenerIconoInstrumento;
+window.cargarNotasDesdeFirebase = cargarNotasDesdeFirebase;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(inicializarBotonSubirNotas, 800);
+    });
+} else {
+    setTimeout(inicializarBotonSubirNotas, 800);
+}
+
+console.log('✅ BLOQUE 9 FINAL cargado: Subir Notas con FIREBASE (sin localStorage)');
 </script>
+
 </body>
-</html>  
+</html>   
