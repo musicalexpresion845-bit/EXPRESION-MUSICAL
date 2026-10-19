@@ -13681,38 +13681,34 @@ cargarAsistenciaPreviaDesdeFirebase: function(fecha, dia, horario) {
             
             console.log(`✅ ${registrosFirebase.length} registros de asistencia ENCONTRADOS en Firebase`);
             
-            if (registrosFirebase.length === 0) {
-                console.log('ℹ️ No hay registros de asistencia para esta fecha/día/horario');
-                self.cargarAsistenciaPrevia(fecha, dia, horario);
-                return;
+            // Guardar en localStorage para caché (si hay registros)
+            if (registrosFirebase.length > 0) {
+                let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+                registrosFirebase.forEach(registro => {
+                    const index = historial.findIndex(h => 
+                        String(h.studentId) === String(registro.studentId) &&
+                        h.fecha === registro.fecha &&
+                        h.dia === registro.dia &&
+                        h.horario === registro.horario
+                    );
+                    if (index !== -1) {
+                        historial[index] = registro;
+                    } else {
+                        historial.push(registro);
+                    }
+                });
+                localStorage.setItem('historialAsistencia', JSON.stringify(historial));
             }
             
-            registrosFirebase.forEach(r => {
-                console.log(`🔍 ID: ${r.studentId} | Estudiante: ${r.studentName} | Estado: ${r.estado}`);
-            });
-            
-            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-            
-            registrosFirebase.forEach(registro => {
-                const index = historial.findIndex(h => 
-                    String(h.studentId) === String(registro.studentId) &&
-                    h.fecha === registro.fecha &&
-                    h.dia === registro.dia &&
-                    h.horario === registro.horario
-                );
-                if (index !== -1) {
-                    historial[index] = registro;
-                } else {
-                    historial.push(registro);
+            // 🔥 SIEMPRE llamar a agregarReposicionesFaltantes (incluso si 0 registros)
+            self.agregarReposicionesFaltantes(registrosFirebase).then(() => {
+                // Después de agregar reposiciones, aplicar estados a TODOS los que están en la tabla
+                if (registrosFirebase.length > 0) {
+                    setTimeout(() => {
+                        self.aplicarRegistrosAsistencia(registrosFirebase);
+                    }, 100);
                 }
             });
-            
-            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-            
-            setTimeout(() => {
-                self.agregarReposicionesFaltantes(registrosFirebase);
-                self.aplicarRegistrosAsistencia(registrosFirebase);
-            }, 200);
         })
         .catch((error) => {
             console.error('❌ Error cargando asistencia desde Firebase:', error);
@@ -13720,27 +13716,67 @@ cargarAsistenciaPreviaDesdeFirebase: function(fecha, dia, horario) {
         });
 },
 
-agregarReposicionesFaltantes: function(registros) {
+agregarReposicionesFaltantes: async function(registros) {
     const tbody = document.getElementById('studentsList');
     if (!tbody) return;
     
-    const inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    console.log(`🔄 Procesando ${registros.length} registros para agregar reposiciones...`);
     
-    registros.forEach(registro => {
+    // Cargar inscripciones del caché local
+    let inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    // Si el caché está vacío, cargar desde Firebase
+    if (inscripciones.length === 0 && window.db) {
+        try {
+            console.log('☁️ Caché vacío. Cargando todas las inscripciones desde Firebase...');
+            const snapIns = await window.db.collection('inscripciones').get();
+            snapIns.forEach(doc => {
+                inscripciones.push({ id: doc.id, ...doc.data() });
+            });
+            localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
+            console.log(`✅ ${inscripciones.length} inscripciones cacheadas`);
+        } catch (e) {
+            console.error('❌ Error cargando inscripciones:', e);
+        }
+    }
+    
+    // Recorrer cada registro de asistencia
+    for (const registro of registros) {
         const studentId = String(registro.studentId);
         
+        // Si ya está en la tabla, no hacer nada
         if (tbody.querySelector(`tr[data-student-id="${studentId}"]`)) {
-            return;
+            continue;
         }
         
-        const inscripcion = inscripciones.find(ins => String(ins.id) === studentId);
+        // Buscar la inscripción en el caché
+        let inscripcion = inscripciones.find(ins => String(ins.id) === studentId);
+        
+        // 🔥 Si no está en localStorage, buscar en Firebase
+        if (!inscripcion && window.db) {
+            try {
+                console.log(`☁️ ${registro.studentName} no está en caché, buscando en Firebase...`);
+                const doc = await window.db.collection('inscripciones').doc(studentId).get();
+                if (doc.exists) {
+                    inscripcion = { id: doc.id, ...doc.data() };
+                    inscripciones.push(inscripcion);
+                    localStorage.setItem('inscriptions', JSON.stringify(inscripciones));
+                    console.log(`✅ Inscripción obtenida de Firebase: ${registro.studentName}`);
+                }
+            } catch (e) {
+                console.error('❌ Error obteniendo inscripción:', e);
+            }
+        }
+        
         if (!inscripcion) {
-            console.warn(`⚠️ No se encontró inscripción para ID: ${studentId}`);
-            return;
+            console.warn(`⚠️ No se encontró inscripción para ID: ${studentId} (${registro.studentName})`);
+            continue;
         }
         
+        // Crear la fila
         const row = document.createElement('tr');
         row.setAttribute('data-student-id', studentId);
+        row.setAttribute('data-es-reposicion', 'true');
         
         let fotoHtml = (inscripcion.estudiante?.foto && inscripcion.estudiante.foto !== 'null')
             ? `<img src="${inscripcion.estudiante.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
@@ -13754,7 +13790,7 @@ agregarReposicionesFaltantes: function(registros) {
                         ${fotoHtml}
                     </div>
                     <div>
-                        <strong>${inscripcion.estudiante?.nombre || 'Sin nombre'}</strong>
+                        <strong>${inscripcion.estudiante?.nombre || registro.studentName || 'Sin nombre'}</strong>
                         <span style="background:#2196F3;color:white;padding:2px 8px;border-radius:10px;font-size:0.65rem;margin-left:5px;">🔄 REPOSICIÓN</span>
                         <br>
                         <small style="color:#666;"><i class="fas fa-id-card"></i> ID: ${studentId}</small>
@@ -13780,8 +13816,8 @@ agregarReposicionesFaltantes: function(registros) {
         `;
         
         tbody.appendChild(row);
-        console.log(`➕ Estudiante de reposición agregado a la tabla: ${inscripcion.estudiante?.nombre}`);
-    });
+        console.log(`➕ Reposición agregada: ${inscripcion.estudiante?.nombre}`);
+    }
 },
 
     aplicarRegistrosAsistencia: function(registros) {
