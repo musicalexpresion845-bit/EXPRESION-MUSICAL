@@ -13778,66 +13778,70 @@ const asistenciaApp = {
     // GUARDAR EN HISTORIAL
     // =====================================================
     
-    guardarEnHistorialCompleto: function(datos) {
-        try {
-            console.log("💾 Guardando en historial:", datos);
-            
-            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-            
-            const nuevoRegistro = {
-                id: datos.id || Date.now(),
-                studentId: datos.id,
-                studentName: datos.nombre,
-                instrumento: datos.instrumento,
-                nivel: datos.nivel,
-                fecha: datos.fecha,
-                dia: datos.dia,
-                horario: datos.horario,
-                estado: datos.estado,
-                tipo: datos.tipo,
-                horaRegistro: datos.horaRegistro,
-                observaciones: datos.observaciones || '',
-                timestamp: new Date().toISOString()
-            };
-            
-            const index = historial.findIndex(h => 
-                String(h.studentId) === String(datos.id) && 
-                h.fecha === datos.fecha && 
-                h.dia === datos.dia && 
-                h.horario === datos.horario
-            );
-            
-            if (index !== -1) {
-                historial[index] = nuevoRegistro;
-                console.log('🔄 Registro actualizado en historial');
-            } else {
-                historial.push(nuevoRegistro);
-                console.log('➕ Nuevo registro agregado al historial');
-            }
-            
-            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-            console.log("✅ Guardado local exitoso. Total registros:", historial.length);
-            
-            if (window.db) {
-                const docId = String(nuevoRegistro.id);
-                console.log('☁️ Subiendo asistencia a Firebase, ID:', docId);
-                
-                window.db.collection('asistencia').doc(docId).set(nuevoRegistro, { merge: true })
-                    .then(() => {
-                        console.log('✅ ASISTENCIA GUARDADA EN FIREBASE');
-                    })
-                    .catch(err => {
-                        console.error('❌ Error guardando en Firebase:', err);
-                        window.db.collection('asistencia').add(nuevoRegistro)
-                            .then(() => console.log('✅ Asistencia guardada con add()'))
-                            .catch(err2 => console.error('❌ Error también con add():', err2));
-                    });
-            }
-            
-        } catch (error) {
-            console.error("❌ Error guardando en historial:", error);
+  guardarEnHistorialCompleto: function(datos) {
+    try {
+        console.log("💾 Guardando asistencia:", datos);
+        
+        let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        
+        // 🔥 GENERAR ID ÚNICO POR ASISTENCIA
+        // Formato: asist_{studentId}_{fecha}_{dia}_{horario}
+        const studentId = String(datos.studentId || datos.id);
+        const fecha = datos.fecha || new Date().toISOString().split('T')[0];
+        const dia = (datos.dia || 'sin-dia').replace(/\s+/g, '-');
+        const horario = (datos.horario || 'sin-horario').replace(/\s+/g, '-').replace(/:/g, '');
+        
+        const idUnico = `asist_${studentId}_${fecha}_${dia}_${horario}`;
+        
+        console.log('🔑 ID único generado:', idUnico);
+        
+        const nuevoRegistro = {
+            id: idUnico,
+            studentId: studentId,
+            studentName: datos.nombre || datos.studentName || 'Sin nombre',
+            instrumento: datos.instrumento || 'No especificado',
+            nivel: datos.nivel || 'No especificado',
+            fecha: fecha,
+            dia: datos.dia || '',
+            horario: datos.horario || '',
+            estado: datos.estado || 'presente',
+            tipo: datos.tipo || 'asistencia',
+            horaRegistro: datos.horaRegistro || new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }),
+            observaciones: datos.observaciones || '',
+            timestamp: new Date().toISOString()
+        };
+        
+        // Buscar si ya existe un registro con el MISMO ID único
+        const index = historial.findIndex(h => h.id === idUnico);
+        
+        if (index !== -1) {
+            historial[index] = nuevoRegistro;
+            console.log('🔄 Registro actualizado (misma fecha/día/horario)');
+        } else {
+            historial.push(nuevoRegistro);
+            console.log('➕ Nuevo registro agregado al historial');
         }
-    },
+        
+        localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+        console.log(`✅ Guardado local. Total registros: ${historial.length}`);
+        
+        // 🔥 GUARDAR EN FIREBASE CON EL ID ÚNICO
+        if (window.db) {
+            console.log('☁️ Guardando en Firebase con ID:', idUnico);
+            
+            window.db.collection('asistencia').doc(idUnico).set(nuevoRegistro, { merge: true })
+                .then(() => {
+                    console.log('✅✅✅ ASISTENCIA GUARDADA EN FIREBASE:', idUnico);
+                })
+                .catch(err => {
+                    console.error('❌ Error guardando en Firebase:', err);
+                });
+        }
+        
+    } catch (error) {
+        console.error("❌ Error guardando en historial:", error);
+    }
+},
     
     // =====================================================
     // REGISTRO MANUAL
