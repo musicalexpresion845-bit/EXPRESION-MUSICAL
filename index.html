@@ -10178,10 +10178,12 @@ async function procesarAsistenciaDesdeTablet(datos) {
     // 2. EXTRAER ID DEL TEXTO DEL QR
     // =============================================
     
-    if (typeof textoCompleto === 'string') {
-        const idMatch = textoCompleto.match(/ID:\s*(\d+)/);
+      if (typeof textoCompleto === 'string') {
+        // 🔥 Captura IDs alfanuméricos (docentes como "josue", "kevin", etc.)
+        // y también numéricos (estudiantes)
+        const idMatch = textoCompleto.match(/ID:\s*([^\s\n\r]+)/);
         if (idMatch) {
-            id = idMatch[1];
+            id = idMatch[1].trim();
             console.log('🔍 ID extraído:', id);
         } else {
             const numMatch = textoCompleto.match(/\b(\d{10,})\b/);
@@ -10235,31 +10237,50 @@ async function procesarAsistenciaDesdeTablet(datos) {
         });
     }
     
-    // =============================================
-    // 4. BUSCAR EN DOCENTES O SECRETARIA
+       // =============================================
+    // 4. BUSCAR EN DOCENTES O SECRETARIA (CORREGIDO)
     // =============================================
     
     let usuarioPersonal = null;
     
     if (!estudiante) {
+        // 🔥 BUSCAR POR ID EXACTO (SIN FALLBACK AL PRIMER DOCENTE)
         if (id) {
-            const idBuscado = String(id).trim();
-            usuarioPersonal = usuarios.find(u => 
-                String(u.username).trim() === idBuscado ||
-                String(u.id).trim() === idBuscado
-            );
-        }
-        
-        if (!usuarioPersonal && nombre) {
+            const idBuscado = String(id).trim().toLowerCase();
+            console.log('🔍 Buscando docente/secretaria con ID:', idBuscado);
+            
             usuarioPersonal = usuarios.find(u => {
-                const nomCompleto = (u.nombre || '') + ' ' + (u.apellido || '');
-                return nomCompleto.toLowerCase().includes(nombre.toLowerCase());
+                const usernameNorm = String(u.username || '').trim().toLowerCase();
+                const idNorm = String(u.id || '').trim().toLowerCase();
+                return usernameNorm === idBuscado || idNorm === idBuscado;
             });
+            
+            if (usuarioPersonal) {
+                console.log('✅ Docente/secretaria encontrado por ID:', usuarioPersonal.nombre);
+            } else {
+                console.warn('❌ No se encontró docente con ID:', idBuscado);
+            }
         }
         
-        if (!usuarioPersonal && tipoUsuario) {
-            usuarioPersonal = usuarios.find(u => u.tipo === tipoUsuario);
+        // Si no se encontró por ID, buscar por nombre completo EXACTO
+        if (!usuarioPersonal && nombre) {
+            const nombreBuscado = String(nombre).trim().toLowerCase();
+            console.log('🔍 Buscando por nombre:', nombreBuscado);
+            
+            usuarioPersonal = usuarios.find(u => {
+                const nomCompleto = ((u.nombre || '') + ' ' + (u.apellido || '')).trim().toLowerCase();
+                return nomCompleto === nombreBuscado;
+            });
+            
+            if (usuarioPersonal) {
+                console.log('✅ Docente/secretaria encontrado por nombre:', usuarioPersonal.nombre);
+            }
         }
+        
+        // 🔥 ELIMINADO: YA NO TOMA AL PRIMER DOCENTE SI NO ENCUENTRA COINCIDENCIA
+        // if (!usuarioPersonal && tipoUsuario) {
+        //     usuarioPersonal = usuarios.find(u => u.tipo === tipoUsuario);
+        // }
     }
     
     // =============================================
