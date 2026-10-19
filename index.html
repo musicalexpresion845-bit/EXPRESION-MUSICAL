@@ -13658,66 +13658,131 @@ const asistenciaApp = {
         });
     },
     
-    cargarAsistenciaPreviaDesdeFirebase: function(fecha, dia, horario) {
-        const self = this;
-        if (!window.db) {
-            console.warn('⚠️ Firebase no disponible');
-            this.cargarAsistenciaPrevia(fecha, dia, horario);
+cargarAsistenciaPreviaDesdeFirebase: function(fecha, dia, horario) {
+    const self = this;
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible');
+        this.cargarAsistenciaPrevia(fecha, dia, horario);
+        return;
+    }
+    
+    console.log('☁️ BUSCANDO ASISTENCIA EN FIREBASE - Fecha:', fecha, 'Día:', dia, 'Horario:', horario);
+    
+    window.db.collection('asistencia')
+        .where('fecha', '==', fecha)
+        .where('dia', '==', dia)
+        .where('horario', '==', horario)
+        .get()
+        .then((snapshot) => {
+            const registrosFirebase = [];
+            snapshot.forEach(doc => {
+                registrosFirebase.push({ id: doc.id, ...doc.data() });
+            });
+            
+            console.log(`✅ ${registrosFirebase.length} registros de asistencia ENCONTRADOS en Firebase`);
+            
+            if (registrosFirebase.length === 0) {
+                console.log('ℹ️ No hay registros de asistencia para esta fecha/día/horario');
+                self.cargarAsistenciaPrevia(fecha, dia, horario);
+                return;
+            }
+            
+            registrosFirebase.forEach(r => {
+                console.log(`🔍 ID: ${r.studentId} | Estudiante: ${r.studentName} | Estado: ${r.estado}`);
+            });
+            
+            let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+            
+            registrosFirebase.forEach(registro => {
+                const index = historial.findIndex(h => 
+                    String(h.studentId) === String(registro.studentId) &&
+                    h.fecha === registro.fecha &&
+                    h.dia === registro.dia &&
+                    h.horario === registro.horario
+                );
+                if (index !== -1) {
+                    historial[index] = registro;
+                } else {
+                    historial.push(registro);
+                }
+            });
+            
+            localStorage.setItem('historialAsistencia', JSON.stringify(historial));
+            
+            setTimeout(() => {
+                self.agregarReposicionesFaltantes(registrosFirebase);
+                self.aplicarRegistrosAsistencia(registrosFirebase);
+            }, 200);
+        })
+        .catch((error) => {
+            console.error('❌ Error cargando asistencia desde Firebase:', error);
+            self.cargarAsistenciaPrevia(fecha, dia, horario);
+        });
+},
+
+agregarReposicionesFaltantes: function(registros) {
+    const tbody = document.getElementById('studentsList');
+    if (!tbody) return;
+    
+    const inscripciones = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+    
+    registros.forEach(registro => {
+        const studentId = String(registro.studentId);
+        
+        if (tbody.querySelector(`tr[data-student-id="${studentId}"]`)) {
             return;
         }
         
-        console.log('☁️ BUSCANDO ASISTENCIA EN FIREBASE - Fecha:', fecha, 'Día:', dia, 'Horario:', horario);
+        const inscripcion = inscripciones.find(ins => String(ins.id) === studentId);
+        if (!inscripcion) {
+            console.warn(`⚠️ No se encontró inscripción para ID: ${studentId}`);
+            return;
+        }
         
-        window.db.collection('asistencia')
-            .where('fecha', '==', fecha)
-            .where('dia', '==', dia)
-            .where('horario', '==', horario)
-            .get()
-            .then((snapshot) => {
-                const registrosFirebase = [];
-                snapshot.forEach(doc => {
-                    registrosFirebase.push({ id: doc.id, ...doc.data() });
-                });
-                
-                console.log(`✅ ${registrosFirebase.length} registros de asistencia ENCONTRADOS en Firebase`);
-                
-                if (registrosFirebase.length === 0) {
-                    console.log('ℹ️ No hay registros de asistencia para esta fecha/día/horario');
-                    self.cargarAsistenciaPrevia(fecha, dia, horario);
-                    return;
-                }
-                
-                registrosFirebase.forEach(r => {
-                    console.log(`🔍 ID: ${r.studentId} | Estudiante: ${r.studentName} | Estado: ${r.estado}`);
-                });
-                
-                let historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
-                
-                registrosFirebase.forEach(registro => {
-                    const index = historial.findIndex(h => 
-                        String(h.studentId) === String(registro.studentId) &&
-                        h.fecha === registro.fecha &&
-                        h.dia === registro.dia &&
-                        h.horario === registro.horario
-                    );
-                    if (index !== -1) {
-                        historial[index] = registro;
-                    } else {
-                        historial.push(registro);
-                    }
-                });
-                
-                localStorage.setItem('historialAsistencia', JSON.stringify(historial));
-                
-                setTimeout(() => {
-                    self.aplicarRegistrosAsistencia(registrosFirebase);
-                }, 200);
-            })
-            .catch((error) => {
-                console.error('❌ Error cargando asistencia desde Firebase:', error);
-                self.cargarAsistenciaPrevia(fecha, dia, horario);
-            });
-    },
+        const row = document.createElement('tr');
+        row.setAttribute('data-student-id', studentId);
+        
+        let fotoHtml = (inscripcion.estudiante?.foto && inscripcion.estudiante.foto !== 'null')
+            ? `<img src="${inscripcion.estudiante.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="color:#999;font-size:20px;"></i>`;
+        
+        row.innerHTML = `
+            <td>+</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        ${fotoHtml}
+                    </div>
+                    <div>
+                        <strong>${inscripcion.estudiante?.nombre || 'Sin nombre'}</strong>
+                        <span style="background:#2196F3;color:white;padding:2px 8px;border-radius:10px;font-size:0.65rem;margin-left:5px;">🔄 REPOSICIÓN</span>
+                        <br>
+                        <small style="color:#666;"><i class="fas fa-id-card"></i> ID: ${studentId}</small>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="nivel-indicator" data-nivel="${inscripcion.estudiante?.nivel || 'Sin nivel'}" style="display:inline-flex;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:bold;color:white;margin-right:8px;justify-content:center;align-items:center;box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                    ${(inscripcion.estudiante?.nivel || 'S').charAt(0)}
+                </span>
+                ${inscripcion.estudiante?.nivel || 'Sin nivel'}
+            </td>
+            <td>${inscripcion.musical?.instrumentoPrincipal || 'No especificado'}</td>
+            <td class="attendance-status status-vacio" data-student-id="${studentId}" style="padding:8px 12px;border-radius:6px;text-align:center;font-size:14px;border:1px solid transparent;">
+                <span class="status-text">--</span>
+            </td>
+            <td class="attendance-time">--:--</td>
+            <td>
+                <button class="btn-manual-attendance" onclick="asistenciaApp.abrirRegistroManual('${studentId}')" style="padding:6px 10px;background:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-edit"></i> Cambiar
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+        console.log(`➕ Estudiante de reposición agregado a la tabla: ${inscripcion.estudiante?.nombre}`);
+    });
+},
 
     aplicarRegistrosAsistencia: function(registros) {
         console.log('📋 APLICANDO', registros.length, 'registros a la tabla');
