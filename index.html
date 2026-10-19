@@ -14316,7 +14316,7 @@ agregarReposicionesFaltantes: async function(registros) {
         
         if (totalElem) totalElem.textContent = total;
         if (presentElem) presentElem.textContent = presentes;
-        if (absentElem) absentElem.textContent = ausentes + justificados + vacios;
+        if (absentElem) absentElem.textContent = ausentes;
         
         this.actualizarResumenDetallado(presentes, ausentes, justificados, reposiciones, vacios);
     },
