@@ -18389,6 +18389,7 @@ function cerrarModalInstrumento() {
 
 // =====================================================
 // 6. EJECUTAR SELECCIÓN DE INSTRUMENTO
+// 🔥 CORREGIDO: Recarga TODO al cambiar instrumento (incluye notas)
 // =====================================================
 
 function ejecutarSeleccionInstrumento(instrumento) {
@@ -18398,6 +18399,26 @@ function ejecutarSeleccionInstrumento(instrumento) {
     aplicarTemaEncargado(esPrincipal ? '#E63946' : '#1976D2', esPrincipal);
     if (encargadoEstudianteActual) {
         setTimeout(() => {
+            // 🔥 Recargar clases, grabaciones y temario con el nuevo instrumento
+            let estudiante = datosEstudianteCache;
+            if (!estudiante || estudiante.id != encargadoEstudianteActual) {
+                const inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+                estudiante = inscriptions.find(ins => ins.id == encargadoEstudianteActual);
+                if (estudiante) datosEstudianteCache = estudiante;
+            }
+            if (estudiante) {
+                const estudianteModificado = {
+                    ...estudiante,
+                    musical: {
+                        ...estudiante.musical,
+                        instrumentoPrincipal: instrumento
+                    }
+                };
+                iniciarClasesTiempoReal(estudianteModificado);
+                iniciarGrabacionesTiempoReal(estudianteModificado);
+                iniciarTemarioTiempoReal(encargadoEstudianteActual, instrumento);
+            }
+            // 🔥 Recargar pestaña activa (incluye Notas con el nuevo instrumento)
             cargarDatosPestanaActiva(encargadoEstudianteActual);
             cargarHistorialCompleto(encargadoEstudianteActual);
         }, 150);
@@ -18555,7 +18576,8 @@ function guardarFotoPerfil() {
 }
 
 // =====================================================
-// 10. CARGAR SELECTOR TIEMPO REAL - SIN LISTENER
+// 10. CARGAR SELECTOR TIEMPO REAL
+// 🔥 CORREGIDO: Refresca pestaña activa al cambiar estudiante
 // =====================================================
 
 function iniciarSelectorTiempoReal() {
@@ -18622,10 +18644,14 @@ function cargarSelectorTiempoReal(userData) {
             encargadoEstudianteActual = id;
             encargadoInstrumentoSeleccionado = null;
             encargadoInstrumentosLista = [];
+            // 🔥 Limpiar caché para forzar recarga completa
+            datosEstudianteCache = null;
             await window.actualizarInfoEstudiante(id);
             console.log('✅ Estudiante seleccionado con foto:', id);
             setTimeout(() => {
                 cargarHistorialCompleto(id);
+                // 🔥 Recargar pestaña activa (notas, tareas, etc.)
+                cargarDatosPestanaActiva(id);
             }, 500);
         }
     };
@@ -18639,6 +18665,7 @@ function cargarSelectorTiempoReal(userData) {
             console.log('✅ Estudiante inicial cargado con foto:', primerId);
             setTimeout(() => {
                 cargarHistorialCompleto(primerId);
+                cargarDatosPestanaActiva(primerId);
             }, 600);
         }, 200);
     }
@@ -18887,6 +18914,7 @@ function limpiarListenersEncargado() {
 
 // =====================================================
 // 15. CARGAR DATOS DEL ENCARGADO
+// 🔥 Notas NO se llaman aquí. Solo cargarDatosPestanaActiva las maneja
 // =====================================================
 
 function cargarDatosEncargado(estudianteId, instrumento) {
@@ -18910,7 +18938,7 @@ function cargarDatosEncargado(estudianteId, instrumento) {
     iniciarClasesTiempoReal(estudianteModificado);
     iniciarGrabacionesTiempoReal(estudianteModificado);
     iniciarTemarioTiempoReal(estudianteId, instrumento);
-    iniciarTareasTiempoReal(estudianteId);
+    // ❌ NO se llama iniciarTareasTiempoReal aquí (lo hace cargarDatosPestanaActiva)
 }
 
 // =====================================================
@@ -19195,14 +19223,7 @@ function renderTemario(estudianteId, temario) {
         datosEstudianteCache = estudiante;
     }
 
-    const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
-    if (isNaN(fechaIngreso.getTime())) return;
-
-    const hoy = new Date();
-    const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
-    let semana = Math.floor(diffDias / 7) + 1;
-    if (semana < 1) semana = 1;
-    if (semana > 44) semana = 44;
+  const semana = calcularSemanaActualEstudiante(estudiante);
 
     document.getElementById('semanaActualTitulo').textContent = `Semana ${semana}`;
     document.getElementById('progresoSemana').textContent = `Semana ${semana} de 44`;
@@ -19243,14 +19264,7 @@ function iniciarInfoTareaTiempoReal(estudianteId) {
         datosEstudianteCache = estudiante;
     }
 
-    const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
-    if (isNaN(fechaIngreso.getTime())) return;
-
-    const hoy = new Date();
-    const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
-    let semana = Math.floor(diffDias / 7) + 1;
-    if (semana < 1) semana = 1;
-    if (semana > 44) semana = 44;
+   const semana = calcularSemanaActualEstudiante(estudiante);
 
     document.getElementById('tareaSemanaActual').textContent = `Semana ${semana}`;
 
@@ -19307,14 +19321,7 @@ function enviarTarea() {
 
         const instrumentoSeleccionado = encargadoInstrumentoSeleccionado || estudiante.musical?.instrumentoPrincipal || '';
 
-        const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
-        if (isNaN(fechaIngreso.getTime())) return;
-
-        const hoy = new Date();
-        const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
-        let semana = Math.floor(diffDias / 7) + 1;
-        if (semana < 1) semana = 1;
-        if (semana > 44) semana = 44;
+     const semanaActual = calcularSemanaActualEstudiante(estudiante);
 
         let tema = 'Sin tema';
         let ponderacion = 0;
@@ -19370,70 +19377,132 @@ function enviarTarea() {
 }
 
 // =====================================================
-// 23. NOTAS - SIN LISTENER
+// 23. NOTAS - FIREBASE
+// 🔥 CORREGIDO: Filtra por instrumento activo y calcula SUMA del mes
 // =====================================================
 
-function iniciarTareasTiempoReal(estudianteId) {
-    console.log('📊 Cargando notas del estudiante (desde localStorage)');
+async function iniciarTareasTiempoReal(estudianteId) {
+    const instrumentoActivo = encargadoInstrumentoSeleccionado;
+    console.log('📊 Cargando notas del estudiante DESDE FIREBASE - Instrumento:', instrumentoActivo);
+    
     const cuerpo = document.getElementById('cuerpoTablaNotas');
     if (!cuerpo) return;
 
-    const tareas = JSON.parse(localStorage.getItem('tareasSubidas') || '[]');
-    const tareasEstudiante = tareas.filter(t => t.estudianteId == estudianteId);
-    renderNotas(tareasEstudiante, cuerpo);
-    console.log('✅ Notas cargadas desde localStorage');
-}
+    cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:20px;"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Cargando notas...</td></tr>';
 
-function renderNotas(tareasEstudiante, cuerpo) {
-    if (tareasEstudiante.length === 0) {
-        cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:20px;">No hay notas registradas</td></tr>';
+    if (!window.db) {
+        console.warn('⚠️ Firebase no disponible');
+        cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:20px;">Firebase no disponible</td></tr>';
+        return;
+    }
+
+    // Si no hay instrumento activo, no mostrar nada (evita mezclar instrumentos)
+    if (!instrumentoActivo) {
+        cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:20px;">Selecciona un instrumento para ver las notas</td></tr>';
         document.getElementById('promedioGeneral').textContent = '-';
         document.getElementById('semanasCompletadas').textContent = '0';
         document.getElementById('notaMesActual').textContent = '-';
         return;
     }
 
-    tareasEstudiante.sort((a, b) => a.semana - b.semana);
+    try {
+        // 🔥 Filtrar por estudianteId Y por instrumento
+        const snapshot = await window.db.collection('notas_semanales')
+            .where('estudianteId', '==', String(estudianteId))
+            .where('instrumento', '==', instrumentoActivo)
+            .get();
 
-    let totalNotas = 0;
-    let notasCalificadas = 0;
+        const notas = [];
+        snapshot.forEach(doc => {
+            notas.push({ id: doc.id, ...doc.data() });
+        });
+
+        console.log(`✅ ${notas.length} notas cargadas desde Firebase para ${instrumentoActivo}`);
+
+        // Ordenar por semana
+        notas.sort((a, b) => a.semana - b.semana);
+
+        renderNotas(notas, cuerpo);
+
+    } catch (e) {
+        console.error('❌ Error cargando notas desde Firebase:', e);
+        cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#E63946;padding:20px;">Error al cargar notas: ${e.message}</td></tr>`;
+    }
+}
+
+function renderNotas(notas, cuerpo) {
+    if (!notas || notas.length === 0) {
+        cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:20px;">📋 No hay notas registradas aún para este instrumento.<br><small>Las notas aparecerán cuando la Secretaría las suba.</small></td></tr>';
+        document.getElementById('promedioGeneral').textContent = '0.0';
+        document.getElementById('semanasCompletadas').textContent = '0';
+        document.getElementById('notaMesActual').textContent = '0.0';
+        return;
+    }
+
+    let totalAcumulado = 0;
+    let notasValidas = 0;
     let html = '';
 
-    tareasEstudiante.forEach(t => {
-        const estado = t.calificada ? '✅ Calificada' : '⏳ Pendiente';
-        const nota = t.calificada ? t.nota : '-';
-        const notaClass = t.calificada && t.nota >= (t.ponderacion * 0.6) ? 'nota-aprobada' : 'nota-reprobada';
+    notas.forEach(n => {
+        const semana = n.semana || 0;
+        const tema = n.tema || 'Sin tema';
+        const ponderacion = n.ponderacion || 2.5;
+        const nota = n.total !== undefined ? n.total : 0;
+        const aprobada = nota >= (ponderacion * 0.6);
 
-        if (t.calificada) {
-            totalNotas += t.nota;
-            notasCalificadas++;
-        }
+        totalAcumulado += nota;
+        notasValidas++;
+
+        // Detalle de los 5 aspectos
+        const detalles = n.notas ? `
+            <div style="font-size:0.7rem;color:#888;margin-top:4px;line-height:1.4;">
+                📅 ${(n.notas.asistencia || 0).toFixed(1)} · 
+                🎸 ${(n.notas.tecnica || 0).toFixed(1)} · 
+                📈 ${(n.notas.avance || 0).toFixed(1)} · 
+                📝 ${(n.notas.tarea || 0).toFixed(1)} · 
+                🎵 ${(n.notas.practica || 0).toFixed(1)}
+            </div>
+        ` : '';
 
         html += `
             <tr>
-                <td style="padding:8px;">Semana ${t.semana}</td>
-                <td style="padding:8px;">${t.tema || 'Sin tema'}</td>
-                <td style="padding:8px;">${t.ponderacion || 0}</td>
-                <td style="padding:8px;" class="${notaClass}">${nota}</td>
-                <td style="padding:8px;"><span class="${t.calificada ? 'estado-calificada' : 'estado-pendiente'}" style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${t.calificada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">${estado}</span></td>
+                <td style="padding:8px;">
+                    <strong>Semana ${semana}</strong>
+                </td>
+                <td style="padding:8px;">
+                    ${tema}
+                    ${detalles}
+                </td>
+                <td style="padding:8px;">${ponderacion}</td>
+                <td style="padding:8px;" class="${aprobada ? 'nota-aprobada' : 'nota-reprobada'}">
+                    <strong>${nota.toFixed(1)}</strong>
+                </td>
+                <td style="padding:8px;">
+                    <span style="padding:4px 12px;border-radius:20px;font-size:0.75rem;${aprobada ? 'background:#D4EDDA;color:#155724;' : 'background:#FFF3CD;color:#856404;'}">
+                        ${aprobada ? '✅ Aprobada' : '⚠️ Baja'}
+                    </span>
+                </td>
             </tr>
         `;
     });
 
     cuerpo.innerHTML = html;
 
-    const promedio = notasCalificadas > 0 ? (totalNotas / notasCalificadas) : 0;
-    document.getElementById('promedioGeneral').textContent = promedio > 0 ? promedio.toFixed(1) : '-';
-    document.getElementById('semanasCompletadas').textContent = tareasEstudiante.filter(t => t.calificada).length;
+    // 🔥 PROMEDIO GENERAL = SUMA ACUMULADA de todas las semanas
+    // (cada semana vale 2.5, así que con 5 semanas = 12.5)
+    document.getElementById('promedioGeneral').textContent = totalAcumulado.toFixed(1);
+    document.getElementById('semanasCompletadas').textContent = notasValidas;
 
-    const calificadas = tareasEstudiante.filter(t => t.calificada);
-    const ultimas4 = calificadas.slice(-4);
+    // 🔥 NOTA DEL MES = SUMA de las últimas 4 semanas (máximo 10.0)
+    const ultimas4 = notas.slice(-4);
     if (ultimas4.length > 0) {
-        const totalMes = ultimas4.reduce((sum, t) => sum + t.nota, 0);
-        document.getElementById('notaMesActual').textContent = (totalMes / ultimas4.length).toFixed(1);
+        const totalMes = ultimas4.reduce((sum, n) => sum + (n.total || 0), 0);
+        document.getElementById('notaMesActual').textContent = totalMes.toFixed(1);
     } else {
-        document.getElementById('notaMesActual').textContent = '-';
+        document.getElementById('notaMesActual').textContent = '0.0';
     }
+
+    console.log(`✅ ${notas.length} notas renderizadas. Total acumulado: ${totalAcumulado.toFixed(1)}`);
 }
 
 // =====================================================
@@ -19705,6 +19774,7 @@ function activarSwipeEncargado() {
 
 // =====================================================
 // 26. HISTORIAL COMPLETO
+// 🔥 CORREGIDO: Usa calcularSemanaActualEstudiante (por asistencias)
 // =====================================================
 
 async function cargarHistorialCompleto(estudianteId) {
@@ -19823,15 +19893,8 @@ async function cargarHistorialCompleto(estudianteId) {
         return;
     }
 
-    const fechaIngreso = new Date(estudiante.academico?.fechaInicio);
-    let semanaActual = 1;
-    if (!isNaN(fechaIngreso.getTime())) {
-        const hoy = new Date();
-        const diffDias = Math.floor((hoy - fechaIngreso) / (1000 * 60 * 60 * 24));
-        semanaActual = Math.floor(diffDias / 7) + 1;
-        if (semanaActual < 1) semanaActual = 1;
-        if (semanaActual > 44) semanaActual = 44;
-    }
+    // 🔥 USAR LA FUNCIÓN MAESTRA (por asistencias, NO por calendario)
+    const semanaActual = calcularSemanaActualEstudiante(estudiante);
 
     renderHistorialCompleto(container, temarioEncontrado, semanaActual, instrumentoBuscado, nivelEstudiante);
 }
@@ -19954,10 +20017,10 @@ function renderHistorialCompleto(container, temario, semanaActual, instrumentoUs
 // =====================================================
 
 // =====================================================
-// 1. CALCULAR SEMANA ACTUAL
+// 1. CALCULAR SEMANA ACTUAL (REFERENCIA - POR CALENDARIO)
 // =====================================================
 
-function calcularSemanaActualEstudiante(estudiante) {
+function calcularSemanaPorCalendario(estudiante) {
     if (!estudiante || !estudiante.academico || !estudiante.academico.fechaInicio) {
         return 1;
     }
@@ -19974,6 +20037,35 @@ function calcularSemanaActualEstudiante(estudiante) {
         return 1;
     }
 }
+
+// 🔥 Función que usa el Bloque 6: delega a la función maestra
+function calcularSemanaActualEstudiante(estudiante) {
+    if (typeof window.calcularSemanaPorAsistencias === 'function') {
+        return window.calcularSemanaPorAsistencias(estudiante);
+    }
+    // Fallback por si el Bloque 9 aún no cargó
+    try {
+        const idEst = estudiante?.idOriginal || estudiante?.id;
+        if (!idEst) return 1;
+        const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        const asistencias = historial.filter(r =>
+            String(r.studentId) === String(idEst) &&
+            (r.estado === 'presente' || r.estado === 'reposicion')
+        ).length;
+        const diasClase = estudiante.academico?.dias?.length || 1;
+        const divisor = diasClase >= 2 ? 2 : 1;
+        let semana = Math.floor(asistencias / divisor) + 1;
+        if (semana < 1) semana = 1;
+        if (semana > 44) semana = 44;
+        return semana;
+    } catch(e) {
+        return 1;
+    }
+}
+
+// Exponer globalmente
+window.calcularSemanaPorCalendario = calcularSemanaPorCalendario;
+window.calcularSemanaActualEstudiante = calcularSemanaActualEstudiante;
 
 // =====================================================
 // 2. VERIFICAR SI YA TIENE ASISTENCIA
@@ -19997,7 +20089,6 @@ function tieneAsistenciaSemanaVirtual(estudianteId, semana) {
 // =====================================================
 
 function verificarYRegistrarAsistencia(estudianteData, semana) {
-    // 1. Verificar que el video fue completado
     if (!videoCompletado) {
         mostrarNotificacionVirtual('⚠️ Debes ver el video COMPLETO antes de registrar tu asistencia.', 'warning');
         const container = document.getElementById('claseActualContainer');
@@ -20032,13 +20123,11 @@ function verificarYRegistrarAsistencia(estudianteData, semana) {
         return false;
     }
 
-    // 2. Verificar que no tenga asistencia duplicada
     if (tieneAsistenciaSemanaVirtual(estudianteData.id, semana)) {
         mostrarNotificacionVirtual(`⚠️ Ya tienes asistencia para la Semana ${semana}`, 'warning');
         return false;
     }
 
-    // 3. Si todo está bien, registrar
     return registrarAsistenciaVirtual(estudianteData, semana);
 }
 
@@ -20225,7 +20314,6 @@ function detectarFinVideo() {
         return;
     }
 
-    // 1. BUSCAR VIDEO HTML5
     const video = container.querySelector('video');
     if (video) {
         console.log('🎬 Video HTML5 encontrado');
@@ -20240,7 +20328,6 @@ function detectarFinVideo() {
         return;
     }
 
-    // 2. BUSCAR IFRAME
     const iframe = container.querySelector('iframe');
     if (iframe) {
         const src = iframe.src || '';
@@ -20260,7 +20347,6 @@ function detectarFinVideo() {
         return;
     }
 
-    // 3. BUSCAR ENLACES
     const links = container.querySelectorAll('a[href*="youtube"], a[href*="youtu.be"], a[href*="drive.google.com"], a[href*="vimeo.com"], a[href$=".mp4"], a[href$=".webm"], a[href$=".mov"], a[href$=".avi"]');
     if (links.length > 0) {
         console.log('🔗 Enlace de video encontrado');
@@ -20312,7 +20398,6 @@ function agregarBotonVideoVisto(container, plataforma = 'Video') {
     const footer = container.querySelector('.docente-card > div:last-child');
     if (!footer) return;
 
-    // Verificar si ya tiene asistencia esta semana
     const select = document.getElementById('selectorEstudianteEnc');
     if (select && select.value) {
         const estudianteId = parseInt(select.value);
@@ -20324,7 +20409,6 @@ function agregarBotonVideoVisto(container, plataforma = 'Video') {
         if (estudianteData) {
             const semana = calcularSemanaActualEstudiante(estudianteData);
             if (tieneAsistenciaSemanaVirtual(estudianteId, semana)) {
-                // Si ya tiene asistencia, mostrar mensaje en lugar del botón
                 const msg = document.createElement('div');
                 msg.style.cssText = 'margin-top:15px; padding:12px; background:#d4edda; border-radius:8px; text-align:center; color:#155724; border:1px solid #c3e6cb;';
                 msg.innerHTML = `
@@ -20338,14 +20422,12 @@ function agregarBotonVideoVisto(container, plataforma = 'Video') {
         }
     }
 
-    // Si NO tiene asistencia, mostrar el botón
     const div = document.createElement('div');
     div.className = 'btn-vi-video';
     div.style.cssText = 'margin-top: 20px; text-align: center; padding: 15px; background: #fff3cd; border-radius: 10px; border: 2px solid #ffc107;';
     
     let icono = 'fa-video';
     let color = '#E63946';
-    let mensaje = '✅ Ya vi el video completo (registrar asistencia)';
     let plataformaTexto = plataforma;
     
     if (plataforma === 'YouTube') {
@@ -20486,7 +20568,6 @@ function iniciarEscaneoAsistenciaVirtual() {
 
     const semana = calcularSemanaActualEstudiante(estudianteData);
 
-    // 🔒 VERIFICACIÓN: ¿Video completado?
     if (!videoCompletado) {
         mostrarNotificacionVirtual('⚠️ Debes ver el video COMPLETO antes de registrar tu asistencia.', 'warning');
         const container = document.getElementById('claseActualContainer');
@@ -23215,18 +23296,41 @@ function calcularAsistenciasEstudiante(estudianteId) {
         return 0;
     }
 }
-
-function calcularSemanaActualEstudiante(estudiante) {
+// 🔥 Esta es la FUNCIÓN MAESTRA real. Todos los paneles la usan.
+function calcularSemanaPorAsistencias(estudiante) {
     if (!estudiante) return 1;
-    const asistencias = calcularAsistenciasEstudiante(estudiante.id);
-    const diasClase = estudiante.academico?.dias?.length || 2;
-    const esPlanSemanal = diasClase >= 2;
-    const divisor = esPlanSemanal ? 2 : 1;
-    let semana = Math.floor(asistencias / divisor) + 1;
-    if (semana < 1) semana = 1;
-    if (semana > CONFIG_NOTAS.TOTAL_SEMANAS) semana = CONFIG_NOTAS.TOTAL_SEMANAS;
-    return semana;
+
+    try {
+        // Acepta .id, .idOriginal o .studentId
+        const idEst = estudiante.idOriginal || estudiante.id || estudiante.studentId;
+        if (!idEst) return 1;
+
+        // Contar asistencias válidas (presente o reposición)
+        const historial = JSON.parse(localStorage.getItem('historialAsistencia') || '[]');
+        const asistencias = historial.filter(r =>
+            String(r.studentId) === String(idEst) &&
+            (r.estado === 'presente' || r.estado === 'reposicion')
+        ).length;
+
+        // Plan: 2+ días → semanal (2 asistencias = 1 semana)
+        //       1 día   → 1 asistencia = 1 semana
+        const diasClase = estudiante.academico?.dias?.length || 1;
+        const esPlanSemanal = diasClase >= 2;
+        const divisor = esPlanSemanal ? 2 : 1;
+
+        let semana = Math.floor(asistencias / divisor) + 1;
+        if (semana < 1) semana = 1;
+        if (semana > 44) semana = 44;
+
+        return semana;
+    } catch(e) {
+        console.error('Error en calcularSemanaPorAsistencias:', e);
+        return 1;
+    }
 }
+
+// Exponer globalmente (para que el Bloque 6 la pueda usar)
+window.calcularSemanaPorAsistencias = calcularSemanaPorAsistencias;
 
 function calcularMesDelCurso(semana) {
     const mes = Math.floor((semana - 1) / CONFIG_NOTAS.SEMANAS_POR_MES) + 1;
