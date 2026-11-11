@@ -8652,6 +8652,18 @@ body.dark-mode .acciones .btn:hover {
     <i class="fas fa-list-alt" style="font-size:1.3rem;"></i>
     📋 Ver Mis Temas por Semana
 </button>
+              <!-- 🆕 NUEVOS BOTONES DE PLANIFICACIONES -->
+<button onclick="abrirModalPlanificacion()" 
+        style="width:100%; padding:14px; margin-bottom:10px; background:linear-gradient(135deg, #1976D2, #0D47A1); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(25,118,210,0.3);">
+    <i class="fas fa-clipboard-list" style="font-size:1.3rem;"></i>
+    📝 Crear Planificación Automática
+</button>
+
+<button onclick="verPlanificacionesGuardadas()" 
+        style="width:100%; padding:14px; margin-bottom:18px; background:linear-gradient(135deg, #4CAF50, #2E7D32); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(76,175,80,0.3);">
+    <i class="fas fa-folder-open" style="font-size:1.3rem;"></i>
+    📂 Ver Planificaciones Guardadas
+</button> 
                 <div class="docente-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px;">
                     <div class="form-row">
                         <div class="input-group"><label>Instrumento:</label><select id="temarioInstrumento" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="">Cargando...</option></select></div>
@@ -18744,6 +18756,1427 @@ window.imprimirHTMLEnIframe = imprimirHTMLEnIframe;
 window.generarHTMLReporte = generarHTMLReporte;
 
 console.log('✅ Visor de temarios completo cargado (impresión A4 corregida, sin WhatsApp)');
+  // =====================================================
+// 📝 SISTEMA DE PLANIFICACIONES - VERSIÓN FINAL
+// Solo PDF (descarga) · Sin botón Imprimir (hacía lo mismo)
+// =====================================================
+
+let _planificacionesCache = [];
+let _planificacionesGuardadasCache = [];
+let _planificacionesSeleccionadas = new Set();
+let _planificacionEditandoId = null;
+
+// =====================================================
+// 📚 BIBLIOGRAFÍA AUTOMÁTICA
+// =====================================================
+
+function obtenerBibliografiaAutomatica(instrumento, nivel) {
+    const instr = (instrumento || '').toLowerCase().trim();
+    const nivelTexto = nivel || 'I';
+    
+    const bibliotecas = {
+        'piano': `Método de Piano — Academia Expresión Musical Nivel ${nivelTexto}. Ejercicios técnicos de Hanon y Czerny.`,
+        'guitarra': `Método de Guitarra — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Sagreras y Tárrega.`,
+        'bajo': `Método de Bajo — Academia Expresión Musical Nivel ${nivelTexto}. Ejercicios de Simandl y escalas de bajo.`,
+        'batería': `Método de Batería — Academia Expresión Musical Nivel ${nivelTexto}. Rudimentos de Stone y ejercicios de coordinación.`,
+        'bateria': `Método de Batería — Academia Expresión Musical Nivel ${nivelTexto}. Rudimentos de Stone y ejercicios de coordinación.`,
+        'saxofón': `Método de Saxofón — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Klosé y Ferling.`,
+        'saxofon': `Método de Saxofón — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Klosé y Ferling.`,
+        'trompeta': `Método de Trompeta — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Arban y Clarke.`,
+        'violín': `Método de Violín — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Suzuki y Wohlfahrt.`,
+        'violin': `Método de Violín — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Suzuki y Wohlfahrt.`,
+        'canto': `Método de Canto — Academia Expresión Musical Nivel ${nivelTexto}. Ejercicios de vocalización y respiración.`,
+        'congas': `Método de Congas — Academia Expresión Musical Nivel ${nivelTexto}. Ritmos afrocubanos y ejercicios de coordinación.`,
+        'flauta': `Método de Flauta — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Taffanel y Gaubert.`,
+        'clarinete': `Método de Clarinete — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Klosé y Baermann.`,
+        'tuba': `Método de Tuba — Academia Expresión Musical Nivel ${nivelTexto}. Estudios de Arban y Kopprasch.`
+    };
+    
+    for (const [key, val] of Object.entries(bibliotecas)) {
+        if (instr.includes(key)) return val;
+    }
+    
+    return `Método de ${instrumento || 'Música'} — Academia Expresión Musical Nivel ${nivelTexto}. Material didáctico institucional.`;
+}
+
+// =====================================================
+// 🧠 MOTOR DE GENERACIÓN AUTOMÁTICA
+// =====================================================
+
+function generarPlanificacionAutomatica(tema, instrumento, nivel, ponderacion, semana) {
+    const temaLower = (tema || '').toLowerCase();
+    
+    const reglas = [
+        {
+            claves: ['escala', 'escalas'],
+            competencia: 'Ejecuta escalas con digitación, afinación y tempo correctos, demostrando control técnico del instrumento.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de ejecutar escalas ascendentes y descendentes con digitación correcta y tempo estable.',
+            conceptual: 'Escalas musicales — estructura, patrones y digitación',
+            procedimental: 'Ejecución de escalas con digitación y tempo correctos',
+            actitudinal: 'Disciplina y constancia en la práctica de escalas',
+            actividadesInicio: 'Calentamiento de dedos con ejercicios de digitación',
+            actividadesDesarrollo: 'Explicación teórica de las escalas, práctica guiada ascendente y descendente, ejercicios de velocidad progresiva',
+            actividadesCierre: 'Evaluación de la ejecución y asignación de tarea de práctica',
+            criterios: 'Digitación correcta (40%), Afinación y tempo (30%), Postura y técnica (30%)'
+        },
+        {
+            claves: ['acorde', 'acordes'],
+            competencia: 'Forma acordes con precisión, claridad sonora y correcta posición de los dedos, aplicando la armonía musical básica.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de formar los acordes indicados con claridad sonora y transiciones fluidas entre ellos.',
+            conceptual: 'Acordes musicales — estructura, tipos y función armónica',
+            procedimental: 'Formación y cambio fluido de acordes',
+            actitudinal: 'Atención y precisión en la ejecución armónica',
+            actividadesInicio: 'Repaso de acordes de la semana anterior',
+            actividadesDesarrollo: 'Explicación de la estructura de los acordes, práctica de formación individual, ejercicios de cambio entre acordes',
+            actividadesCierre: 'Ejecución de una progresión simple con los acordes aprendidos',
+            criterios: 'Claridad sonora (40%), Transiciones fluidas (30%), Posición correcta (30%)'
+        },
+        {
+            claves: ['arpegio', 'arpegios'],
+            competencia: 'Ejecuta arpegios de forma fluida y expresiva, demostrando control técnico y coordinación en el instrumento.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de ejecutar arpegios ascendentes y descendentes con fluidez, tempo estable y correcta digitación.',
+            conceptual: 'Arpegios — estructura, digitación y aplicación musical',
+            procedimental: 'Ejecución fluida de arpegios con digitación correcta',
+            actitudinal: 'Perseverancia en la práctica de arpegios',
+            actividadesInicio: 'Calentamiento con ejercicios de independencia de dedos',
+            actividadesDesarrollo: 'Explicación del arpegio, práctica lenta y progresiva, ejercicios de coordinación',
+            actividadesCierre: 'Ejecución completa del arpegio y evaluación de fluidez',
+            criterios: 'Fluidez (40%), Digitación (30%), Tempo (30%)'
+        },
+        {
+            claves: ['ritmo', 'rítmico', 'rítmica'],
+            competencia: 'Mantiene pulso rítmico estable y preciso, aplicando figuras rítmicas y coordinación motriz.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de ejecutar patrones rítmicos con precisión, manteniendo el pulso estable y aplicando las figuras estudiadas.',
+            conceptual: 'Ritmo — figuras, pulso, compás y subdivisión',
+            procedimental: 'Ejecución de patrones rítmicos con precisión',
+            actitudinal: 'Concentración y coordinación rítmica',
+            actividadesInicio: 'Ejercicios de pulso con palmas y metrónomo',
+            actividadesDesarrollo: 'Lectura de figuras rítmicas, práctica con instrumento, ejercicios de coordinación',
+            actividadesCierre: 'Ejecución completa de un patrón rítmico y evaluación',
+            criterios: 'Precisión rítmica (50%), Pulso estable (30%), Coordinación (20%)'
+        },
+        {
+            claves: ['lectura', 'partitura', 'leer'],
+            competencia: 'Lee partituras a primera vista, identificando notas, figuras y símbolos musicales con fluidez.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de leer e interpretar partituras sencillas a primera vista, identificando correctamente las notas y figuras.',
+            conceptual: 'Lectura musical — notas, figuras y símbolos',
+            procedimental: 'Lectura e interpretación de partituras',
+            actitudinal: 'Atención y concentración en la lectura',
+            actividadesInicio: 'Repaso de notas y figuras básicas',
+            actividadesDesarrollo: 'Lectura guiada de partituras, identificación de símbolos, práctica de lectura a primera vista',
+            actividadesCierre: 'Lectura individual de una partitura corta',
+            criterios: 'Identificación de notas (40%), Lectura fluida (30%), Interpretación (30%)'
+        },
+        {
+            claves: ['canción', 'pieza', 'obra', 'repertorio'],
+            competencia: 'Interpreta piezas musicales con expresión, aplicando los elementos técnicos y expresivos estudiados.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de interpretar la pieza indicada con expresión, correcta digitación y tempo adecuado.',
+            conceptual: 'Pieza musical — estructura, forma y carácter',
+            procedimental: 'Interpretación de la pieza con expresión musical',
+            actitudinal: 'Sensibilidad y expresión musical',
+            actividadesInicio: 'Repaso de fragmentos difíciles de la pieza',
+            actividadesDesarrollo: 'Análisis de la pieza, práctica por secciones, trabajo de expresión y dinámicas',
+            actividadesCierre: 'Interpretación completa de la pieza y evaluación',
+            criterios: 'Expresión musical (40%), Digitación (30%), Tempo (30%)'
+        },
+        {
+            claves: ['improvisa', 'improvisación'],
+            competencia: 'Improvisa con creatividad y coherencia musical, aplicando elementos técnicos y teóricos del instrumento.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de improvisar frases musicales coherentes, aplicando los recursos estudiados.',
+            conceptual: 'Improvisación — recursos, escalas y patrones',
+            procedimental: 'Improvisación creativa sobre patrones musicales',
+            actitudinal: 'Creatividad y confianza en la improvisación',
+            actividadesInicio: 'Ejercicios de exploración sonora libre',
+            actividadesDesarrollo: 'Explicación de recursos de improvisación, práctica guiada sobre base armónica, ejercicios de frases',
+            actividadesCierre: 'Improvisación individual y retroalimentación',
+            criterios: 'Creatividad (40%), Coherencia musical (30%), Técnica (30%)'
+        },
+        {
+            claves: ['técnica', 'técnico', 'digitación'],
+            competencia: 'Aplica técnica instrumental correcta, demostrando control, postura y precisión en la ejecución.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de aplicar la técnica instrumental estudiada con postura correcta, control de digitación y precisión.',
+            conceptual: 'Técnica instrumental — postura, digitación y control',
+            procedimental: 'Aplicación de técnica correcta en la ejecución',
+            actitudinal: 'Cuidado de la postura y disciplina técnica',
+            actividadesInicio: 'Calentamiento técnico y revisión de postura',
+            actividadesDesarrollo: 'Explicación y demostración de la técnica, práctica guiada, corrección de postura',
+            actividadesCierre: 'Evaluación de la técnica aplicada',
+            criterios: 'Postura (30%), Digitación (40%), Control técnico (30%)'
+        },
+        {
+            claves: ['afinación', 'afinar'],
+            competencia: 'Afina correctamente el instrumento, desarrollando el oído musical y la precisión auditiva.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de afinar el instrumento con precisión, identificando notas correctas e incorrectas por oído.',
+            conceptual: 'Afinación — notas de referencia y oído musical',
+            procedimental: 'Afinación del instrumento con precisión',
+            actitudinal: 'Atención auditiva y paciencia en la afinación',
+            actividadesInicio: 'Ejercicios de identificación auditiva de notas',
+            actividadesDesarrollo: 'Explicación de notas de afinación, práctica con afinador, entrenamiento del oído',
+            actividadesCierre: 'Afinación individual del instrumento',
+            criterios: 'Precisión auditiva (50%), Afinación correcta (30%), Oído musical (20%)'
+        },
+        {
+            claves: ['dinámica', 'matiz', 'expresión'],
+            competencia: 'Aplica dinámicas y matices expresivos en la interpretación, enriqueciendo la expresión musical.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de aplicar dinámicas (forte, piano, crescendo, diminuendo) en la interpretación musical.',
+            conceptual: 'Dinámicas y matices — signos y aplicación musical',
+            procedimental: 'Aplicación de dinámicas en la interpretación',
+            actitudinal: 'Sensibilidad expresiva en la ejecución',
+            actividadesInicio: 'Ejercicios de contraste dinámico',
+            actividadesDesarrollo: 'Explicación de signos dinámicos, práctica con la pieza o ejercicio, ejercicios de crescendo y diminuendo',
+            actividadesCierre: 'Interpretación expresiva con dinámicas aplicadas',
+            criterios: 'Aplicación de dinámicas (50%), Expresividad (30%), Control técnico (20%)'
+        },
+        {
+            claves: ['teoría', 'teórico'],
+            competencia: 'Comprende y aplica los conceptos teóricos musicales en la ejecución instrumental.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de identificar y aplicar los conceptos teóricos estudiados en la práctica instrumental.',
+            conceptual: 'Teoría musical — conceptos y su aplicación práctica',
+            procedimental: 'Aplicación de conceptos teóricos en la ejecución',
+            actitudinal: 'Comprensión y aplicación consciente',
+            actividadesInicio: 'Repaso de conceptos teóricos previos',
+            actividadesDesarrollo: 'Explicación de conceptos, ejemplos musicales, aplicación práctica en el instrumento',
+            actividadesCierre: 'Ejercicios de aplicación y evaluación',
+            criterios: 'Comprensión teórica (40%), Aplicación práctica (40%), Precisión (20%)'
+        },
+        {
+            claves: ['oído', 'auditivo', 'escucha'],
+            competencia: 'Desarrolla el oído musical, reconociendo intervalos, acordes y melodías auditivamente.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de identificar auditivamente notas, intervalos y patrones melódicos básicos.',
+            conceptual: 'Oído musical — identificación auditiva de elementos',
+            procedimental: 'Reconocimiento auditivo de notas y patrones',
+            actitudinal: 'Atención auditiva y curiosidad musical',
+            actividadesInicio: 'Ejercicios de discriminación auditiva',
+            actividadesDesarrollo: 'Identificación de notas e intervalos, dictado melódico, reconocimiento de patrones',
+            actividadesCierre: 'Evaluación auditiva individual',
+            criterios: 'Identificación auditiva (50%), Reconocimiento melódico (30%), Precisión (20%)'
+        },
+        {
+            claves: ['memoria', 'memorización'],
+            competencia: 'Memoriza secuencias musicales, desarrollando la retención auditiva y la ejecución de memoria.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de ejecutar de memoria la pieza o ejercicio estudiado, demostrando retención musical.',
+            conceptual: 'Memorización musical — técnicas y recursos',
+            procedimental: 'Ejecución de memoria de secuencias musicales',
+            actitudinal: 'Concentración y disciplina en la memorización',
+            actividadesInicio: 'Repaso de fragmentos memorizados',
+            actividadesDesarrollo: 'Técnicas de memorización, práctica por partes, ejecución de memoria progresiva',
+            actividadesCierre: 'Ejecución completa de memoria',
+            criterios: 'Retención musical (40%), Precisión (40%), Fluidez (20%)'
+        },
+        {
+            claves: ['velocidad', 'tempo', 'rápido'],
+            competencia: 'Ejecuta ejercicios musicales a diferentes velocidades, desarrollando control técnico y precisión.',
+            indicador: 'Al finalizar la semana, el estudiante será capaz de ejecutar ejercicios a diferentes tempos con precisión y control.',
+            conceptual: 'Velocidad y tempo — control del pulso',
+            procedimental: 'Ejecución a diferentes velocidades con precisión',
+            actitudinal: 'Paciencia y disciplina en el incremento de velocidad',
+            actividadesInicio: 'Calentamiento a velocidad lenta',
+            actividadesDesarrollo: 'Práctica con metrónomo a diferentes tempos, ejercicios de incremento gradual',
+            actividadesCierre: 'Ejecución a velocidad objetivo y evaluación',
+            criterios: 'Precisión (50%), Control del tempo (30%), Fluidez (20%)'
+        }
+    ];
+    
+    let reglaActiva = null;
+    for (const regla of reglas) {
+        if (regla.claves.some(clave => temaLower.includes(clave))) {
+            reglaActiva = regla;
+            break;
+        }
+    }
+    
+    if (!reglaActiva) {
+        reglaActiva = {
+            competencia: `Interpreta y ejecuta los contenidos musicales correspondientes al tema "${tema}", aplicando la técnica y expresión adecuadas al nivel ${nivel}.`,
+            indicador: `Al finalizar la semana, el estudiante será capaz de ejecutar correctamente los ejercicios y actividades relacionados con "${tema}", demostrando dominio técnico y comprensión musical.`,
+            conceptual: `Conceptos musicales correspondientes a "${tema}"`,
+            procedimental: `Ejecución práctica del tema "${tema}"`,
+            actitudinal: `Disciplina y compromiso con el aprendizaje musical`,
+            actividadesInicio: `Calentamiento y repaso de la semana anterior`,
+            actividadesDesarrollo: `Explicación del tema "${tema}", demostración práctica, ejercicios guiados y práctica individual`,
+            actividadesCierre: `Evaluación del avance y asignación de tarea de práctica`,
+            criterios: `Dominio técnico (40%), Comprensión del tema (30%), Ejecución práctica (30%)`
+        };
+    }
+    
+    const instrumentoTexto = instrumento || 'instrumento';
+    const nivelTexto = nivel || 'Principiante';
+    
+    return {
+        competencia: `[${instrumentoTexto} - ${nivelTexto}] ${reglaActiva.competencia}`,
+        indicadorLogro: reglaActiva.indicador,
+        contenidoConceptual: reglaActiva.conceptual,
+        contenidoProcedimental: reglaActiva.procedimental,
+        contenidoActitudinal: reglaActiva.actitudinal,
+        actividadInicio: reglaActiva.actividadesInicio,
+        actividadDesarrollo: reglaActiva.actividadesDesarrollo,
+        actividadCierre: reglaActiva.actividadesCierre,
+        recursos: `${instrumentoTexto}\nCuaderno de ejercicios\nMetrónomo\nBibliografía indicada`,
+        criteriosEvaluacion: reglaActiva.criterios,
+        ponderacion: ponderacion || 2.5
+    };
+}
+
+// =====================================================
+// 📐 CALCULAR TAMAÑO DE LETRA
+// =====================================================
+
+function calcularTamanoPlanificacion(plan) {
+    let totalChars = 0;
+    ['bibliografia', 'competencia', 'indicadorLogro', 'contenidoConceptual',
+     'contenidoProcedimental', 'contenidoActitudinal', 'actividadInicio',
+     'actividadDesarrollo', 'actividadCierre', 'recursos', 'criteriosEvaluacion'
+    ].forEach(k => { totalChars += (plan[k] || '').length; });
+    
+    if (totalChars < 1000) return 11;
+    if (totalChars < 1500) return 10.5;
+    if (totalChars < 2000) return 10;
+    if (totalChars < 2500) return 9.5;
+    return 9;
+}
+
+function escapeHtmlPlan(texto) {
+    if (!texto) return '';
+    return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
+// =====================================================
+// 🎨 DIBUJA LA PLANIFICACIÓN EN UN PDF
+// =====================================================
+
+async function dibujarPlanificacionEnPDF(doc, plan) {
+    const fechaCompleta = new Date().toLocaleDateString('es-GT', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+    
+    const tamano = calcularTamanoPlanificacion(plan);
+    const alturaLinea = tamano * 0.42;
+    
+    const cargarImagen = (url) => new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+    });
+    
+    let logoImg = null;
+    try {
+        logoImg = await cargarImagen('https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png');
+    } catch (e) {}
+    
+    const PAGE_W = 216;
+    const PAGE_H = 279;
+    const MARGIN = 10;
+    const MARGIN_BOTTOM = 15;
+    const CONTENT_W = PAGE_W - (MARGIN * 2);
+    const Y_LIMITE_INFERIOR = PAGE_H - MARGIN_BOTTOM;
+    
+    doc.setFillColor(193, 18, 31);
+    doc.rect(0, 0, PAGE_W, 20, 'F');
+    
+    doc.setFillColor(255, 255, 255);
+    doc.circle(20, 10, 7, 'F');
+    if (logoImg) {
+        try { doc.addImage(logoImg, 'PNG', 14.5, 4.5, 11, 11); } catch(e) {}
+    }
+    
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"', 32, 9);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Planificación Semanal · Tel: 37418036 / 38514409', 32, 15);
+    
+    let y = 24;
+    const heroH = 13;
+    
+    doc.setFillColor(255, 245, 245);
+    doc.setDrawColor(230, 57, 70);
+    doc.setLineWidth(0.6);
+    doc.rect(MARGIN, y, CONTENT_W, heroH, 'FD');
+    
+    doc.setFontSize(tamano + 1);
+    doc.setTextColor(230, 57, 70);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Semana ${plan.semana} de 44 — ${plan.tema}`, MARGIN + 4, y + 6);
+    
+    doc.setFontSize(tamano);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Ponderación: ${plan.ponderacion} puntos`, MARGIN + 4, y + 11);
+    y += heroH + 4;
+    
+    const infoH = 22;
+    doc.setFillColor(255, 245, 245);
+    doc.setDrawColor(230, 57, 70);
+    doc.setLineWidth(0.6);
+    doc.rect(MARGIN, y, CONTENT_W, infoH, 'FD');
+    
+    doc.setFontSize(tamano);
+    doc.setTextColor(30, 30, 30);
+    
+    const col2X = MARGIN + (CONTENT_W / 2) + 4;
+    const rowH = infoH / 3;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Docente:', MARGIN + 4, y + rowH * 0.7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(plan.docenteNombre || '', MARGIN + 22, y + rowH * 0.7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Instrumento:', col2X, y + rowH * 0.7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(plan.instrumento || '', col2X + 24, y + rowH * 0.7);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Nivel:', MARGIN + 4, y + rowH * 1.6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(plan.nivel || '', MARGIN + 22, y + rowH * 1.6);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Semana:', col2X, y + rowH * 1.6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${plan.semana} de 44`, col2X + 24, y + rowH * 1.6);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Fecha:', MARGIN + 4, y + rowH * 2.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(fechaCompleta, MARGIN + 22, y + rowH * 2.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Ponderación:', col2X, y + rowH * 2.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${plan.ponderacion} puntos`, col2X + 24, y + rowH * 2.5);
+    
+    y += infoH + 4;
+    
+    const alturaTitulo = tamano * 0.55;
+    const padContenido = 4;
+    const gap = 3;
+    
+    function calcularAlturaCaja(contenido) {
+        if (!contenido || !contenido.trim()) return 0;
+        const lineas = doc.splitTextToSize(contenido, CONTENT_W - 8);
+        const alturaCont = Math.max(lineas.length * alturaLinea + padContenido * 2, 6);
+        return alturaTitulo + alturaCont;
+    }
+    
+    function calcularAlturaDoble(c1, c2) {
+        const lineas1 = doc.splitTextToSize(c1 || '', (CONTENT_W - 8) / 2);
+        const lineas2 = doc.splitTextToSize(c2 || '', (CONTENT_W - 8) / 2);
+        const maxLineas = Math.max(lineas1.length, lineas2.length);
+        const alturaCont = Math.max(maxLineas * alturaLinea + padContenido * 2, 6);
+        return alturaTitulo + alturaCont;
+    }
+    
+    const alturaBibliografia = calcularAlturaCaja(plan.bibliografia);
+    const alturaCompetencia = calcularAlturaCaja(plan.competencia);
+    const alturaIndicador = calcularAlturaCaja(plan.indicadorLogro);
+    const alturaContenidos = calcularAlturaDoble(plan.contenidoConceptual, plan.contenidoProcedimental);
+    const alturaActitudinal = calcularAlturaCaja(plan.contenidoActitudinal);
+    
+    const textoActividades = `Inicio (10 min): ${plan.actividadInicio}\nDesarrollo (35 min): ${plan.actividadDesarrollo}\nCierre (15 min): ${plan.actividadCierre}`;
+    const alturaActividades = calcularAlturaCaja(textoActividades);
+    
+    const textoEvaluacion = `Ponderación: ${plan.ponderacion} pts\n${plan.criteriosEvaluacion}`;
+    const alturaRecursosEval = calcularAlturaDoble(plan.recursos, textoEvaluacion);
+    
+    const alturaUsada = alturaBibliografia + alturaCompetencia + alturaIndicador +
+                        alturaContenidos + alturaActitudinal + alturaActividades + alturaRecursosEval;
+    const alturaDisponible = Y_LIMITE_INFERIOR - y - 8;
+    const espacioSobrante = Math.max(0, alturaDisponible - alturaUsada);
+    const extraPorCaja = espacioSobrante / 7;
+    const extraContenido = Math.min(extraPorCaja, 4);
+    
+    const dibujarCaja = (titulo, contenido) => {
+        if (!contenido || !contenido.trim()) return;
+        
+        const lineas = doc.splitTextToSize(contenido, CONTENT_W - 8);
+        const alturaCont = Math.max(lineas.length * alturaLinea + padContenido * 2, 6) + extraContenido;
+        
+        doc.setFillColor(230, 57, 70);
+        doc.rect(MARGIN, y, CONTENT_W, alturaTitulo, 'F');
+        doc.setFontSize(tamano);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(titulo, MARGIN + 4, y + alturaTitulo - 1.2);
+        y += alturaTitulo;
+        
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(230, 57, 70);
+        doc.setLineWidth(0.6);
+        doc.rect(MARGIN, y, CONTENT_W, alturaCont, 'FD');
+        
+        doc.setFontSize(tamano);
+        doc.setTextColor(30, 30, 30);
+        doc.setFont('helvetica', 'normal');
+        let yCont = y + padContenido + alturaLinea * 0.7;
+        lineas.forEach(l => {
+            doc.text(l, MARGIN + 4, yCont);
+            yCont += alturaLinea;
+        });
+        
+        y += alturaCont + gap;
+    };
+    
+    const dibujarCajaDoble = (titulo, label1, texto1, label2, texto2) => {
+        const mitad = CONTENT_W / 2;
+        const anchoTexto = mitad - 8;
+        
+        const lineas1 = doc.splitTextToSize(texto1 || '', anchoTexto);
+        const lineas2 = doc.splitTextToSize(texto2 || '', anchoTexto);
+        const maxLineas = Math.max(lineas1.length, lineas2.length);
+        const alturaCont = Math.max(maxLineas * alturaLinea + padContenido * 2, 6) + extraContenido;
+        
+        doc.setFillColor(230, 57, 70);
+        doc.rect(MARGIN, y, CONTENT_W, alturaTitulo, 'F');
+        doc.setFontSize(tamano);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(titulo, MARGIN + 4, y + alturaTitulo - 1.2);
+        y += alturaTitulo;
+        
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(230, 57, 70);
+        doc.setLineWidth(0.6);
+        doc.rect(MARGIN, y, CONTENT_W, alturaCont, 'FD');
+        
+        doc.setLineWidth(0.3);
+        doc.line(MARGIN + mitad, y, MARGIN + mitad, y + alturaCont);
+        
+        doc.setFontSize(tamano);
+        doc.setTextColor(230, 57, 70);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label1, MARGIN + 4, y + padContenido + alturaLinea * 0.7);
+        doc.setTextColor(30, 30, 30);
+        doc.setFont('helvetica', 'normal');
+        let y1 = y + padContenido + alturaLinea * 1.4;
+        lineas1.forEach(l => { doc.text(l, MARGIN + 4, y1); y1 += alturaLinea; });
+        
+        doc.setTextColor(230, 57, 70);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label2, MARGIN + mitad + 4, y + padContenido + alturaLinea * 0.7);
+        doc.setTextColor(30, 30, 30);
+        doc.setFont('helvetica', 'normal');
+        let y2 = y + padContenido + alturaLinea * 1.4;
+        lineas2.forEach(l => { doc.text(l, MARGIN + mitad + 4, y2); y2 += alturaLinea; });
+        
+        y += alturaCont + gap;
+    };
+    
+    dibujarCaja('BIBLIOGRAFÍA', plan.bibliografia);
+    dibujarCaja('COMPETENCIA', plan.competencia);
+    dibujarCaja('INDICADOR DE LOGRO', plan.indicadorLogro);
+    dibujarCajaDoble('CONTENIDOS', 'Conceptual:', plan.contenidoConceptual, 'Procedimental:', plan.contenidoProcedimental);
+    dibujarCaja('ACTITUDINAL', plan.contenidoActitudinal);
+    dibujarCaja('ACTIVIDADES', textoActividades);
+    dibujarCajaDoble('RECURSOS Y EVALUACIÓN', 'Recursos:', plan.recursos, 'Evaluación:', textoEvaluacion);
+    
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+        `Academia de Música Expresión Musical · Generado el ${fechaCompleta} · Página 1 de 1`,
+        PAGE_W / 2, PAGE_H - 8, { align: 'center' }
+    );
+}
+
+// =====================================================
+// 🎨 GENERAR HTML (para modal "Ver")
+// =====================================================
+
+function generarHTMLParaImprimir(plan) {
+    const fechaCompleta = new Date().toLocaleDateString('es-GT', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+    
+    const tamano = calcularTamanoPlanificacion(plan);
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Planificación - ${plan.tema}</title>
+            <style>
+                @page { size: Letter portrait; margin: 10mm 10mm 15mm 10mm; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                html, body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: ${tamano}pt; line-height: 1.4; background: white; }
+                body { padding: 10mm; }
+                .p-banda-top { background: linear-gradient(135deg, #C1121F, #E63946); color: white; padding: 10px 16px; border-radius: 6px 6px 0 0; display: flex; align-items: center; gap: 14px; }
+                .p-banda-top img { width: 45px; height: 45px; background: white; border-radius: 50%; padding: 3px; object-fit: contain; }
+                .p-banda-top h1 { margin: 0; font-size: ${tamano + 2}pt; }
+                .p-banda-top h2 { margin: 3px 0 0; font-size: ${tamano}pt; font-weight: normal; opacity: 0.9; }
+                .p-hero-box { background: #fff5f5; border: 2px solid #E63946; border-top: none; padding: 8px 16px; border-radius: 0 0 6px 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+                .p-hero-box .tema { font-size: ${tamano + 1}pt; font-weight: 700; color: #E63946; }
+                .p-hero-box .meta { font-size: ${tamano}pt; color: #555; font-weight: 600; }
+                .p-info-box { background: #fff5f5; border: 2px solid #E63946; border-radius: 6px; padding: 8px 14px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 20px; font-size: ${tamano}pt; }
+                .p-info-box strong { color: #E63946; }
+                .p-box { border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+                .p-box-title { background: #E63946; color: white; padding: 4px 12px; font-size: ${tamano}pt; font-weight: 700; }
+                .p-box-content { padding: 7px 12px; font-size: ${tamano}pt; line-height: 1.45; white-space: pre-line; }
+                .p-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+                .p-2col .p-box { margin-bottom: 0; }
+                .p-footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd; font-size: ${tamano - 1}pt; color: #888; }
+            </style>
+        </head>
+        <body>
+            <div class="p-banda-top">
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo">
+                <div>
+                    <h1>ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"</h1>
+                    <h2>Planificación Semanal · 📞 37418036 / 38514409</h2>
+                </div>
+            </div>
+            <div class="p-hero-box">
+                <div class="tema">📖 Semana ${plan.semana} de 44 — ${escapeHtmlPlan(plan.tema)}</div>
+                <div class="meta">⭐ ${plan.ponderacion} puntos</div>
+            </div>
+            <div class="p-info-box">
+                <div><strong>👨‍🏫 Docente:</strong> ${escapeHtmlPlan(plan.docenteNombre)}</div>
+                <div><strong>🎸 Instrumento:</strong> ${escapeHtmlPlan(plan.instrumento)}</div>
+                <div><strong>📊 Nivel:</strong> ${escapeHtmlPlan(plan.nivel)}</div>
+                <div><strong>🔢 Semana:</strong> ${plan.semana} de 44</div>
+                <div><strong>📅 Fecha:</strong> ${fechaCompleta}</div>
+                <div><strong>⭐ Ponderación:</strong> ${plan.ponderacion} puntos</div>
+            </div>
+            <div class="p-box"><div class="p-box-title">📚 BIBLIOGRAFÍA</div><div class="p-box-content">${escapeHtmlPlan(plan.bibliografia)}</div></div>
+            <div class="p-box"><div class="p-box-title">🎯 COMPETENCIA</div><div class="p-box-content">${escapeHtmlPlan(plan.competencia)}</div></div>
+            <div class="p-box"><div class="p-box-title">📊 INDICADOR DE LOGRO</div><div class="p-box-content">${escapeHtmlPlan(plan.indicadorLogro)}</div></div>
+            <div class="p-2col">
+                <div class="p-box"><div class="p-box-title">📖 CONCEPTUAL</div><div class="p-box-content">${escapeHtmlPlan(plan.contenidoConceptual)}</div></div>
+                <div class="p-box"><div class="p-box-title">⚙️ PROCEDIMENTAL</div><div class="p-box-content">${escapeHtmlPlan(plan.contenidoProcedimental)}</div></div>
+            </div>
+            <div class="p-box"><div class="p-box-title">🎭 ACTITUDINAL</div><div class="p-box-content">${escapeHtmlPlan(plan.contenidoActitudinal)}</div></div>
+            <div class="p-box"><div class="p-box-title">🎼 ACTIVIDADES</div><div class="p-box-content"><strong>🕐 Inicio (10 min):</strong> ${escapeHtmlPlan(plan.actividadInicio)}
+<strong>⚙️ Desarrollo (35 min):</strong> ${escapeHtmlPlan(plan.actividadDesarrollo)}
+<strong>🏁 Cierre (15 min):</strong> ${escapeHtmlPlan(plan.actividadCierre)}</div></div>
+            <div class="p-2col">
+                <div class="p-box"><div class="p-box-title">🎒 RECURSOS</div><div class="p-box-content">${escapeHtmlPlan(plan.recursos)}</div></div>
+                <div class="p-box"><div class="p-box-title">📝 EVALUACIÓN (${plan.ponderacion} pts)</div><div class="p-box-content">${escapeHtmlPlan(plan.criteriosEvaluacion)}</div></div>
+            </div>
+            <div class="p-footer">Academia de Música Expresión Musical · Generado el ${fechaCompleta} · Página 1 de 1</div>
+        </body>
+        </html>
+    `;
+}
+
+// =====================================================
+// 📝 ABRIR MODAL PARA CREAR/EDITAR PLANIFICACIÓN
+// =====================================================
+
+async function abrirModalPlanificacion(planParaEditar = null) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
+    if (!username) {
+        alert('⚠️ No se encontró el usuario docente');
+        return;
+    }
+    
+    const previo = document.getElementById('modalPlanificacion');
+    if (previo) previo.remove();
+    
+    let temarios = [];
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('temarios')
+                .where('docenteId', '==', username)
+                .get();
+            snapshot.forEach(doc => temarios.push({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.error('❌ Error Firebase:', e);
+        }
+    }
+    if (temarios.length === 0) {
+        const locales = JSON.parse(localStorage.getItem('temarios') || '[]');
+        temarios = locales.filter(t => t.docenteId === username);
+    }
+    
+    if (temarios.length === 0) {
+        alert('⚠️ No tienes temarios guardados.\n\nPrimero crea un temario.');
+        return;
+    }
+    
+    temarios.sort((a, b) => (a.instrumento || '').localeCompare(b.instrumento || ''));
+    _temariosVisorCache = temarios;
+    _planificacionEditandoId = planParaEditar ? planParaEditar.id : null;
+    
+    const opcionesInstrumento = temarios.map((t, i) => 
+        `<option value="${i}">${t.instrumento} — ${t.nivel} (${(t.semanas || []).length} sem.)</option>`
+    ).join('');
+    
+    const esEdicion = !!planParaEditar;
+    
+    const modal = document.createElement('div');
+    modal.id = 'modalPlanificacion';
+    modal.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 100001;
+        display: flex; justify-content: center; align-items: center;
+        padding: 15px; box-sizing: border-box;
+        overflow-y: auto;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 16px; width: 100%; max-width: 1000px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); margin: auto;">
+            
+            <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-clipboard-list"></i>
+                        ${esEdicion ? 'Editar Planificación' : 'Crear Planificación Automática'}
+                    </h2>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; opacity: 0.8;">
+                        ${esEdicion ? 'Modifica los campos y guarda los cambios' : 'Selecciona temario y semana — el sistema genera TODO'}
+                    </p>
+                </div>
+                <button onclick="document.getElementById('modalPlanificacion').remove(); _planificacionEditandoId = null;" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div style="padding: 20px; overflow-y: auto; flex: 1; background: #f8f9fa;">
+                
+                <div id="planPaso1" style="display: ${esEdicion ? 'none' : 'block'};">
+                    <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #E63946; margin-bottom: 15px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        <h3 style="margin: 0 0 15px; color: #E63946; font-size: 1rem;">
+                            <i class="fas fa-filter"></i> Paso 1 — Selecciona instrumento, nivel y semana
+                        </h3>
+                        
+                        <div style="display: grid; gap: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #555;">📚 Temario</label>
+                                <select id="planTemario" onchange="actualizarSemanasPlanificacion()" 
+                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9rem;">
+                                    <option value="">-- Seleccione --</option>
+                                    ${opcionesInstrumento}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #555;">🔢 Semana</label>
+                                <select id="planSemana" onchange="autocompletarDesdeSemana()" 
+                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9rem;">
+                                    <option value="">-- Primero seleccione temario --</option>
+                                </select>
+                            </div>
+                            
+                            <div id="planInfoTema" style="display: none; background: #fff5f5; padding: 12px; border-radius: 8px; border-left: 4px solid #E63946;">
+                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">📖 Tema del temario:</div>
+                                <div style="font-size: 1rem; font-weight: 700; color: #E63946;" id="planTemaTexto">-</div>
+                                <div style="font-size: 0.8rem; color: #666; margin-top: 5px;" id="planTemaPonderacion">-</div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #555;">
+                                    📚 Bibliografía <span style="color: #4CAF50; font-size: 0.75rem;">(automática)</span>
+                                </label>
+                                <textarea id="planBibliografia" rows="2" placeholder="Se autocompletará al elegir la semana..." 
+                                          style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <button onclick="generarPlanificacionAutomaticaUI()" 
+                                    style="padding: 14px; background: linear-gradient(135deg, #E63946, #C1121F); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+                                <i class="fas fa-magic"></i> 🤖 Generar Planificación
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="planPaso2" style="display: ${esEdicion ? 'block' : 'none'};">
+                    <div style="background: #e8f5e9; padding: 12px 15px; border-radius: 8px; border-left: 4px solid #4CAF50; margin-bottom: 15px;">
+                        <strong style="color: #2e7d32;">✅ Vista previa editable — Así se verá al imprimir</strong>
+                        <span style="color: #555; font-size: 0.85rem; display: block; margin-top: 3px;">
+                            Puedes editar cualquier campo. Los cambios se aplican al descargar el PDF.
+                        </span>
+                    </div>
+                    
+                    <div id="planCamposEditables"></div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center;">
+                        <button onclick="volverPaso1Planificacion()" 
+                                style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            ← Volver
+                        </button>
+                        <button onclick="guardarPlanificacionEnFirebase()" 
+                                style="flex: 1; max-width: 250px; padding: 12px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-save"></i> Guardar en Firebase
+                        </button>
+                        <button onclick="descargarPlanificacionPDF()" 
+                                style="padding: 12px 20px; background: #FF9800; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-file-pdf"></i> Descargar PDF
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); _planificacionEditandoId = null; } });
+    
+    if (esEdicion && planParaEditar) {
+        window._planificacionActual = { ...planParaEditar };
+        renderizarVistaPreviaEditable(planParaEditar);
+    }
+}
+
+function actualizarSemanasPlanificacion() {
+    const idxTemario = document.getElementById('planTemario')?.value;
+    const selectSemana = document.getElementById('planSemana');
+    const infoTema = document.getElementById('planInfoTema');
+    
+    if (!selectSemana) return;
+    
+    if (idxTemario === '' || !_temariosVisorCache[idxTemario]) {
+        selectSemana.innerHTML = '<option value="">-- Primero seleccione temario --</option>';
+        if (infoTema) infoTema.style.display = 'none';
+        return;
+    }
+    
+    const temario = _temariosVisorCache[idxTemario];
+    const semanas = (temario.semanas || []).sort((a, b) => a.numero - b.numero);
+    
+    if (semanas.length === 0) {
+        selectSemana.innerHTML = '<option value="">Este temario no tiene semanas</option>';
+        return;
+    }
+    
+    selectSemana.innerHTML = '<option value="">-- Seleccione semana --</option>' +
+        semanas.map(s => `<option value="${s.numero}">Semana ${s.numero}: ${s.tema || 'Sin tema'}</option>`).join('');
+    
+    if (infoTema) infoTema.style.display = 'none';
+}
+
+function autocompletarDesdeSemana() {
+    const idxTemario = document.getElementById('planTemario')?.value;
+    const numSemana = parseInt(document.getElementById('planSemana')?.value);
+    const infoTema = document.getElementById('planInfoTema');
+    
+    if (idxTemario === '' || isNaN(numSemana)) {
+        if (infoTema) infoTema.style.display = 'none';
+        return;
+    }
+    
+    const temario = _temariosVisorCache[idxTemario];
+    const semana = (temario.semanas || []).find(s => s.numero === numSemana);
+    
+    if (!semana) return;
+    
+    document.getElementById('planTemaTexto').textContent = semana.tema || 'Sin tema';
+    document.getElementById('planTemaPonderacion').textContent = 
+        `Ponderación: ${semana.ponderacion || 2.5} pts · Material: ${semana.material || 'No especificado'}`;
+    
+    const bibliografiaInput = document.getElementById('planBibliografia');
+    if (bibliografiaInput && !bibliografiaInput.value.trim()) {
+        bibliografiaInput.value = obtenerBibliografiaAutomatica(temario.instrumento, temario.nivel);
+    }
+    
+    if (infoTema) infoTema.style.display = 'block';
+}
+
+function generarPlanificacionAutomaticaUI() {
+    const idxTemario = document.getElementById('planTemario')?.value;
+    const numSemana = parseInt(document.getElementById('planSemana')?.value);
+    const bibliografia = document.getElementById('planBibliografia')?.value.trim();
+    
+    if (idxTemario === '' || isNaN(numSemana)) {
+        alert('⚠️ Selecciona un temario y una semana');
+        return;
+    }
+    
+    if (!bibliografia) {
+        alert('⚠️ La bibliografía es obligatoria');
+        return;
+    }
+    
+    const temario = _temariosVisorCache[idxTemario];
+    const semana = (temario.semanas || []).find(s => s.numero === numSemana);
+    
+    if (!semana) {
+        alert('⚠️ No se encontró la semana');
+        return;
+    }
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const nombreDocente = `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() || currentUser.username;
+    
+    const generado = generarPlanificacionAutomatica(
+        semana.tema || 'Sin tema',
+        temario.instrumento,
+        temario.nivel,
+        semana.ponderacion || 2.5,
+        numSemana
+    );
+    
+    const datosPlan = {
+        id: `plan_${currentUser.username}_${temario.instrumento.replace(/\s+/g, '_')}_${temario.nivel.replace(/\s+/g, '_')}_sem${numSemana}`,
+        docenteId: currentUser.username,
+        docenteNombre: nombreDocente,
+        instrumento: temario.instrumento,
+        nivel: temario.nivel,
+        semana: numSemana,
+        tema: semana.tema || 'Sin tema',
+        materialTemario: semana.material || '',
+        ponderacion: semana.ponderacion || 2.5,
+        bibliografia: bibliografia,
+        competencia: generado.competencia,
+        indicadorLogro: generado.indicadorLogro,
+        contenidoConceptual: generado.contenidoConceptual,
+        contenidoProcedimental: generado.contenidoProcedimental,
+        contenidoActitudinal: generado.contenidoActitudinal,
+        actividadInicio: generado.actividadInicio,
+        actividadDesarrollo: generado.actividadDesarrollo,
+        actividadCierre: generado.actividadCierre,
+        recursos: generado.recursos + '\n' + bibliografia,
+        criteriosEvaluacion: generado.criteriosEvaluacion,
+        fechaCreacion: new Date().toISOString()
+    };
+    
+    window._planificacionActual = datosPlan;
+    renderizarVistaPreviaEditable(datosPlan);
+}
+
+function renderizarVistaPreviaEditable(datosPlan) {
+    const fechaCompleta = new Date().toLocaleDateString('es-GT', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+    
+    const contenedor = document.getElementById('planCamposEditables');
+    contenedor.innerHTML = `
+        <div style="background: #e0e0e0; padding: 20px; border-radius: 12px; display: flex; justify-content: center;">
+            <div style="background: white; width: 100%; max-width: 780px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border-radius: 4px; overflow: hidden; font-family: Arial, Helvetica, sans-serif;">
+                <div style="background: linear-gradient(135deg, #C1121F, #E63946); color: white; padding: 12px 18px; display: flex; align-items: center; gap: 14px;">
+                    <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" style="width: 48px; height: 48px; background: white; border-radius: 50%; padding: 3px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1rem; font-weight: 700;">ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"</h2>
+                        <p style="margin: 3px 0 0; font-size: 0.8rem; opacity: 0.9;">Planificación Semanal · 📞 37418036 / 38514409</p>
+                    </div>
+                </div>
+                <div style="background: #fff5f5; border: 2px solid #E63946; border-top: none; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-size: 1rem; font-weight: 700; color: #E63946;">📖 Semana ${datosPlan.semana} de 44 — ${escapeHtmlPlan(datosPlan.tema)}</div>
+                    <div style="font-size: 0.9rem; color: #555; font-weight: 600;">⭐ ${datosPlan.ponderacion} puntos</div>
+                </div>
+                <div style="padding: 14px;">
+                    <div style="background: #fff5f5; border: 2px solid #E63946; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 0.88rem;">
+                        <div><strong style="color: #E63946;">👨‍🏫 Docente:</strong> ${escapeHtmlPlan(datosPlan.docenteNombre)}</div>
+                        <div><strong style="color: #E63946;">🎸 Instrumento:</strong> ${escapeHtmlPlan(datosPlan.instrumento)}</div>
+                        <div><strong style="color: #E63946;">📊 Nivel:</strong> ${escapeHtmlPlan(datosPlan.nivel)}</div>
+                        <div><strong style="color: #E63946;">🔢 Semana:</strong> ${datosPlan.semana} de 44</div>
+                        <div><strong style="color: #E63946;">📅 Fecha:</strong> ${fechaCompleta}</div>
+                        <div><strong style="color: #E63946;">⭐ Ponderación:</strong> ${datosPlan.ponderacion} puntos</div>
+                    </div>
+                    <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">📚 BIBLIOGRAFÍA</div>
+                        <div style="padding: 8px 12px;"><textarea id="editBibliografia" rows="2" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.88rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.bibliografia)}</textarea></div>
+                    </div>
+                    <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">🎯 COMPETENCIA</div>
+                        <div style="padding: 8px 12px;"><textarea id="editCompetencia" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.88rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.competencia)}</textarea></div>
+                    </div>
+                    <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">📊 INDICADOR DE LOGRO</div>
+                        <div style="padding: 8px 12px;"><textarea id="editIndicador" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.88rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.indicadorLogro)}</textarea></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden;">
+                            <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">📖 CONCEPTUAL</div>
+                            <div style="padding: 8px 12px;"><textarea id="editConcep" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.contenidoConceptual)}</textarea></div>
+                        </div>
+                        <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden;">
+                            <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">⚙️ PROCEDIMENTAL</div>
+                            <div style="padding: 8px 12px;"><textarea id="editProced" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.contenidoProcedimental)}</textarea></div>
+                        </div>
+                    </div>
+                    <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">🎭 ACTITUDINAL</div>
+                        <div style="padding: 8px 12px;"><textarea id="editActitu" rows="2" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.88rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.contenidoActitudinal)}</textarea></div>
+                    </div>
+                    <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">🎼 ACTIVIDADES</div>
+                        <div style="padding: 8px 12px;">
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #E63946; margin-bottom: 3px;">🕐 Inicio (10 min):</label>
+                            <textarea id="editActInicio" rows="2" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4; margin-bottom: 6px;">${escapeHtmlPlan(datosPlan.actividadInicio)}</textarea>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #E63946; margin-bottom: 3px;">⚙️ Desarrollo (35 min):</label>
+                            <textarea id="editActDesarrollo" rows="2" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4; margin-bottom: 6px;">${escapeHtmlPlan(datosPlan.actividadDesarrollo)}</textarea>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #E63946; margin-bottom: 3px;">🏁 Cierre (15 min):</label>
+                            <textarea id="editActCierre" rows="2" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.actividadCierre)}</textarea>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden;">
+                            <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">🎒 RECURSOS</div>
+                            <div style="padding: 8px 12px;"><textarea id="editRecursos" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.recursos)}</textarea></div>
+                        </div>
+                        <div style="border: 2px solid #E63946; border-radius: 6px; overflow: hidden;">
+                            <div style="background: #E63946; color: white; padding: 5px 12px; font-size: 0.88rem; font-weight: 700;">📝 EVALUACIÓN (${datosPlan.ponderacion} pts)</div>
+                            <div style="padding: 8px 12px;"><textarea id="editCriterios" rows="3" style="width: 100%; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; resize: vertical; background: #fafafa; line-height: 1.4;">${escapeHtmlPlan(datosPlan.criteriosEvaluacion)}</textarea></div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 14px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 0.75rem; color: #888;">
+                        Academia de Música Expresión Musical · Generado el ${fechaCompleta} · Página 1 de 1
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('planPaso1').style.display = 'none';
+    document.getElementById('planPaso2').style.display = 'block';
+}
+
+function volverPaso1Planificacion() {
+    document.getElementById('planPaso1').style.display = 'block';
+    document.getElementById('planPaso2').style.display = 'none';
+}
+
+// =====================================================
+// 💾 GUARDAR EN FIREBASE
+// =====================================================
+
+async function guardarPlanificacionEnFirebase() {
+    if (!window._planificacionActual) {
+        alert('⚠️ Primero genera la planificación');
+        return;
+    }
+    
+    const plan = { ...window._planificacionActual };
+    
+    plan.bibliografia = document.getElementById('editBibliografia')?.value.trim() || plan.bibliografia;
+    plan.competencia = document.getElementById('editCompetencia')?.value.trim() || plan.competencia;
+    plan.indicadorLogro = document.getElementById('editIndicador')?.value.trim() || plan.indicadorLogro;
+    plan.contenidoConceptual = document.getElementById('editConcep')?.value.trim() || plan.contenidoConceptual;
+    plan.contenidoProcedimental = document.getElementById('editProced')?.value.trim() || plan.contenidoProcedimental;
+    plan.contenidoActitudinal = document.getElementById('editActitu')?.value.trim() || plan.contenidoActitudinal;
+    plan.actividadInicio = document.getElementById('editActInicio')?.value.trim() || plan.actividadInicio;
+    plan.actividadDesarrollo = document.getElementById('editActDesarrollo')?.value.trim() || plan.actividadDesarrollo;
+    plan.actividadCierre = document.getElementById('editActCierre')?.value.trim() || plan.actividadCierre;
+    plan.recursos = document.getElementById('editRecursos')?.value.trim() || plan.recursos;
+    plan.criteriosEvaluacion = document.getElementById('editCriterios')?.value.trim() || plan.criteriosEvaluacion;
+    plan.fechaActualizacion = new Date().toISOString();
+    
+    if (!plan.bibliografia) {
+        alert('⚠️ La bibliografía no puede estar vacía');
+        return;
+    }
+    
+    window._planificacionActual = plan;
+    
+    if (!window.db) {
+        alert('❌ Firebase no disponible');
+        return;
+    }
+    
+    try {
+        await window.db.collection('planificaciones').doc(plan.id).set(plan, { merge: true });
+        
+        if (typeof showToast === 'function') {
+            showToast('✅ Planificación guardada correctamente', 'success');
+        } else {
+            alert('✅ Planificación guardada correctamente');
+        }
+        
+        document.getElementById('modalPlanificacion').remove();
+        _planificacionEditandoId = null;
+        
+        if (document.getElementById('modalVerPlanificaciones')) {
+            await verPlanificacionesGuardadas();
+        }
+    } catch (e) {
+        console.error('❌ Error guardando:', e);
+        alert('❌ Error al guardar: ' + e.message);
+    }
+}
+
+// =====================================================
+// 📄 DESCARGAR PDF
+// =====================================================
+
+async function descargarPlanificacionPDF() {
+    if (!window._planificacionActual) {
+        alert('⚠️ Primero genera la planificación');
+        return;
+    }
+    
+    const plan = { ...window._planificacionActual };
+    plan.bibliografia = document.getElementById('editBibliografia')?.value.trim() || plan.bibliografia;
+    plan.competencia = document.getElementById('editCompetencia')?.value.trim() || plan.competencia;
+    plan.indicadorLogro = document.getElementById('editIndicador')?.value.trim() || plan.indicadorLogro;
+    plan.contenidoConceptual = document.getElementById('editConcep')?.value.trim() || plan.contenidoConceptual;
+    plan.contenidoProcedimental = document.getElementById('editProced')?.value.trim() || plan.contenidoProcedimental;
+    plan.contenidoActitudinal = document.getElementById('editActitu')?.value.trim() || plan.contenidoActitudinal;
+    plan.actividadInicio = document.getElementById('editActInicio')?.value.trim() || plan.actividadInicio;
+    plan.actividadDesarrollo = document.getElementById('editActDesarrollo')?.value.trim() || plan.actividadDesarrollo;
+    plan.actividadCierre = document.getElementById('editActCierre')?.value.trim() || plan.actividadCierre;
+    plan.recursos = document.getElementById('editRecursos')?.value.trim() || plan.recursos;
+    plan.criteriosEvaluacion = document.getElementById('editCriterios')?.value.trim() || plan.criteriosEvaluacion;
+    
+    window._planificacionActual = plan;
+    
+    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        alert('❌ Error: jsPDF no disponible');
+        return;
+    }
+    
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    const doc = new jsPDFLib({ unit: 'mm', format: 'letter' });
+    
+    await dibujarPlanificacionEnPDF(doc, plan);
+    
+    const archivoNombre = `Planificacion_${plan.instrumento.replace(/\s+/g, '_')}_Sem${plan.semana}.pdf`;
+    doc.save(archivoNombre);
+    
+    if (typeof showToast === 'function') {
+        showToast(`✅ PDF descargado: ${archivoNombre}`, 'success');
+    }
+}
+
+// =====================================================
+// 📂 VER GUARDADAS CON SELECCIÓN MÚLTIPLE
+// =====================================================
+
+async function verPlanificacionesGuardadas() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
+    if (!username) {
+        alert('⚠️ No se encontró el usuario docente');
+        return;
+    }
+    
+    const previo = document.getElementById('modalVerPlanificaciones');
+    if (previo) previo.remove();
+    
+    _planificacionesGuardadasCache = [];
+    _planificacionesSeleccionadas.clear();
+    
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('planificaciones')
+                .where('docenteId', '==', username)
+                .get();
+            snapshot.forEach(doc => _planificacionesGuardadasCache.push({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.error('❌ Error Firebase:', e);
+        }
+    }
+    
+    if (_planificacionesGuardadasCache.length === 0) {
+        alert('📭 No tienes planificaciones guardadas aún.');
+        return;
+    }
+    
+    _planificacionesGuardadasCache.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+    
+    const modal = document.createElement('div');
+    modal.id = 'modalVerPlanificaciones';
+    modal.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 100001;
+        display: flex; justify-content: center; align-items: center;
+        padding: 15px; box-sizing: border-box;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 16px; width: 100%; max-width: 1000px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-folder-open"></i> Mis Planificaciones Guardadas
+                    </h2>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; opacity: 0.8;">
+                        ${_planificacionesGuardadasCache.length} planificación(es) · Selecciona varias para acciones masivas
+                    </p>
+                </div>
+                <button onclick="document.getElementById('modalVerPlanificaciones').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="padding: 12px 20px; background: #e8f5e9; border-bottom: 2px solid #4CAF50; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #2e7d32;">
+                    <input type="checkbox" id="chkSeleccionarTodas" onchange="toggleSeleccionarTodas(this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
+                    Seleccionar todas
+                </label>
+                <span id="contadorSeleccionadas" style="color: #2e7d32; font-weight: 700; font-size: 0.9rem;">0 seleccionadas</span>
+            </div>
+            <div style="padding: 15px 20px; overflow-y: auto; flex: 1; background: #f0f2f5;" id="listaPlanificacionesGuardadas">
+                ${renderizarListaPlanificaciones()}
+            </div>
+            <div id="barraAccionesMasivas" style="padding: 15px 20px; background: #1a1a2e; color: white; display: none; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <span style="font-weight: 700;">
+                    <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                    <span id="contadorBarra">0</span> planificación(es) seleccionada(s)
+                </span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="descargarSeleccionadasPDF()" 
+                            style="padding: 10px 18px; background: #FF9800; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-pdf"></i> Descargar PDF
+                    </button>
+                    <button onclick="eliminarSeleccionadas()" 
+                            style="padding: 10px 18px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+            <div style="padding: 12px 20px; background: white; border-top: 2px solid #E63946; display: flex; justify-content: flex-end;">
+                <button onclick="document.getElementById('modalVerPlanificaciones').remove()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function renderizarListaPlanificaciones() {
+    return _planificacionesGuardadasCache.map(p => `
+        <div style="background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid ${_planificacionesSeleccionadas.has(p.id) ? '#4CAF50' : '#E63946'};">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; flex: 1; min-width: 200px;">
+                    <input type="checkbox" data-plan-id="${p.id}" onchange="toggleSeleccionPlanificacion('${p.id}', this.checked)" 
+                           ${_planificacionesSeleccionadas.has(p.id) ? 'checked' : ''}
+                           style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; flex-shrink: 0;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0; font-size: 1rem; color: #E63946;">🎸 ${p.instrumento} — ${p.nivel}</h3>
+                        <p style="margin: 4px 0 0; font-size: 0.85rem; color: #555;"><strong>Semana ${p.semana}:</strong> ${p.tema}</p>
+                        <p style="margin: 3px 0 0; font-size: 0.75rem; color: #888;">📅 ${new Date(p.fechaCreacion).toLocaleDateString('es-GT')}</p>
+                    </div>
+                </label>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button onclick="verDetallePlanificacion('${p.id}')" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                    <button onclick="editarPlanificacionGuardada('${p.id}')" style="padding: 6px 12px; background: #FF9800; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button onclick="descargarPlanificacionGuardadaPDF('${p.id}')" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+                    <button onclick="eliminarPlanificacion('${p.id}')" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleSeleccionPlanificacion(planId, checked) {
+    if (checked) _planificacionesSeleccionadas.add(planId);
+    else _planificacionesSeleccionadas.delete(planId);
+    actualizarBarraAccionesMasivas();
+}
+
+function toggleSeleccionarTodas(checked) {
+    if (checked) _planificacionesGuardadasCache.forEach(p => _planificacionesSeleccionadas.add(p.id));
+    else _planificacionesSeleccionadas.clear();
+    document.querySelectorAll('input[data-plan-id]').forEach(chk => { chk.checked = checked; });
+    actualizarBarraAccionesMasivas();
+}
+
+function actualizarBarraAccionesMasivas() {
+    const count = _planificacionesSeleccionadas.size;
+    const contador = document.getElementById('contadorSeleccionadas');
+    const barra = document.getElementById('barraAccionesMasivas');
+    const contadorBarra = document.getElementById('contadorBarra');
+    if (contador) contador.textContent = `${count} seleccionada(s)`;
+    if (contadorBarra) contadorBarra.textContent = count;
+    if (barra) barra.style.display = count > 0 ? 'flex' : 'none';
+    document.querySelectorAll('[data-plan-id]').forEach(chk => {
+        const card = chk.closest('div[style*="background: white"]');
+        if (card) card.style.borderLeftColor = chk.checked ? '#4CAF50' : '#E63946';
+    });
+}
+
+// =====================================================
+// 👁️ VER DETALLE
+// =====================================================
+
+async function verDetallePlanificacion(planId) {
+    const plan = _planificacionesGuardadasCache.find(p => p.id === planId);
+    if (!plan) { alert('❌ No encontrada'); return; }
+    
+    const html = generarHTMLParaImprimir(plan);
+    
+    const previo = document.getElementById('modalDetallePlan');
+    if (previo) previo.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'modalDetallePlan';
+    modal.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.9);
+        z-index: 100002;
+        display: flex; justify-content: center; align-items: center;
+        padding: 15px; box-sizing: border-box;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 850px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="background: #1a1a2e; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1rem;">📄 ${plan.instrumento} — Semana ${plan.semana}</h3>
+                <button onclick="document.getElementById('modalDetallePlan').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-size: 20px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <iframe srcdoc="${html.replace(/"/g, '&quot;')}" style="flex: 1; width: 100%; border: none; min-height: 70vh;"></iframe>
+            <div style="padding: 12px 20px; background: white; border-top: 2px solid #E63946; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+                <button onclick="editarPlanificacionGuardada('${planId}'); document.getElementById('modalDetallePlan').remove();" 
+                        style="padding: 10px 18px; background: #FF9800; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button onclick="descargarPlanificacionGuardadaPDF('${planId}')" 
+                        style="padding: 10px 18px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+                <button onclick="document.getElementById('modalDetallePlan').remove()" 
+                        style="padding: 10px 18px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+// =====================================================
+// ✏️ EDITAR GUARDADA
+// =====================================================
+
+function editarPlanificacionGuardada(planId) {
+    const plan = _planificacionesGuardadasCache.find(p => p.id === planId);
+    if (!plan) { alert('❌ No encontrada'); return; }
+    const modalGuardadas = document.getElementById('modalVerPlanificaciones');
+    if (modalGuardadas) modalGuardadas.remove();
+    abrirModalPlanificacion(plan);
+}
+
+// =====================================================
+// 📄 DESCARGAR PDF DE UNA GUARDADA
+// =====================================================
+
+async function descargarPlanificacionGuardadaPDF(planId) {
+    const plan = _planificacionesGuardadasCache.find(p => p.id === planId);
+    if (!plan) { alert('❌ No encontrada'); return; }
+    
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    const doc = new jsPDFLib({ unit: 'mm', format: 'letter' });
+    await dibujarPlanificacionEnPDF(doc, plan);
+    
+    const archivoNombre = `Planificacion_${plan.instrumento.replace(/\s+/g, '_')}_Sem${plan.semana}.pdf`;
+    doc.save(archivoNombre);
+    
+    if (typeof showToast === 'function') {
+        showToast(`✅ PDF descargado: ${archivoNombre}`, 'success');
+    }
+}
+
+// =====================================================
+// 📄 DESCARGAR SELECCIONADAS EN UN PDF
+// =====================================================
+
+async function descargarSeleccionadasPDF() {
+    const seleccionadas = _planificacionesGuardadasCache.filter(p => _planificacionesSeleccionadas.has(p.id));
+    if (seleccionadas.length === 0) { alert('⚠️ Selecciona al menos una'); return; }
+    
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    const doc = new jsPDFLib({ unit: 'mm', format: 'letter' });
+    
+    for (let i = 0; i < seleccionadas.length; i++) {
+        if (i > 0) doc.addPage();
+        await dibujarPlanificacionEnPDF(doc, seleccionadas[i]);
+    }
+    
+    const archivoNombre = `Planificaciones_${seleccionadas.length}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(archivoNombre);
+    
+    if (typeof showToast === 'function') {
+        showToast(`✅ PDF descargado (${seleccionadas.length} planificaciones)`, 'success');
+    }
+}
+
+// =====================================================
+// 🗑️ ELIMINAR SELECCIONADAS
+// =====================================================
+
+async function eliminarSeleccionadas() {
+    const seleccionadas = _planificacionesGuardadasCache.filter(p => _planificacionesSeleccionadas.has(p.id));
+    if (seleccionadas.length === 0) { alert('⚠️ Selecciona al menos una'); return; }
+    if (!confirm(`⚠️ ¿Eliminar ${seleccionadas.length} planificación(es)? No se puede deshacer.`)) return;
+    if (!window.db) return;
+    
+    try {
+        for (const plan of seleccionadas) {
+            await window.db.collection('planificaciones').doc(plan.id).delete();
+        }
+        if (typeof showToast === 'function') {
+            showToast(`✅ ${seleccionadas.length} planificación(es) eliminada(s)`, 'success');
+        }
+        _planificacionesSeleccionadas.clear();
+        const m = document.getElementById('modalVerPlanificaciones');
+        if (m) m.remove();
+        setTimeout(verPlanificacionesGuardadas, 500);
+    } catch (e) {
+        alert('❌ Error al eliminar: ' + e.message);
+    }
+}
+
+// =====================================================
+// 🗑️ ELIMINAR UNA
+// =====================================================
+
+async function eliminarPlanificacion(planId) {
+    if (!confirm('⚠️ ¿Eliminar esta planificación?')) return;
+    if (!window.db) return;
+    try {
+        await window.db.collection('planificaciones').doc(planId).delete();
+        if (typeof showToast === 'function') showToast('✅ Eliminada', 'success');
+        _planificacionesSeleccionadas.delete(planId);
+        _planificacionesGuardadasCache = _planificacionesGuardadasCache.filter(p => p.id !== planId);
+        const lista = document.getElementById('listaPlanificacionesGuardadas');
+        if (lista) {
+            lista.innerHTML = renderizarListaPlanificaciones();
+            actualizarBarraAccionesMasivas();
+        }
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}
+
+// =====================================================
+// EXPONER FUNCIONES
+// =====================================================
+
+window.abrirModalPlanificacion = abrirModalPlanificacion;
+window.actualizarSemanasPlanificacion = actualizarSemanasPlanificacion;
+window.autocompletarDesdeSemana = autocompletarDesdeSemana;
+window.generarPlanificacionAutomaticaUI = generarPlanificacionAutomaticaUI;
+window.volverPaso1Planificacion = volverPaso1Planificacion;
+window.guardarPlanificacionEnFirebase = guardarPlanificacionEnFirebase;
+window.descargarPlanificacionPDF = descargarPlanificacionPDF;
+window.verPlanificacionesGuardadas = verPlanificacionesGuardadas;
+window.verDetallePlanificacion = verDetallePlanificacion;
+window.eliminarPlanificacion = eliminarPlanificacion;
+window.editarPlanificacionGuardada = editarPlanificacionGuardada;
+window.descargarPlanificacionGuardadaPDF = descargarPlanificacionGuardadaPDF;
+window.toggleSeleccionPlanificacion = toggleSeleccionPlanificacion;
+window.toggleSeleccionarTodas = toggleSeleccionarTodas;
+window.descargarSeleccionadasPDF = descargarSeleccionadasPDF;
+window.eliminarSeleccionadas = eliminarSeleccionadas;
+window.generarPlanificacionAutomatica = generarPlanificacionAutomatica;
+window.obtenerBibliografiaAutomatica = obtenerBibliografiaAutomatica;
+window.calcularTamanoPlanificacion = calcularTamanoPlanificacion;
+window.dibujarPlanificacionEnPDF = dibujarPlanificacionEnPDF;
+window.generarHTMLParaImprimir = generarHTMLParaImprimir;
+
+console.log('✅ Planificaciones - Versión final (solo PDF, sin botón Imprimir)');
 console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente - VERSIÓN FINAL");
 
 </script>
