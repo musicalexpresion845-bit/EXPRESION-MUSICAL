@@ -8647,6 +8647,11 @@ body.dark-mode .acciones .btn:hover {
         <div id="docPantallaTemario" class="pantalla">
             <div style="padding: 0 15px;">
                 <h3><i class="fas fa-book"></i> Crear Temario</h3>
+              <button onclick="verMisTemasPorSemana()" 
+        style="width:100%; padding:14px; margin-bottom:18px; background:linear-gradient(135deg, #9C27B0, #7B1FA2); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(156,39,176,0.3);">
+    <i class="fas fa-list-alt" style="font-size:1.3rem;"></i>
+    📋 Ver Mis Temas por Semana
+</button>
                 <div class="docente-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px;">
                     <div class="form-row">
                         <div class="input-group"><label>Instrumento:</label><select id="temarioInstrumento" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="">Cargando...</option></select></div>
@@ -17895,6 +17900,850 @@ function renderMiAsistencia(registros, username, filtroFecha) {
     tbody.innerHTML = html;
     console.log('✅ Asistencia renderizada:', registros.length, 'registros');
 }
+ // =====================================================
+// 🆕 VER MIS TEMAS POR SEMANA - VERSIÓN FINAL
+// Filtros + Desplegables cerrados + PDF + Imprimir sin pestaña
+// Impresión corregida para 44 semanas
+// =====================================================
+
+let _temariosVisorCache = [];
+
+async function verMisTemasPorSemana() {
+    console.log('📖 Abriendo visor de temarios del docente...');
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
+    
+    if (!username) {
+        alert('⚠️ No se encontró el usuario docente');
+        return;
+    }
+    
+    const previo = document.getElementById('modalVerTemarios');
+    if (previo) previo.remove();
+    
+    // ─── CARGAR TEMARIOS ───────────────────────────────
+    let temarios = [];
+    
+    if (window.db) {
+        try {
+            const snapshot = await window.db.collection('temarios')
+                .where('docenteId', '==', username)
+                .get();
+            snapshot.forEach(doc => temarios.push({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.error('❌ Error Firebase:', e);
+        }
+    }
+    
+    if (temarios.length === 0) {
+        const locales = JSON.parse(localStorage.getItem('temarios') || '[]');
+        temarios = locales.filter(t => t.docenteId === username);
+    }
+    
+    if (temarios.length === 0) {
+        alert('⚠️ No tienes temarios guardados.\n\nCrea uno primero desde el formulario "Crear Temario".');
+        return;
+    }
+    
+    temarios.sort((a, b) => (a.instrumento || '').localeCompare(b.instrumento || ''));
+    _temariosVisorCache = temarios;
+    
+    const modal = document.createElement('div');
+    modal.id = 'modalVerTemarios';
+    modal.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.75);
+        z-index: 100000;
+        display: flex; justify-content: center; align-items: center;
+        padding: 15px; box-sizing: border-box;
+    `;
+    
+    const opcionesInstrumento = temarios.map(t => 
+        `<option value="${t.instrumento}">${t.instrumento} — ${t.nivel}</option>`
+    ).join('');
+    
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 16px; width: 100%; max-width: 900px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4);">
+            
+            <!-- HEADER -->
+            <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-list-alt"></i>
+                        Mis Temas por Semana
+                    </h2>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; opacity: 0.8;">
+                        ${temarios.length} temario(s) · ${temarios.reduce((s, t) => s + (t.semanas?.length || 0), 0)} semanas totales
+                    </p>
+                </div>
+                <button onclick="document.getElementById('modalVerTemarios').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- BARRA DE FILTROS -->
+            <div style="padding: 12px 20px; background: #f8f9fa; border-bottom: 1px solid #ddd; display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr auto auto auto; gap: 10px; align-items: end;">
+                <div>
+                    <label style="display:block; font-size:0.75rem; font-weight:600; color:#555; margin-bottom:4px;">📚 Instrumento</label>
+                    <select id="filtroVisorInstrumento" onchange="aplicarFiltrosVisor()" 
+                            style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.85rem;">
+                        <option value="">Todos</option>
+                        ${opcionesInstrumento}
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.75rem; font-weight:600; color:#555; margin-bottom:4px;">🔢 Desde</label>
+                    <input type="number" id="filtroVisorSemanaDesde" min="1" max="44" placeholder="Ej: 1" oninput="aplicarFiltrosVisor()"
+                           style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.75rem; font-weight:600; color:#555; margin-bottom:4px;">🔢 Hasta</label>
+                    <input type="number" id="filtroVisorSemanaHasta" min="1" max="44" placeholder="Ej: 10" oninput="aplicarFiltrosVisor()"
+                           style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                </div>
+                <button onclick="limpiarFiltrosVisor()" title="Limpiar filtros"
+                        style="padding:8px 12px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; white-space:nowrap; height:37px;">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button onclick="imprimirVisorTemarios()" title="Imprimir todos (sin pestaña)"
+                        style="padding:8px 12px; background:#E63946; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:5px; height:37px;">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button onclick="descargarTodosPDF()" title="Descargar todos en PDF"
+                        style="padding:8px 12px; background:#FF9800; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:5px; height:37px;">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
+            
+            <!-- CONTENIDO -->
+            <div id="visorTemariosContenido" style="padding: 15px 20px; overflow-y: auto; flex: 1; background: #f0f2f5;">
+            </div>
+            
+            <!-- FOOTER -->
+            <div style="padding: 10px 20px; background: white; border-top: 2px solid #E63946; display: flex; justify-content: space-between; align-items: center; font-size:0.8rem; color:#666;">
+                <span id="visorTemariosContador"></span>
+                <button onclick="document.getElementById('modalVerTemarios').remove()" style="padding: 8px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    
+    const onEsc = e => {
+        if (e.key === 'Escape') {
+            const m = document.getElementById('modalVerTemarios');
+            if (m) m.remove();
+            document.removeEventListener('keydown', onEsc);
+        }
+    };
+    document.addEventListener('keydown', onEsc);
+    
+    aplicarFiltrosVisor();
+}
+
+// =====================================================
+// APLICAR FILTROS Y RENDERIZAR
+// =====================================================
+
+function aplicarFiltrosVisor() {
+    const contenedor = document.getElementById('visorTemariosContenido');
+    if (!contenedor) return;
+    
+    const filtroInstr = document.getElementById('filtroVisorInstrumento')?.value || '';
+    const filtroDesde = parseInt(document.getElementById('filtroVisorSemanaDesde')?.value) || null;
+    const filtroHasta = parseInt(document.getElementById('filtroVisorSemanaHasta')?.value) || null;
+    
+    let temariosFiltrados = _temariosVisorCache.filter(t => {
+        if (filtroInstr && t.instrumento !== filtroInstr) return false;
+        return true;
+    });
+    
+    if (temariosFiltrados.length === 0) {
+        contenedor.innerHTML = `
+            <div style="text-align:center;padding:40px;color:#888;">
+                <i class="fas fa-search" style="font-size:40px;margin-bottom:10px;display:block;"></i>
+                <p>No hay temarios que coincidan con el filtro.</p>
+            </div>
+        `;
+        document.getElementById('visorTemariosContador').textContent = '0 resultados';
+        return;
+    }
+    
+    let html = '';
+    let totalSemanasMostradas = 0;
+    let temariosConSemanas = 0;
+    
+    temariosFiltrados.forEach((temario, idx) => {
+        let semanas = (temario.semanas || []).sort((a, b) => a.numero - b.numero);
+        
+        if (filtroDesde !== null) {
+            semanas = semanas.filter(s => s.numero >= filtroDesde);
+        }
+        if (filtroHasta !== null) {
+            semanas = semanas.filter(s => s.numero <= filtroHasta);
+        }
+        
+        if (semanas.length === 0) return;
+        
+        temariosConSemanas++;
+        totalSemanasMostradas += semanas.length;
+        
+        const totalTemarioCompleto = (temario.semanas || []).length;
+        const idUnico = `temario_${idx}_${(temario.instrumento || '').replace(/\s+/g, '_')}_${(temario.nivel || '').replace(/\s+/g, '_')}`;
+        
+        html += `
+            <div id="${idUnico}" style="background: white; border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); border: 2px solid #E63946;">
+                
+                <div style="background: linear-gradient(135deg, #E63946, #C1121F); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    
+                    <div onclick="toggleTemarioVisor('${idUnico}')" style="cursor: pointer; flex: 1; min-width: 200px;">
+                        <h3 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-guitar"></i>
+                            ${temario.instrumento} — ${temario.nivel}
+                        </h3>
+                        <p style="margin: 3px 0 0; font-size: 0.75rem; opacity: 0.9;">
+                            Mostrando ${semanas.length} de ${totalTemarioCompleto} semana(s)
+                        </p>
+                    </div>
+                    
+                    <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+                        <button onclick="event.stopPropagation(); imprimirTemarioIndividual('${temario.id}')" 
+                                title="Imprimir este temario"
+                                style="padding:6px 10px; background:white; color:#E63946; border:none; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:4px; white-space:nowrap;">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button onclick="event.stopPropagation(); descargarTemarioPDF('${temario.id}')" 
+                                title="Descargar PDF"
+                                style="padding:6px 10px; background:#FF9800; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:4px; white-space:nowrap;">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button onclick="event.stopPropagation(); toggleTemarioVisor('${idUnico}')"
+                                id="btn_${idUnico}"
+                                style="padding:6px 10px; background: rgba(255,255,255,0.25); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:700; white-space:nowrap;">
+                            ▼
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="cont_${idUnico}" style="display: none; padding: 8px 10px; background: #fafafa; max-height: 400px; overflow-y: auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                        <thead>
+                            <tr style="background:#fff5f5; border-bottom:2px solid #E63946;">
+                                <th style="padding:6px 8px; text-align:left; width:70px; color:#E63946; font-size:0.75rem;">Sem</th>
+                                <th style="padding:6px 8px; text-align:left; color:#E63946; font-size:0.75rem;">Tema</th>
+                                <th style="padding:6px 8px; text-align:center; width:70px; color:#E63946; font-size:0.75rem;">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${semanas.map(s => `
+                                <tr style="border-bottom:1px solid #eee;">
+                                    <td style="padding:6px 8px;">
+                                        <span style="background:#E63946; color:white; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:700; display:inline-block;">
+                                            ${s.numero}
+                                        </span>
+                                    </td>
+                                    <td style="padding:6px 8px; color:#1a1a1a; font-weight:500;">
+                                        ${s.tema || '<span style="color:#999;">Sin tema</span>'}
+                                    </td>
+                                    <td style="padding:6px 8px; text-align:center; color:#E63946; font-weight:700;">
+                                        ${s.ponderacion || 0}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    if (html === '') {
+        html = `
+            <div style="text-align:center;padding:40px;color:#888;">
+                <i class="fas fa-search" style="font-size:40px;margin-bottom:10px;display:block;"></i>
+                <p>No hay semanas en ese rango.</p>
+            </div>
+        `;
+    }
+    
+    contenedor.innerHTML = html;
+    document.getElementById('visorTemariosContador').textContent = 
+        `${temariosConSemanas} temario(s) · ${totalSemanasMostradas} semana(s) mostradas`;
+}
+
+function toggleTemarioVisor(idUnico) {
+    const contenido = document.getElementById(`cont_${idUnico}`);
+    const boton = document.getElementById(`btn_${idUnico}`);
+    if (!contenido) return;
+    
+    const estaAbierto = contenido.style.display !== 'none';
+    
+    if (estaAbierto) {
+        contenido.style.display = 'none';
+        if (boton) boton.textContent = '▼';
+    } else {
+        contenido.style.display = 'block';
+        if (boton) boton.textContent = '▲';
+    }
+}
+
+function limpiarFiltrosVisor() {
+    document.getElementById('filtroVisorInstrumento').value = '';
+    document.getElementById('filtroVisorSemanaDesde').value = '';
+    document.getElementById('filtroVisorSemanaHasta').value = '';
+    aplicarFiltrosVisor();
+}
+
+// =====================================================
+// 🖨️ IMPRIMIR SIN ABRIR PESTAÑA (iframe con tamaño A4 real)
+// =====================================================
+
+function imprimirHTMLEnIframe(htmlContenido) {
+    const iframe = document.createElement('iframe');
+    
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    iframe.style.zIndex = '-1';
+    
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlContenido);
+    doc.close();
+    
+    iframe.onload = function() {
+        setTimeout(() => {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch(e) {
+                console.error('Error al imprimir:', e);
+            }
+            setTimeout(() => {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            }, 3000);
+        }, 500);
+    };
+}
+
+// =====================================================
+// GENERAR HTML DEL REPORTE (CSS corregido para 44 semanas)
+// =====================================================
+
+function generarHTMLReporte(temarios, nombreDocente, filtros = {}) {
+    const fecha = new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    let bloques = '';
+    let totalTemarios = 0;
+    
+    temarios.forEach(temario => {
+        let semanas = (temario.semanas || []).sort((a, b) => a.numero - b.numero);
+        if (filtros.desde) semanas = semanas.filter(s => s.numero >= filtros.desde);
+        if (filtros.hasta) semanas = semanas.filter(s => s.numero <= filtros.hasta);
+        
+        if (semanas.length === 0) return;
+        totalTemarios++;
+        
+        bloques += `
+            <div class="temario-bloque">
+                <h2 class="temario-titulo">🎸 ${temario.instrumento} — ${temario.nivel}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:50px; text-align:center;">Sem</th>
+                            <th>Tema</th>
+                            <th style="width:50px; text-align:center;">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${semanas.map(s => `
+                            <tr>
+                                <td style="text-align:center; font-weight:700; color:#E63946;">${s.numero}</td>
+                                <td>${s.tema || 'Sin tema'}</td>
+                                <td style="text-align:center; font-weight:700; color:#E63946;">${s.ponderacion || 0}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+    
+    const filtrosTexto = [
+        filtros.instrumento ? `Instrumento: ${filtros.instrumento}` : '',
+        filtros.desde ? `Desde semana ${filtros.desde}` : '',
+        filtros.hasta ? `Hasta semana ${filtros.hasta}` : ''
+    ].filter(Boolean).join(' · ');
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Listado de Temas</title>
+            <style>
+                @page {
+                    size: A4 portrait;
+                    margin: 12mm 10mm;
+                }
+                
+                * { box-sizing: border-box; }
+                
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 12mm 10mm;
+                    margin: 0;
+                    color: #333;
+                    font-size: 11px;
+                    width: 210mm;
+                    max-width: 100%;
+                }
+                
+                .header {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                    border-bottom: 3px solid #E63946;
+                    padding-bottom: 10px;
+                    margin-bottom: 12px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                .header img { width: 55px; height: 55px; object-fit: contain; }
+                .header h1 { margin: 0; color: #E63946; font-size: 14px; }
+                .header h2 { margin: 2px 0 0; font-size: 11px; color: #666; font-weight: normal; }
+                .header p { margin: 2px 0; font-size: 9px; color: #666; }
+                
+                .titulo-doc {
+                    text-align: center;
+                    margin: 10px 0;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                .titulo-doc h3 { color: #E63946; margin: 0; font-size: 13px; }
+                .titulo-doc p { color: #666; margin: 3px 0 0; font-size: 10px; }
+                
+                .temario-bloque {
+                    margin-bottom: 14px;
+                    page-break-inside: auto;
+                    break-inside: auto;
+                }
+                
+                .temario-titulo {
+                    background: #E63946;
+                    color: white;
+                    padding: 5px 10px;
+                    font-size: 11px;
+                    margin: 0 0 5px 0;
+                    border-radius: 3px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 10px;
+                    page-break-inside: auto;
+                    break-inside: auto;
+                }
+                
+                thead {
+                    display: table-header-group;
+                }
+                thead tr {
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                
+                th {
+                    background: #fff5f5;
+                    color: #E63946;
+                    padding: 5px 6px;
+                    text-align: left;
+                    border: 1px solid #E63946;
+                    font-size: 9px;
+                }
+                
+                td {
+                    padding: 4px 6px;
+                    border: 1px solid #ddd;
+                    vertical-align: top;
+                }
+                
+                tr {
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                
+                tbody tr:nth-child(even) { background: #fafafa; }
+                
+                .footer {
+                    text-align: center;
+                    margin-top: 15px;
+                    padding-top: 8px;
+                    border-top: 1px solid #ddd;
+                    font-size: 8px;
+                    color: #666;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                
+                p, h1, h2, h3 { orphans: 3; widows: 3; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="https://i.ibb.co/vvd4qZmh/20230926-230910-0000.png" alt="Logo">
+                <div>
+                    <h1>ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"</h1>
+                    <h2>Listado de Temas por Semana</h2>
+                    <p>📞 37418036 / 38514409 · 📍 08 Calle c 10-72 Zona 3 San Marcos</p>
+                </div>
+            </div>
+            
+            <div class="titulo-doc">
+                <h3>Docente: ${nombreDocente}</h3>
+                <p>Generado el ${fecha}${filtrosTexto ? ` · ${filtrosTexto}` : ''} · ${totalTemarios} temario(s)</p>
+            </div>
+            
+            ${bloques}
+            
+            <div class="footer">
+                <p>Academia de Música Expresión Musical · Sistema de Gestión Académica</p>
+                <p>Documento generado automáticamente el ${new Date().toLocaleString('es-GT')}</p>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// =====================================================
+// 🖨️ IMPRIMIR UN TEMARIO INDIVIDUAL
+// =====================================================
+
+function imprimirTemarioIndividual(temarioId) {
+    const temario = _temariosVisorCache.find(t => String(t.id) === String(temarioId));
+    if (!temario) {
+        alert('⚠️ No se encontró el temario');
+        return;
+    }
+    
+    const filtroDesde = parseInt(document.getElementById('filtroVisorSemanaDesde')?.value) || null;
+    const filtroHasta = parseInt(document.getElementById('filtroVisorSemanaHasta')?.value) || null;
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const nombreDocente = `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() || currentUser.username;
+    
+    const html = generarHTMLReporte([temario], nombreDocente, {
+        desde: filtroDesde,
+        hasta: filtroHasta
+    });
+    
+    imprimirHTMLEnIframe(html);
+}
+
+// =====================================================
+// 🖨️ IMPRIMIR TODOS LOS FILTRADOS
+// =====================================================
+
+function imprimirVisorTemarios() {
+    const filtroInstr = document.getElementById('filtroVisorInstrumento')?.value || '';
+    const filtroDesde = parseInt(document.getElementById('filtroVisorSemanaDesde')?.value) || null;
+    const filtroHasta = parseInt(document.getElementById('filtroVisorSemanaHasta')?.value) || null;
+    
+    let temariosFiltrados = _temariosVisorCache.filter(t => {
+        if (filtroInstr && t.instrumento !== filtroInstr) return false;
+        return true;
+    });
+    
+    if (temariosFiltrados.length === 0) {
+        alert('No hay temarios para imprimir con los filtros actuales.');
+        return;
+    }
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const nombreDocente = `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() || currentUser.username;
+    
+    const html = generarHTMLReporte(temariosFiltrados, nombreDocente, {
+        instrumento: filtroInstr,
+        desde: filtroDesde,
+        hasta: filtroHasta
+    });
+    
+    imprimirHTMLEnIframe(html);
+}
+
+// =====================================================
+// 📄 DESCARGAR PDF DE UN TEMARIO
+// =====================================================
+
+function descargarTemarioPDF(temarioId) {
+    const temario = _temariosVisorCache.find(t => String(t.id) === String(temarioId));
+    if (!temario) {
+        alert('⚠️ No se encontró el temario');
+        return;
+    }
+    
+    const filtroDesde = parseInt(document.getElementById('filtroVisorSemanaDesde')?.value) || null;
+    const filtroHasta = parseInt(document.getElementById('filtroVisorSemanaHasta')?.value) || null;
+    
+    let semanas = (temario.semanas || []).sort((a, b) => a.numero - b.numero);
+    if (filtroDesde !== null) semanas = semanas.filter(s => s.numero >= filtroDesde);
+    if (filtroHasta !== null) semanas = semanas.filter(s => s.numero <= filtroHasta);
+    
+    if (semanas.length === 0) {
+        alert('⚠️ No hay semanas para descargar con los filtros actuales.');
+        return;
+    }
+    
+    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        alert('❌ Error: jsPDF no está disponible');
+        return;
+    }
+    
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    const doc = new jsPDFLib({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const nombreDocente = `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() || currentUser.username;
+    const fecha = new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    doc.setFillColor(230, 57, 70);
+    doc.rect(0, 0, 210, 8, 'F');
+    
+    doc.setFontSize(14);
+    doc.setTextColor(230, 57, 70);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Listado de Temas por Semana', 105, 26, { align: 'center' });
+    doc.text('Tel: 37418036 / 38514409 · 08 Calle c 10-72 Zona 3 San Marcos', 105, 31, { align: 'center' });
+    
+    doc.setDrawColor(230, 57, 70);
+    doc.setLineWidth(0.5);
+    doc.line(20, 35, 190, 35);
+    
+    doc.setFontSize(13);
+    doc.setTextColor(230, 57, 70);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${temario.instrumento} — ${temario.nivel}`, 105, 45, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    let infoLinea = `Docente: ${nombreDocente} · Generado: ${fecha}`;
+    if (filtroDesde) infoLinea += ` · Desde semana ${filtroDesde}`;
+    if (filtroHasta) infoLinea += ` · Hasta semana ${filtroHasta}`;
+    doc.text(infoLinea, 105, 51, { align: 'center' });
+    
+    if (typeof doc.autoTable === 'function') {
+        const filas = semanas.map(s => [
+            String(s.numero),
+            s.tema || 'Sin tema',
+            String(s.ponderacion || 0)
+        ]);
+        
+        doc.autoTable({
+            startY: 58,
+            head: [['Sem', 'Tema', 'Pts']],
+            body: filas,
+            theme: 'grid',
+            headStyles: { fillColor: [230, 57, 70], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+            bodyStyles: { fontSize: 10, textColor: [50, 50, 50] },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 20, fontStyle: 'bold', textColor: [230, 57, 70] },
+                1: { cellWidth: 'auto' },
+                2: { halign: 'center', cellWidth: 20, fontStyle: 'bold', textColor: [230, 57, 70] }
+            },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            margin: { left: 20, right: 20 },
+            pageBreak: 'auto',
+            rowPageBreak: 'avoid',
+            showHead: 'everyPage'
+        });
+    }
+    
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+            `Página ${i} de ${totalPaginas} · Academia Expresión Musical · ${new Date().toLocaleString('es-GT')}`,
+            105, 290, { align: 'center' }
+        );
+    }
+    
+    const nombreLimpio = (temario.instrumento || 'temario').replace(/\s+/g, '_');
+    const nivelLimpio = (temario.nivel || '').replace(/\s+/g, '_');
+    const nombreArchivo = `Temario_${nombreLimpio}_${nivelLimpio}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    doc.save(nombreArchivo);
+    
+    if (typeof showToast === 'function') {
+        showToast(`✅ PDF descargado: ${nombreArchivo}`, 'success');
+    } else {
+        alert(`✅ PDF descargado: ${nombreArchivo}`);
+    }
+}
+
+// =====================================================
+// 📄 DESCARGAR TODOS EN UN SOLO PDF
+// =====================================================
+
+function descargarTodosPDF() {
+    const filtroInstr = document.getElementById('filtroVisorInstrumento')?.value || '';
+    const filtroDesde = parseInt(document.getElementById('filtroVisorSemanaDesde')?.value) || null;
+    const filtroHasta = parseInt(document.getElementById('filtroVisorSemanaHasta')?.value) || null;
+    
+    let temariosFiltrados = _temariosVisorCache.filter(t => {
+        if (filtroInstr && t.instrumento !== filtroInstr) return false;
+        return true;
+    });
+    
+    if (temariosFiltrados.length === 0) {
+        alert('No hay temarios para descargar con los filtros actuales.');
+        return;
+    }
+    
+    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        alert('❌ Error: jsPDF no está disponible');
+        return;
+    }
+    
+    const jsPDFLib = window.jspdf?.jsPDF || window.jsPDF;
+    const doc = new jsPDFLib({ unit: 'mm', format: 'a4' });
+    
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const nombreDocente = `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() || currentUser.username;
+    const fecha = new Date().toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    let esPrimeraPagina = true;
+    let temariosAgregados = 0;
+    
+    temariosFiltrados.forEach(temario => {
+        let semanas = (temario.semanas || []).sort((a, b) => a.numero - b.numero);
+        if (filtroDesde !== null) semanas = semanas.filter(s => s.numero >= filtroDesde);
+        if (filtroHasta !== null) semanas = semanas.filter(s => s.numero <= filtroHasta);
+        
+        if (semanas.length === 0) return;
+        
+        if (!esPrimeraPagina) doc.addPage();
+        esPrimeraPagina = false;
+        temariosAgregados++;
+        
+        doc.setFillColor(230, 57, 70);
+        doc.rect(0, 0, 210, 8, 'F');
+        
+        doc.setFontSize(14);
+        doc.setTextColor(230, 57, 70);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ACADEMIA DE MÚSICA "EXPRESIÓN MUSICAL"', 105, 20, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Listado de Temas por Semana', 105, 26, { align: 'center' });
+        doc.text('Tel: 37418036 / 38514409', 105, 31, { align: 'center' });
+        
+        doc.setDrawColor(230, 57, 70);
+        doc.line(20, 35, 190, 35);
+        
+        doc.setFontSize(13);
+        doc.setTextColor(230, 57, 70);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${temario.instrumento} — ${temario.nivel}`, 105, 45, { align: 'center' });
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Docente: ${nombreDocente} · ${fecha}`, 105, 51, { align: 'center' });
+        
+        if (typeof doc.autoTable === 'function') {
+            const filas = semanas.map(s => [
+                String(s.numero),
+                s.tema || 'Sin tema',
+                String(s.ponderacion || 0)
+            ]);
+            
+            doc.autoTable({
+                startY: 58,
+                head: [['Sem', 'Tema', 'Pts']],
+                body: filas,
+                theme: 'grid',
+                headStyles: { fillColor: [230, 57, 70], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+                bodyStyles: { fontSize: 10, textColor: [50, 50, 50] },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 20, fontStyle: 'bold', textColor: [230, 57, 70] },
+                    1: { cellWidth: 'auto' },
+                    2: { halign: 'center', cellWidth: 20, fontStyle: 'bold', textColor: [230, 57, 70] }
+                },
+                alternateRowStyles: { fillColor: [250, 250, 250] },
+                margin: { left: 20, right: 20 },
+                pageBreak: 'auto',
+                rowPageBreak: 'avoid',
+                showHead: 'everyPage'
+            });
+        }
+    });
+    
+    if (temariosAgregados === 0) {
+        alert('No hay semanas para descargar con los filtros actuales.');
+        return;
+    }
+    
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+            `Página ${i} de ${totalPaginas} · Academia Expresión Musical`,
+            105, 290, { align: 'center' }
+        );
+    }
+    
+    const nombreArchivo = `Temarios_${nombreDocente.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(nombreArchivo);
+    
+    if (typeof showToast === 'function') {
+        showToast(`✅ PDF descargado: ${nombreArchivo}`, 'success');
+    } else {
+        alert(`✅ PDF descargado: ${nombreArchivo}`);
+    }
+}
+
+// =====================================================
+// EXPONER FUNCIONES GLOBALMENTE
+// =====================================================
+
+window.verMisTemasPorSemana = verMisTemasPorSemana;
+window.aplicarFiltrosVisor = aplicarFiltrosVisor;
+window.limpiarFiltrosVisor = limpiarFiltrosVisor;
+window.toggleTemarioVisor = toggleTemarioVisor;
+window.imprimirTemarioIndividual = imprimirTemarioIndividual;
+window.imprimirVisorTemarios = imprimirVisorTemarios;
+window.descargarTemarioPDF = descargarTemarioPDF;
+window.descargarTodosPDF = descargarTodosPDF;
+window.imprimirHTMLEnIframe = imprimirHTMLEnIframe;
+window.generarHTMLReporte = generarHTMLReporte;
+
+console.log('✅ Visor de temarios completo cargado (impresión A4 corregida, sin WhatsApp)');
 console.log("✅ BLOQUE 5 COMPLETO: Panel de Docente - VERSIÓN FINAL");
 
 </script>
