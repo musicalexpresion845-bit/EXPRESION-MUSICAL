@@ -8647,23 +8647,7 @@ body.dark-mode .acciones .btn:hover {
         <div id="docPantallaTemario" class="pantalla">
             <div style="padding: 0 15px;">
                 <h3><i class="fas fa-book"></i> Crear Temario</h3>
-              <button onclick="verMisTemasPorSemana()" 
-        style="width:100%; padding:14px; margin-bottom:18px; background:linear-gradient(135deg, #9C27B0, #7B1FA2); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(156,39,176,0.3);">
-    <i class="fas fa-list-alt" style="font-size:1.3rem;"></i>
-    📋 Ver Mis Temas por Semana
-</button>
-              <!-- 🆕 NUEVOS BOTONES DE PLANIFICACIONES -->
-<button onclick="abrirModalPlanificacion()" 
-        style="width:100%; padding:14px; margin-bottom:10px; background:linear-gradient(135deg, #1976D2, #0D47A1); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(25,118,210,0.3);">
-    <i class="fas fa-clipboard-list" style="font-size:1.3rem;"></i>
-    📝 Crear Planificación Automática
-</button>
-
-<button onclick="verPlanificacionesGuardadas()" 
-        style="width:100%; padding:14px; margin-bottom:18px; background:linear-gradient(135deg, #4CAF50, #2E7D32); color:white; border:none; border-radius:10px; cursor:pointer; font-size:1rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(76,175,80,0.3);">
-    <i class="fas fa-folder-open" style="font-size:1.3rem;"></i>
-    📂 Ver Planificaciones Guardadas
-</button> 
+            
                 <div class="docente-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px;">
                     <div class="form-row">
                         <div class="input-group"><label>Instrumento:</label><select id="temarioInstrumento" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="">Cargando...</option></select></div>
@@ -8811,55 +8795,78 @@ body.dark-mode .acciones .btn:hover {
 
     </div> <!-- fin menú inferior -->
 
-    <!-- ===== MENÚ HAMBURGUESA (DESPLEGABLE) ===== -->
-    <div id="menuHamburguesaDocenteOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; animation:fadeIn 0.3s ease;">
-        <div id="menuHamburguesaDocentePanel" style="background:white; width:280px; height:100%; padding:20px 0; box-shadow:2px 0 15px rgba(0,0,0,0.2); overflow-y:auto; animation:slideInLeft 0.3s ease;">
+   <!-- ===== MENÚ HAMBURGUESA (DESPLEGABLE) ===== -->
+<div id="menuHamburguesaDocenteOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; animation:fadeIn 0.3s ease;">
+    <div id="menuHamburguesaDocentePanel" style="background:white; width:280px; height:100%; padding:20px 0; box-shadow:2px 0 15px rgba(0,0,0,0.2); overflow-y:auto; animation:slideInLeft 0.3s ease;">
 
-            <div style="padding:0 20px 15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:#E63946; font-size:1.1rem;"><i class="fas fa-bars"></i> Menú Docente</h3>
-                <button id="cerrarMenuHamburguesaDocente" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;"><i class="fas fa-times"></i></button>
-            </div>
-
-            <div style="padding:10px 0;">
-
-                <div class="menu-hamburguesa-item" data-pantalla-docente="clases" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-calendar-alt" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Clases</span>
-                </div>
-
-                <div class="menu-hamburguesa-item" data-pantalla-docente="nuevaClase" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-plus-circle" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Crear Clase</span>
-                </div>
-
-                <div class="menu-hamburguesa-item" data-pantalla-docente="grabaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-video" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Grabaciones</span>
-                </div>
-
-                <div style="border-top:1px solid #eee; margin:10px 20px;"></div>
-
-                <div class="menu-hamburguesa-item" data-pantalla-docente="estudiantes" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-users" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Estudiantes</span>
-                </div>
-
-                <div class="menu-hamburguesa-item" data-pantalla-docente="calificaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-                    <i class="fas fa-star" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-                    <span>Calificaciones</span>
-                </div>
-<div class="menu-hamburguesa-item" data-pantalla-docente="miAsistencia" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
-    <i class="fas fa-clipboard-list" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
-    <span>Mi Asistencia</span>
-</div>
-            </div>
-
-            <div style="padding:10px 20px; border-top:1px solid #eee; margin-top:10px;">
-                <div style="font-size:0.7rem;color:#999;text-align:center;">Expresión Musical v1.0</div>
-            </div>
-
+        <div style="padding:0 20px 15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; color:#E63946; font-size:1.1rem;"><i class="fas fa-bars"></i> Menú Docente</h3>
+            <button id="cerrarMenuHamburguesaDocente" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;"><i class="fas fa-times"></i></button>
         </div>
-    </div> <!-- fin menú hamburguesa -->
+
+        <div style="padding:10px 0;">
+
+            <!-- 🆕 BOTONES DE TEMARIO / PLANIFICACIONES -->
+            <div class="menu-hamburguesa-item" onclick="cerrarMenuHamburguesaDocente(); setTimeout(() => verMisTemasPorSemana(), 300);" 
+                 style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-list-alt" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Ver Mis Temas por Semana</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" onclick="cerrarMenuHamburguesaDocente(); setTimeout(() => abrirModalPlanificacion(), 300);" 
+                 style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-clipboard-list" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Crear Planificación</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" onclick="cerrarMenuHamburguesaDocente(); setTimeout(() => verPlanificacionesGuardadas(), 300);" 
+                 style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-folder-open" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Ver Planificaciones Guardadas</span>
+            </div>
+
+            <div style="border-top:1px solid #eee; margin:10px 20px;"></div>
+
+            <!-- ITEMS ORIGINALES -->
+            <div class="menu-hamburguesa-item" data-pantalla-docente="clases" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-calendar-alt" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Clases</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" data-pantalla-docente="nuevaClase" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-plus-circle" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Crear Clase</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" data-pantalla-docente="grabaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-video" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Grabaciones</span> 
+            </div>
+
+            <div style="border-top:1px solid #eee; margin:10px 20px;"></div>
+
+            <div class="menu-hamburguesa-item" data-pantalla-docente="estudiantes" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-users" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Estudiantes</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" data-pantalla-docente="calificaciones" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-star" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Calificaciones</span>
+            </div>
+
+            <div class="menu-hamburguesa-item" data-pantalla-docente="miAsistencia" style="padding:12px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:8px;margin:2px 8px;transition:all 0.2s;font-size:0.95rem;">
+                <i class="fas fa-clipboard-list" style="color:#E63946;width:20px;font-size:1.1rem;"></i>
+                <span>Mi Asistencia</span>
+            </div>
+        </div>
+
+        <div style="padding:10px 20px; border-top:1px solid #eee; margin-top:10px;">
+            <div style="font-size:0.7rem;color:#999;text-align:center;">Expresión Musical v1.0</div>
+        </div>
+
+    </div>
+</div> <!-- fin menú hamburguesa -->
 
 </div> <!-- fin panel docente -->
 
